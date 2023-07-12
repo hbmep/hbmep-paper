@@ -26,7 +26,6 @@ classifiers = [
     "Operating System :: MacOS"
 ]
 dependencies = [
-    "hbmep==0.1.0",
     "jupyter==1.0.0",
     "mat73==0.60"
 ]
