@@ -1,5 +1,5 @@
 [paths]
-csv = "/home/vishu/data/mock.csv"
+csv = "/home/vishu/data/mock/mock.csv"
 build_dir = "/home/vishu/repos/hbmep/reports/test_run_02"
 
 [vars]
@@ -15,6 +15,13 @@ samples = 6000
 
 [model]
 link = "rectified_logistic"
+
+[optional.mep_data]
+mep_matrix_path = "/home/vishu/data/mock/mat.npy"    # In .npy format with shape: (No. of rows in csv) x (time) x (No. of responses)
+mep_time_range = [-0.01, 0.025]
+
+[optional.mep_size_window]
+mep_size_time_range = [0.0015, 0.01]
 
 [rectified_logistic]
 "µ_a" = [150, 20]
