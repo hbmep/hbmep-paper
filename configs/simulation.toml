@@ -1,12 +1,12 @@
 [paths]
-csv = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
-build_dir = "/home/vishu/repos/reports/paper/J_RCML_000/run01"
+csv = "simulation"
+build_dir = "/home/vishu/repos/hbmep-paper/reports/simulation/"
 
 [vars]
 subject = "participant"
 features = ["compound_position"]
 intensity = "pulse_amplitude"
-response = ["auc_1", "auc_2", "auc_3"]
+response = ["biceps_auc", "triceps_auc"]
 
 [mcmc]
 chains = 4
@@ -19,7 +19,7 @@ link = "rectified_logistic"
 [rectified_logistic]
 "µ_a" = [150, 20]
 "σ_a" = 20
-"σ_b" = 0.5
+"σ_b" = 0.1
 "σ_L" = 0.05
 "σ_H" = 5
 "σ_v" = 5

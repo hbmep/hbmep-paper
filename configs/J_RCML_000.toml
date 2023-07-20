@@ -1,12 +1,12 @@
 [paths]
 csv = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
-build_dir = "/home/vishu/repos/reports/paper/J_RCML_000/run01"
+build_dir = "/home/vishu/repos/hbmep-paper/J_RCML_000/ground/"
 
 [vars]
 subject = "participant"
 features = ["compound_position"]
 intensity = "pulse_amplitude"
-response = ["auc_1", "auc_2", "auc_3"]
+response = ["auc_1"]
 
 [mcmc]
 chains = 4
@@ -14,7 +14,7 @@ warmup = 4000
 samples = 6000
 
 [model]
-link = "rectified_logistic"
+link = "rectified_logistic_studentT"
 
 [rectified_logistic]
 "µ_a" = [150, 20]

@@ -1,12 +1,12 @@
 [paths]
-csv = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
-build_dir = "/home/vishu/repos/reports/paper/J_RCML_000/run01"
+csv = "/home/vishu/data/mock/mock.csv"
+build_dir = "/home/vishu/repos/reports/test_run_02"
 
 [vars]
 subject = "participant"
 features = ["compound_position"]
 intensity = "pulse_amplitude"
-response = ["auc_1", "auc_2", "auc_3"]
+response = ["auc_1", "auc_3"]
 
 [mcmc]
 chains = 4

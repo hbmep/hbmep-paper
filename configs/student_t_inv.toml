@@ -1,6 +1,6 @@
 [paths]
 csv = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
-build_dir = "/home/vishu/repos/reports/paper/J_RCML_000/run01"
+build_dir = "/home/vishu/repos/hbmep-paper/reports/tmux/J_RCML_000/student_T_inv/"
 
 [vars]
 subject = "participant"
@@ -14,18 +14,9 @@ warmup = 4000
 samples = 6000
 
 [model]
-link = "rectified_logistic"
+link = "rectified_logistic_studentT_inv"
 
-[rectified_logistic]
-"µ_a" = [150, 20]
-"σ_a" = 20
-"σ_b" = 0.5
-"σ_L" = 0.05
-"σ_H" = 5
-"σ_v" = 5
-"p" = 10
-"g_1" = 20
-"g_2" = 20
+[rectified_logistic_studentT_inv]
 
 [aesthetics]
 base = 20
