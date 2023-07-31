@@ -1,16 +1,13 @@
 import os
 import logging
 from typing import Optional
+from pathlib import Path
 
 import pandas as pd
 
-from hbmep.data_access import DataClass
+from hbmep.dataset import Dataset
 from hbmep.utils import timing
-from hbmep.utils.constants import (
-    INTENSITY,
-    RESPONSE,
-    PARTICIPANT,
-    FEATURES,
+from hbmep_paper.utils.constants import (
     AUC_MAP
 )
 
@@ -19,28 +16,29 @@ logger = logging.getLogger(__name__)
 
 @timing
 def load_data(
-    data: DataClass = DataClass,
-    muscle: str = "Triceps",
-    sc_approach: str = "posterior",
-    subset: Optional[list[int]] = None,
+    dir: Path,
+    sc_approach: str = "posterior"
 ):
     DATASET_REAL = 'real_data/dnc_info_2022-05-26.parquet'
-    df = pd.read_parquet(os.path.join(data.data_path, DATASET_REAL))
-    df = _clean_human_data(df, muscle, sc_approach)
-
-    if subset is not None:
-        idx = df.participant.isin(subset)
-        df = df[idx].reset_index(drop=True).copy()
-
+    df = pd.read_parquet(os.path.join(dir, DATASET_REAL))
+    df = _clean_human_data(df, sc_approach)
     return df
 
 
-def _clean_human_data(df: pd.DataFrame, muscle: str, sc_approach: str):
+def _clean_human_data(df: pd.DataFrame, sc_approach: str):
     """
     Clean human data
     """
     # Validate input
     assert sc_approach in ["anterior", "posterior"]
+
+    muscles = [
+        "Trapezius", "Deltoid", "Biceps", "Triceps", "ECR", "FCR", "APB", "ADM", "TA", "EDB", "AH"
+    ]
+
+    # muscles = [
+    #     "Triceps"
+    # ]
 
     # `sc_electrode` and `sc_electrode_type` are in 1-1 relationship
     # # Can be verified using
@@ -57,10 +55,9 @@ def _clean_human_data(df: pd.DataFrame, muscle: str, sc_approach: str):
         "sc_electrode_type",
         "sc_iti"
     ]
-    subset = \
-        [
-            AUC_MAP["L" + muscle], AUC_MAP["R" + muscle], "sc_cluster_as", "sc_current", "sc_level", "sc_cluster_as"
-        ]
+    subset = ["sc_cluster_as", "sc_current", "sc_level", "sc_cluster_as"]
+    # subset += [AUC_MAP["L" + muscle] for muscle in muscles]
+    # subset += [AUC_MAP["R" + muscle] for muscle in muscles]
     dropna_subset = subset + experiment
     df = df.dropna(subset=dropna_subset, axis="rows", how="any").copy()
 
@@ -127,17 +124,21 @@ def _clean_human_data(df: pd.DataFrame, muscle: str, sc_approach: str):
         .isin(remove_combinations)
     df = df[~idx].copy()
 
-    df[PARTICIPANT] = df["participant"]
-    df[INTENSITY] = df["sc_current"]
-    df[FEATURES[0]] = df["sc_level"]
-    df[FEATURES[1]] = df["sc_laterality"].apply(lambda x: x if x == "M" else "L")
+    df["participant"] = df["participant"]
+    df["sc_current"] = df["sc_current"]
+    df["sc_level"] = df["sc_level"]
+    df["sc_laterality"] = df["sc_laterality"].apply(lambda x: x if x == "M" else "L")
 
-    df[RESPONSE[0]] = \
-        df.apply(
-            lambda x: x[AUC_MAP["L" + muscle]] \
-            if LATERALITY_MAP[x.participant] == "L"
-            else x[AUC_MAP["R" + muscle]],
-            axis=1
-        )
+    for muscle in muscles:
+        df[muscle] = \
+            df.apply(
+                lambda x: x[AUC_MAP["L" + muscle]] \
+                if LATERALITY_MAP[x.participant] == "L"
+                else x[AUC_MAP["R" + muscle]],
+                axis=1
+            )
 
+    df["sc_current"] = df["sc_current"].apply(lambda x: x * 1000)
+
+    df.reset_index(drop=True, inplace=True)
     return df

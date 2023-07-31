@@ -27,7 +27,8 @@ classifiers = [
 ]
 dependencies = [
     "jupyter==1.0.0",
-    "mat73==0.60"
+    "mat73==0.60",
+    "fastparquet==2023.2.0"
 ]
 
 [project.urls]

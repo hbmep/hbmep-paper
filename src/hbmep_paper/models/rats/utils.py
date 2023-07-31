@@ -8,7 +8,7 @@ import mat73
 import numpy as np
 import pandas as pd
 
-from hbmep.dataset import MepDataset
+from hbmep.dataset import Dataset
 from hbmep.utils import timing
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @timing
 def load_data(
-    data: MepDataset,
+    data: Dataset,
     dir: Path,
     subdir_pattern: list[str] = ["*L_CIRC*"],
     subjects: list[int] = range(1, 7),

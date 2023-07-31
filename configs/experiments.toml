@@ -1,0 +1,30 @@
+[paths]
+csv = "simulation"
+build_dir = "/home/vishu/repos/hbmep-paper/reports/experiments/"
+
+[vars]
+subject = "participant"
+features = ["compound_position"]
+intensity = "pulse_amplitude"
+response = ["biceps_auc"]
+
+[mcmc]
+chains = 4
+warmup = 4000
+samples = 6000
+
+[model]
+link = "rectified_logistic"
+
+[rectified_logistic]
+"µ_a" = [150, 50]
+"σ_a" = 50
+"σ_b" = 0.1
+"σ_L" = 0.05
+"σ_H" = 5
+"σ_v" = 10
+"g_1" = 0.01
+"g_2" = 0.01
+
+[aesthetics]
+base = 20

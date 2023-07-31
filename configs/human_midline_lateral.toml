@@ -1,0 +1,22 @@
+[paths]
+csv = "/home/vishu/data/hbmep-processed/human/data.csv"
+build_dir = "/home/vishu/repos/hbmep-paper/reports/human/"
+
+[vars]
+subject = "participant"
+features = ["sc_laterality"]
+intensity = "sc_current"
+response = ["Triceps"]
+
+[mcmc]
+chains = 4
+warmup = 4000
+samples = 6000
+
+[model]
+link = "self"
+
+[self]
+
+[aesthetics]
+base = 1
