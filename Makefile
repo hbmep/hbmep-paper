@@ -29,9 +29,8 @@ build: build-base
 
 run:
 	@source .venv/bin/activate && \
-	python -m hbmep run \
-	--job=$(job) \
-	--model=$(model) \
-	--dataset=$(dataset) \
-	--id=$(id) \
-	--tag=$(tag)
+	python -m hbmep_paper $(config)
+
+nb:
+	@source .venv/bin/activate && \
+	jupyter notebook

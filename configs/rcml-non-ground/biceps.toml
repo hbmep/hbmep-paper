@@ -1,0 +1,22 @@
+[paths]
+csv = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
+build_dir = "/home/vishu/repos/hbmep-paper/reports/J_RCML_000_non_ground/biceps"
+
+[vars]
+subject = "participant"
+features = ["compound_position"]
+intensity = "pulse_amplitude"
+response = ["auc_2"]
+
+[mcmc]
+chains = 4
+warmup = 4000
+samples = 6000
+
+[model]
+link = "fixed"
+
+[fixed]
+
+[aesthetics]
+base = 20

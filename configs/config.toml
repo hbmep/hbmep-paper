@@ -1,12 +1,12 @@
 [paths]
-csv = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
+csv = "/home/vishu/data/hbmep-processed/L_SHIE_000/data.csv"
 build_dir = "/home/vishu/repos/reports/paper/J_RCML_000/run01"
 
 [vars]
 subject = "participant"
-features = ["compound_position"]
+features = ["compound_position", "compound_charge_params"]
 intensity = "pulse_amplitude"
-response = ["auc_1", "auc_2", "auc_3"]
+response = ["auc_2"]
 
 [mcmc]
 chains = 4
@@ -14,18 +14,9 @@ warmup = 4000
 samples = 6000
 
 [model]
-link = "rectified_logistic"
+link = "fixed"
 
-[rectified_logistic]
-"µ_a" = [150, 20]
-"σ_a" = 20
-"σ_b" = 0.5
-"σ_L" = 0.05
-"σ_H" = 5
-"σ_v" = 5
-"p" = 10
-"g_1" = 20
-"g_2" = 20
+[fixed]
 
 [aesthetics]
 base = 20
