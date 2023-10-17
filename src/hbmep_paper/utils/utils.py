@@ -32,18 +32,7 @@ from hbmep_paper.utils.constants import AUC_MAP
 logger = logging.getLogger(__name__)
 
 
-@timing
-def load_human_data(
-    dir: Path,
-    sc_approach: str = "posterior"
-):
-    DATASET_REAL = 'real_data/dnc_info_2022-05-26.parquet'
-    df = pd.read_parquet(os.path.join(dir, DATASET_REAL))
-    df = _clean_human_data(df, sc_approach)
-    return df
-
-
-def _clean_human_data(df: pd.DataFrame, sc_approach: str):
+def _clean_intraoperative_data(df: pd.DataFrame, sc_approach: str):
     """
     Clean human data
     """
@@ -156,6 +145,17 @@ def _clean_human_data(df: pd.DataFrame, sc_approach: str):
     df["sc_current"] = df["sc_current"].apply(lambda x: x * 1000)
 
     df.reset_index(drop=True, inplace=True)
+    return df
+
+
+@timing
+def load_intraoperative_data(
+    dir: Path,
+    sc_approach: str = "posterior"
+):
+    DATASET_REAL = 'real_data/dnc_info_2022-05-26.parquet'
+    df = pd.read_parquet(os.path.join(dir, DATASET_REAL))
+    df = _clean_intraoperative_data(df, sc_approach)
     return df
 
 
