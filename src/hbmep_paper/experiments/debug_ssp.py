@@ -611,6 +611,259 @@ class HierarchicalBayesian(Baseline):
                 )
 
 
+class HierarchicalBayesian2(Baseline):
+    LINK = "hierarchical_bayesian_2"
+
+    def __init__(self, config: Config):
+        super(HierarchicalBayesian2, self).__init__(config=config)
+        self.combination_columns = self.features + [self.subject]
+
+    def _model(self, subject, features, intensity, response_obs=None):
+        subject, n_subject = subject
+        features, n_features = features
+        intensity, n_data = intensity
+
+        intensity = intensity.reshape(-1, 1)
+        intensity = np.tile(intensity, (1, self.n_response))
+
+        feature0 = features[0].reshape(-1,)
+
+        n_baseline = 1
+        n_feature0 = 2
+        n_delta = 1
+
+        with numpyro.plate(site.n_response, self.n_response, dim=-1):
+            # global_sigma_b_baseline = numpyro.sample("global_sigma_b_baseline", dist.HalfNormal(100))
+            # global_sigma_v_baseline = numpyro.sample("global_sigma_v_baseline", dist.HalfNormal(100))
+
+            # global_sigma_L_baseline = numpyro.sample("global_sigma_L_baseline", dist.HalfNormal(1))
+            # global_sigma_l_baseline = numpyro.sample("global_sigma_l_baseline", dist.HalfNormal(100))
+            # global_sigma_H_baseline = numpyro.sample("global_sigma_H_baseline", dist.HalfNormal(5))
+
+            # global_sigma_g_1_baseline = numpyro.sample("global_sigma_g_1_baseline", dist.HalfNormal(100))
+            # global_sigma_g_2_baseline = numpyro.sample("global_sigma_g_2_baseline", dist.HalfNormal(100))
+
+            # global_sigma_p_baseline = numpyro.sample("global_sigma_p_baseline", dist.HalfNormal(100))
+
+            with numpyro.plate("n_baseline", n_baseline, dim=-2):
+                """ Hyper-priors """
+                mu_a_baseline = numpyro.sample("mu_a_baseline", dist.HalfNormal(scale=5))
+                sigma_a_baseline = numpyro.sample("sigma_a_baseline", dist.HalfNormal(scale=1))
+
+                # sigma_b_raw_baseline = numpyro.sample("sigma_b_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_b_baseline = numpyro.deterministic("sigma_b_baseline", global_sigma_b_baseline * sigma_b_raw_baseline)
+
+                # sigma_v_raw_baseline = numpyro.sample("sigma_v_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_v_baseline = numpyro.deterministic("sigma_v_baseline", global_sigma_v_baseline * sigma_v_raw_baseline)
+
+                # sigma_L_raw_baseline = numpyro.sample("sigma_L_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_L_baseline = numpyro.deterministic("sigma_L_baseline", global_sigma_L_baseline * sigma_L_raw_baseline)
+
+                # sigma_l_raw_baseline = numpyro.sample("sigma_l_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_l_baseline = numpyro.deterministic("sigma_l_baseline", global_sigma_l_baseline * sigma_l_raw_baseline)
+
+                # sigma_H_raw_baseline = numpyro.sample("sigma_H_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_H_baseline = numpyro.deterministic("sigma_H_baseline", global_sigma_H_baseline * sigma_H_raw_baseline)
+
+                # sigma_g_1_raw_baseline = numpyro.sample("sigma_g_1_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_g_1_baseline = numpyro.deterministic("sigma_g_1_baseline", global_sigma_g_1_baseline * sigma_g_1_raw_baseline)
+
+                # sigma_g_2_raw_baseline = numpyro.sample("sigma_g_2_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_g_2_baseline = numpyro.deterministic("sigma_g_2_baseline", global_sigma_g_2_baseline * sigma_g_2_raw_baseline)
+
+                # sigma_p_raw_baseline = numpyro.sample("sigma_p_raw_baseline", dist.HalfNormal(scale=1))
+                # sigma_p_baseline = numpyro.deterministic("sigma_p_baseline", global_sigma_p_baseline * sigma_p_raw_baseline)
+
+                with numpyro.plate(site.n_subject, n_subject, dim=-3):
+                    """ Priors """
+                    a_raw_baseline = numpyro.sample("a_raw_baseline", dist.Gamma(concentration=mu_a_baseline, rate=1))
+                    a_baseline = numpyro.deterministic("a_baseline", (1 / sigma_a_baseline) * a_raw_baseline)
+
+                    # b_raw_baseline = numpyro.sample("b_raw_baseline", dist.HalfNormal(scale=1))
+                    # b_baseline = numpyro.deterministic("b_baseline", sigma_b_baseline * b_raw_baseline)
+
+                    # v_raw_baseline = numpyro.sample("v_raw_baseline", dist.HalfNormal(scale=1))
+                    # v_baseline = numpyro.deterministic("v_baseline", sigma_v_baseline * v_raw_baseline)
+
+                    # L_raw_baseline = numpyro.sample("L_raw_baseline", dist.HalfNormal(scale=1))
+                    # L_baseline = numpyro.deterministic("L_baseline", sigma_L_baseline * L_raw_baseline)
+
+                    # l_raw_baseline = numpyro.sample("l_raw_baseline", dist.HalfNormal(scale=1))
+                    # l_baseline = numpyro.deterministic("l_baseline", sigma_l_baseline * l_raw_baseline)
+
+                    # H_raw_baseline = numpyro.sample("H_raw_baseline", dist.HalfNormal(scale=1))
+                    # H_baseline = numpyro.deterministic("H_baseline", sigma_H_baseline * H_raw_baseline)
+
+                    # g_1_raw_baseline = numpyro.sample("g_1_raw_baseline", dist.HalfCauchy(scale=1))
+                    # g_1_baseline = numpyro.deterministic("g_1_baseline", sigma_g_1_baseline * g_1_raw_baseline)
+
+                    # g_2_raw_baseline = numpyro.sample("g_2_raw_baseline", dist.HalfCauchy(scale=1))
+                    # g_2_baseline = numpyro.deterministic("g_2_baseline", sigma_g_2_baseline * g_2_raw_baseline)
+
+                    # p_raw_baseline = numpyro.sample("p_raw_baseline", dist.HalfNormal(scale=1))
+                    # p_baseline = numpyro.deterministic("p_baseline", sigma_p_baseline * p_raw_baseline)
+
+        """ Delta """
+        with numpyro.plate(site.n_response, self.n_response, dim=-1):
+            with numpyro.plate("n_delta", n_delta, dim=-2):
+                mu_a_delta = numpyro.sample("mu_a_delta", dist.Normal(0, 100))
+                sigma_a_delta = numpyro.sample("sigma_a_delta", dist.HalfNormal(100))
+
+                with numpyro.plate(site.n_subject, n_subject, dim=-3):
+                    a_delta = numpyro.sample("a_delta", dist.Normal(mu_a_delta, sigma_a_delta))
+
+        with numpyro.plate(site.n_response, self.n_response, dim=-1):
+            global_sigma_b = numpyro.sample("global_sigma_b", dist.HalfNormal(100))
+            global_sigma_v = numpyro.sample("global_sigma_v", dist.HalfNormal(100))
+
+            global_sigma_L = numpyro.sample("global_sigma_L", dist.HalfNormal(1))
+            global_sigma_l = numpyro.sample("global_sigma_l", dist.HalfNormal(100))
+            global_sigma_H = numpyro.sample("global_sigma_H", dist.HalfNormal(5))
+
+            global_sigma_g_1 = numpyro.sample("global_sigma_g_1", dist.HalfNormal(100))
+            global_sigma_g_2 = numpyro.sample("global_sigma_g_2", dist.HalfNormal(100))
+
+            global_sigma_p = numpyro.sample("global_sigma_p", dist.HalfNormal(100))
+
+            with numpyro.plate("n_feature0", n_feature0, dim=-2):
+                sigma_b_raw = numpyro.sample("sigma_b_raw", dist.HalfNormal(scale=1))
+                sigma_b = numpyro.deterministic("sigma_b", global_sigma_b * sigma_b_raw)
+
+                sigma_v_raw = numpyro.sample("sigma_v_raw", dist.HalfNormal(scale=1))
+                sigma_v = numpyro.deterministic("sigma_v", global_sigma_v * sigma_v_raw)
+
+                sigma_L_raw = numpyro.sample("sigma_L_raw", dist.HalfNormal(scale=1))
+                sigma_L = numpyro.deterministic("sigma_L", global_sigma_L * sigma_L_raw)
+
+                sigma_l_raw = numpyro.sample("sigma_l_raw", dist.HalfNormal(scale=1))
+                sigma_l = numpyro.deterministic("sigma_l", global_sigma_l * sigma_l_raw)
+
+                sigma_H_raw = numpyro.sample("sigma_H_raw", dist.HalfNormal(scale=1))
+                sigma_H = numpyro.deterministic("sigma_H", global_sigma_H * sigma_H_raw)
+
+                sigma_g_1_raw = numpyro.sample("sigma_g_1_raw", dist.HalfNormal(scale=1))
+                sigma_g_1 = numpyro.deterministic("sigma_g_1", global_sigma_g_1 * sigma_g_1_raw)
+
+                sigma_g_2_raw = numpyro.sample("sigma_g_2_raw", dist.HalfNormal(scale=1))
+                sigma_g_2 = numpyro.deterministic("sigma_g_2", global_sigma_g_2 * sigma_g_2_raw)
+
+                sigma_p_raw = numpyro.sample("sigma_p_raw", dist.HalfNormal(scale=1))
+                sigma_p = numpyro.deterministic("sigma_p", global_sigma_p * sigma_p_raw)
+
+                with numpyro.plate(site.n_subject, n_subject, dim=-3):
+                    """ Deterministic """
+                    a = numpyro.deterministic(
+                        site.a,
+                        jnp.concatenate([a_baseline, a_baseline + a_delta], axis=1)
+                    )
+
+                    # b = numpyro.deterministic(
+                    #     site.b,
+                    #     jnp.concatenate([b_baseline, b_baseline], axis=1)
+                    # )
+                    # v = numpyro.deterministic(
+                    #     site.v,
+                    #     jnp.concatenate([v_baseline, v_baseline], axis=1)
+                    # )
+
+                    # L = numpyro.deterministic(
+                    #     site.L,
+                    #     jnp.concatenate([L_baseline, L_baseline], axis=1)
+                    # )
+                    # l = numpyro.deterministic(
+                    #     "l",
+                    #     jnp.concatenate([l_baseline, l_baseline], axis=1)
+                    # )
+
+                    # H = numpyro.deterministic(
+                    #     site.H,
+                    #     jnp.concatenate([H_baseline, H_baseline], axis=1)
+                    # )
+
+                    # g_1 = numpyro.deterministic(
+                    #     site.g_1,
+                    #     jnp.concatenate([g_1_baseline, g_1_baseline], axis=1)
+                    # )
+                    # g_2 = numpyro.deterministic(
+                    #     site.g_2,
+                    #     jnp.concatenate([g_2_baseline, g_2_baseline], axis=1)
+                    # )
+
+                    # p = numpyro.deterministic(
+                    #     "p",
+                    #     jnp.concatenate([p_baseline, p_baseline], axis=1)
+                    # )
+
+                    b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
+                    b = numpyro.deterministic("b", sigma_b * b_raw)
+
+                    v_raw = numpyro.sample("v_raw", dist.HalfNormal(scale=1))
+                    v = numpyro.deterministic("v", sigma_v * v_raw)
+
+                    L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
+                    L = numpyro.deterministic("L", sigma_L * L_raw)
+
+                    l_raw = numpyro.sample("l_raw", dist.HalfNormal(scale=1))
+                    l = numpyro.deterministic("l", sigma_l * l_raw)
+
+                    H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
+                    H = numpyro.deterministic("H", sigma_H * H_raw)
+
+                    g_1_raw = numpyro.sample("g_1_raw", dist.HalfCauchy(scale=1))
+                    g_1 = numpyro.deterministic("g_1", sigma_g_1 * g_1_raw)
+
+                    g_2_raw = numpyro.sample("g_2_raw", dist.HalfCauchy(scale=1))
+                    g_2 = numpyro.deterministic("g_2", sigma_g_2 * g_2_raw)
+
+                    p_raw = numpyro.sample("p_raw", dist.HalfNormal(scale=1))
+                    p = numpyro.deterministic("p", sigma_p * p_raw)
+
+        """ Penalty """
+        penalty = (jnp.fabs(a_baseline + a_delta) - (a_baseline + a_delta))
+        numpyro.factor("a_penalty", -penalty)
+
+        with numpyro.plate(site.n_response, self.n_response, dim=-1):
+            with numpyro.plate(site.data, n_data, dim=-2):
+                """ Model """
+                mu = numpyro.deterministic(
+                    site.mu,
+                    L[subject, feature0]
+                    + jnp.where(
+                        intensity <= a[subject, feature0],
+                        0,
+                        -l[subject, feature0]
+                        + (
+                            (H[subject, feature0] + l[subject, feature0])
+                            / jnp.power(
+                                1
+                                + (
+                                    (
+                                        -1
+                                        + jnp.power(
+                                            (H[subject, feature0] + l[subject, feature0]) / l[subject, feature0],
+                                            v[subject, feature0]
+                                        )
+                                    )
+                                    * jnp.exp(-b[subject, feature0] * (intensity - a[subject, feature0]))
+                                ),
+                                1 / v[subject, feature0]
+                            )
+                        )
+                    )
+                )
+                beta = numpyro.deterministic(
+                    site.beta,
+                    g_1[subject, feature0] + g_2[subject, feature0] * ((1 / (mu + 1)) ** p[subject, feature0])
+                )
+
+                """ Observation """
+                numpyro.sample(
+                    site.obs,
+                    dist.Gamma(concentration=mu * beta, rate=beta),
+                    obs=response_obs
+                )
+
+
 class NonHierarchicalBayesian(Baseline):
     LINK = "non_hierarchical_bayesian"
 
@@ -849,7 +1102,19 @@ if __name__ == "__main__":
         )
     PREDICTION_DF = MODEL.make_prediction_dataset(df=PREDICTION_DF, num_points=60)
 
-    POSTERIOR_PREDICTIVE = MODEL.predict(df=PREDICTION_DF, posterior_samples=POST)
+    # POSTERIOR_PREDICTIVE = MODEL.predict(df=PREDICTION_DF, posterior_samples=POST)
+    # ##
+    # dest = os.path.join(MODEL.build_dir, "POSTERIOR_PREDICTIVE.pkl")
+    # with open(dest, "wb") as f:
+    #     pickle.dump((POSTERIOR_PREDICTIVE,), f)
+    # ##
+
+    ##
+    dest = os.path.join(MODEL.build_dir, "POSTERIOR_PREDICTIVE.pkl")
+    with open(dest, "rb") as g:
+        POSTERIOR_PREDICTIVE, = pickle.load(g)
+    ##
+
     OBS = np.array(POSTERIOR_PREDICTIVE[site.obs])
 
     """ Experiment space """
@@ -880,9 +1145,9 @@ if __name__ == "__main__":
 
 
     def _process(N_counter, draw_counter, repeat_counter, m):
-        N = N_space[N_counter]
-        draw_ind = draws_space[draw_counter]
-        seed = repeats_space[repeat_counter]
+        N = 8
+        draw_ind = 761
+        seed = 853
 
         N_dir, draw_dir, seed_dir = f"N_{N}", f"draw_{draw_ind}", f"seed_{seed}"
 
@@ -895,14 +1160,20 @@ if __name__ == "__main__":
             ) \
             .tolist()
 
-        if m.LINK == "hierarchical_bayesian":
+        if m.LINK in {"hierarchical_bayesian", "hierarchical_bayesian_2"}:
             ind = PREDICTION_DF[MODEL.subject].isin(subjects_ind)
             df = PREDICTION_DF[ind].reset_index(drop=True).copy()
             df[MODEL.response] = OBS[draw_ind, ...][ind, ...]
 
             """ Build model """
             config = Config(toml_path=toml_path)
-            config.BUILD_DIR = os.path.join(CONFIG.BUILD_DIR, experiment_prefix, m.LINK, simulation_prefix, draw_dir, N_dir, seed_dir)
+            config.BUILD_DIR = os.path.join(CONFIG.BUILD_DIR, "debug", experiment_prefix, m.LINK, simulation_prefix, draw_dir, N_dir, seed_dir)
+
+            ## Adjust
+            # config.MCMC_PARAMS["num_warmup"] = 10000
+            config.BUILD_DIR = os.path.join(CONFIG.BUILD_DIR, "debug", experiment_prefix, m.LINK, simulation_prefix, draw_dir, N_dir, seed_dir)
+            ##
+
             model = m(config=config)
 
             """ Load data """
@@ -941,7 +1212,12 @@ if __name__ == "__main__":
 
                 """ Build model """
                 config = Config(toml_path=toml_path)
-                config.BUILD_DIR = os.path.join(CONFIG.BUILD_DIR, experiment_prefix, m.LINK, simulation_prefix, draw_dir, N_dir, seed_dir, subject_dir)
+
+                ## Adjust
+                # config.MCMC_PARAMS["num_warmup"] = 3000
+                config.BUILD_DIR = os.path.join(CONFIG.BUILD_DIR, "debug", experiment_prefix, m.LINK, simulation_prefix, draw_dir, N_dir, seed_dir, subject_dir)
+                ##
+
                 model = m(config=config)
 
                 """ Load data """
@@ -988,8 +1264,8 @@ if __name__ == "__main__":
     parallel = Parallel(n_jobs=-1)
     parallel(
         delayed(_process)(N_counter, draw_counter, repeat_counter, model) \
-        for draw_counter in range(n_draws) \
-        for N_counter in range(len(N_space)) \
-        for repeat_counter in range(n_repeats) \
-        for model in [HierarchicalBayesian, NonHierarchicalBayesian]
+        for draw_counter in range(1) \
+        for N_counter in range(1) \
+        for repeat_counter in range(1) \
+        for model in [HierarchicalBayesian2]
     )

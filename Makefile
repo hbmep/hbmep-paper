@@ -34,3 +34,7 @@ run:
 nb:
 	@source .venv/bin/activate && \
 	jupyter notebook
+
+list:
+	@source .venv/bin/activate && \
+	jupyter notebook list
