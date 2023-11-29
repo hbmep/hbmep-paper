@@ -16,7 +16,7 @@ from sklearn.metrics import (
 )
 
 from hbmep.config import Config
-from hbmep.model import Baseline
+from hbmep.model import BaseModel
 from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 from hbmep.utils.constants import (
@@ -30,6 +30,58 @@ from hbmep.utils.constants import (
 from hbmep_paper.utils.constants import AUC_MAP
 
 logger = logging.getLogger(__name__)
+
+
+def _clean_subdural_epidural_dataset(df: pd.DataFrame):
+    """
+    Clean human data
+    """
+    # muscles = [
+    #     "Trapezius", "Deltoid", "Biceps", "Triceps", "ECR", "FCR", "APB", "ADM", "TA", "EDB", "AH"
+    # ]
+    muscles = ["Trapezius", "Deltoid", "Biceps", "Triceps", "APB", "ADM"]
+
+    # df.drop(columns=["sc_electrode"], axis=1, inplace=True)
+
+    # experiment = [
+    #     "sc_laterality",
+    #     "sc_count",
+    #     "sc_polarity",
+    #     "sc_electrode_configuration",
+    #     "sc_electrode_type",
+    #     "sc_iti"
+    # ]
+    # subset = ["sc_cluster_as", "sc_current", "sc_level", "sc_cluster_as"]
+    # # subset += [AUC_MAP["L" + muscle] for muscle in muscles]
+    # # subset += [AUC_MAP["R" + muscle] for muscle in muscles]
+    # dropna_subset = subset + experiment
+    # df = df.dropna(subset=dropna_subset, axis="rows", how="any").copy()
+
+    # Keep `mode` as `research_scs`
+    df = df[df["mode"]=="research_scs"].copy()
+
+    ind = df["participant"].isin(["scapptio017"])
+    df = df[ind].reset_index(drop=True).copy()
+
+    # ## Experiment filters
+    # # Keep `sc_count` equal to 3
+    # df = df[(df.sc_count.isin([3]))].copy()
+    # Keep `sc_electrode_type` as `handheld`
+    df = df[(df.sc_electrode_type.isin(["handheld"]))].copy()
+    # Keep `sc_electrode_configuration` as `RC`
+    df = df[(df.sc_electrode_configuration.isin(["RC"]))].copy()
+
+    for muscle in muscles:
+        df[muscle] = \
+            df.apply(
+                lambda x: x[AUC_MAP["R" + muscle]],
+                axis=1
+            )
+
+    df["sc_current"] = df["sc_current"].apply(lambda x: x * 1000)
+
+    df.reset_index(drop=True, inplace=True)
+    return df
 
 
 def _clean_intraoperative_data(df: pd.DataFrame, sc_approach: str):
@@ -151,11 +203,15 @@ def _clean_intraoperative_data(df: pd.DataFrame, sc_approach: str):
 @timing
 def load_intraoperative_data(
     dir: Path,
-    sc_approach: str = "posterior"
+    sc_approach: str = "posterior",
+    subdural_epidural_only: bool = False
 ):
     DATASET_REAL = 'real_data/dnc_info_2022-05-26.parquet'
     df = pd.read_parquet(os.path.join(dir, DATASET_REAL))
-    df = _clean_intraoperative_data(df, sc_approach)
+    if subdural_epidural_only:
+        df = _clean_subdural_epidural_dataset(df)
+    else:
+        df = _clean_intraoperative_data(df, sc_approach)
     return df
 
 
@@ -240,7 +296,7 @@ def load_rats_data(
 
 @timing
 def simulate(
-    model: Baseline,
+    model: BaseModel,
     n_subject=3,
     n_feature0=2,
     n_repeats=10,
@@ -276,7 +332,7 @@ def simulate(
 @timing
 def run_experiment(
     config: Config,
-    models: list[Baseline],
+    models: list[BaseModel],
     df: pd.DataFrame,
     posterior_samples_true: dict
 ):
@@ -284,7 +340,7 @@ def run_experiment(
     n_repeats = obs_true.shape[0]
     n_models = len(models)
 
-    baseline = Baseline(config=config)
+    baseline = BaseModel(config=config)
     df, encoder_dict = baseline.load(df=df)
 
     combinations = baseline._make_combinations(df=df, columns=baseline.combination_columns)

@@ -6,7 +6,7 @@ build_dir = "/home/vishu/repos/hbmep-paper/reports/human/tms/fit/mixed-effects"
 subject = "participant"
 features = ["intervention"]
 intensity = "TMSInt"
-response = ['APB']
+response = ['PKPK_APB']
 
 [mcmc]
 chains = 4

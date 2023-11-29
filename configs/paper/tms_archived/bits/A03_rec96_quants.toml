@@ -1,0 +1,30 @@
+[paths]
+csv = ""
+build_dir = "/home/vishu/repos/hbmep-paper/reports/paper/tms/bits/A03_rec96_quants"
+
+[vars]
+subject = "participant"
+features = ["participant_condition"]
+intensity = "TMSInt"
+response = ["APB"]
+
+[mcmc]
+chains = 4
+warmup = 6000
+samples = 4000
+
+[model]
+link = "fixed"
+
+[fixed]
+
+# [optional-mep-data]
+# mep_matrix_path = "/home/vishu/data/hbmep-processed/human/tms/mep_matrix.npy"    # In .npy format with shape: (No. of rows in csv) x (time) x (No. of responses)
+# mep_response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']              # Order of responses in MEP matrix
+# mep_time_range = [-0.15, 0.15]
+
+# [optional-mep-size-window]
+# mep_size_time_range = [0.015, 0.075]
+
+[aesthetics]
+base = 10
