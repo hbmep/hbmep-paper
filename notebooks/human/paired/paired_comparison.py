@@ -81,8 +81,11 @@ class LearnPosterior(BaseModel):
 
         feature0 = features[0].reshape(-1,)
         n_feature0 = n_features[0]
+        a_low = 0
 
         """ Global Priors """
+        a_scale_global_scale = numpyro.sample("a_scale_global_scale", dist.HalfNormal(100))
+
         b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(.1))
         v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(.1))
 
@@ -96,8 +99,8 @@ class LearnPosterior(BaseModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_subject, n_subject):
                 """ Hyper-priors """
-                a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(50, 10, low=0))
-                a_scale = numpyro.sample("a_scale", dist.HalfNormal(20.0))
+                a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(50, 10, low=a_low))
+                a_scale = numpyro.sample("a_scale", dist.HalfNormal(a_scale_global_scale))
 
                 b_scale_raw = numpyro.sample("b_scale_raw", dist.HalfNormal(scale=1))
                 b_scale = numpyro.deterministic("b_scale", jnp.multiply(b_scale_global_scale, b_scale_raw))
@@ -123,7 +126,7 @@ class LearnPosterior(BaseModel):
                 with numpyro.plate("n_feature0", n_feature0):
                     """ Priors """
                     a = numpyro.sample(
-                        "a", dist.TruncatedNormal(a_mean, a_scale, low=0)
+                        "a", dist.TruncatedNormal(a_mean, a_scale, low=a_low)
                     )
 
                     b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
