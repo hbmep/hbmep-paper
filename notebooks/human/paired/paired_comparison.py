@@ -98,6 +98,10 @@ class LearnPosterior(BaseModel):
         g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
         g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
 
+        """ Outlier Distribution """
+        outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .005))
+        outlier_scale = numpyro.sample("outlier_scale", dist.HalfNormal(10))
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_subject, n_subject):
                 """ Hyper-priors """
@@ -152,10 +156,6 @@ class LearnPosterior(BaseModel):
                     g_2_raw = numpyro.sample("g_2_raw", dist.HalfCauchy(scale=1))
                     g_2 = numpyro.deterministic(site.g_2, jnp.multiply(g_2_scale, g_2_raw))
 
-        """ Outlier Distribution """
-        outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .01))
-        outlier_scale = numpyro.sample("outlier_scale", dist.HalfNormal(10))
-
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 """ Model """
@@ -176,6 +176,7 @@ class LearnPosterior(BaseModel):
                     g_1[feature0, subject] + jnp.true_divide(g_2[feature0, subject], mu)
                 )
 
+                main_component = dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta)
                 q = numpyro.deterministic("q", outlier_prob * jnp.ones((n_data, self.n_response)))
                 bg_scale = numpyro.deterministic("bg_scale", outlier_scale * jnp.ones((n_data, self.n_response)))
 
@@ -183,7 +184,7 @@ class LearnPosterior(BaseModel):
                     probs=jnp.stack([1 - q, q], axis=-1)
                 )
                 component_distributions=[
-                    dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
+                    main_component,
                     dist.HalfNormal(scale=bg_scale)
                 ]
 
@@ -199,7 +200,6 @@ class LearnPosterior(BaseModel):
                     Mixture,
                     obs=response_obs
                 )
-
 
 # In[11]:
 toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml"
@@ -239,7 +239,6 @@ orderby = lambda x: (x[1], x[0])
 # In[13]:
 model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
 
-
 # In[14]:
 mcmc, posterior_samples = model.run_inference(df=df)
 
@@ -247,7 +246,8 @@ mcmc, posterior_samples = model.run_inference(df=df)
 _posterior_samples = posterior_samples.copy()
 _posterior_samples["outlier_prob"] = _posterior_samples["outlier_prob"] * 0
 
-prediction_df = model.make_prediction_dataset(df=df)
+# prediction_df = model.make_prediction_dataset(df=df)
+prediction_df = model.make_prediction_dataset(df=df, min_intensity=0, max_intensity=100)
 posterior_predictive = model.predict(df=prediction_df, posterior_samples=_posterior_samples)
 
 model.render_recruitment_curves(df=df, encoder_dict=encoder_dict,
@@ -260,6 +260,19 @@ model.render_predictive_check(df=df, encoder_dict=encoder_dict,
                               prediction_df=prediction_df,
                               posterior_predictive=posterior_predictive,
                               orderby=orderby)
+
+# %%
+prediction_df = model.make_prediction_dataset(df=df)
+
+df_local = prediction_df.copy()
+ind = df_local[model.subject].isin(['SCA04'])
+df_local = df_local[np.invert(ind)].reset_index(drop=True).copy()
+# ind = df_local[model.features].isin(['REC'])  # maybe should be 1, 2?
+# df_local = df_local[np.invert(ind)].reset_index(drop=True).copy()
+
+posterior_predictive = model.predict(df=df_local, posterior_samples=_posterior_samples)
+
+# posterior_predictive[site.mu].shape is chain_length x df height x muscles
 
 
 # In[11]:
