@@ -30,7 +30,7 @@ numpyro.enable_validation()
 
 logger = logging.getLogger(__name__)
 
-str_date = datetime.today().strftime('%Y-%m-%dTHM')
+str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
 
 # In[10]:
 
@@ -44,8 +44,8 @@ class LearnPosterior(BaseModel):
 
     def __init__(self, config: Config):
         super(LearnPosterior, self).__init__(config=config)
-        # self.combination_columns = self.features + [self.subject]
-        self.combination_columns = [self.subject] + self.features
+        self.combination_columns = self.features + [self.subject]
+        # self.combination_columns = [self.subject] + self.features
 
     def fn(self, x, a, b, v, L, ell, H):
         return (
@@ -94,7 +94,7 @@ class LearnPosterior(BaseModel):
         g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
 
         with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("n_feature0", n_feature0):
+            with numpyro.plate(site.n_subject, n_subject):
                 """ Hyper-priors """
                 a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(50, 10, low=0))
                 a_scale = numpyro.sample("a_scale", dist.HalfNormal(20.0))
@@ -120,7 +120,7 @@ class LearnPosterior(BaseModel):
                 g_2_scale_raw = numpyro.sample("g_2_scale_raw", dist.HalfNormal(scale=1))
                 g_2_scale = numpyro.deterministic("g_2_scale", jnp.multiply(g_2_scale_global_scale, g_2_scale_raw))
 
-                with numpyro.plate(site.n_subject, n_subject):
+                with numpyro.plate("n_feature0", n_feature0):
                     """ Priors """
                     a = numpyro.sample(
                         "a", dist.TruncatedNormal(a_mean, a_scale, low=0)
@@ -158,17 +158,17 @@ class LearnPosterior(BaseModel):
                     site.mu,
                     self.fn(
                         x=intensity,
-                        a=a[subject, feature0],
-                        b=b[subject, feature0],
-                        v=v[subject, feature0],
-                        L=L[subject, feature0],
-                        ell=ell[subject, feature0],
-                        H=H[subject, feature0]
+                        a=a[feature0, subject],
+                        b=b[feature0, subject],
+                        v=v[feature0, subject],
+                        L=L[feature0, subject],
+                        ell=ell[feature0, subject],
+                        H=H[feature0, subject]
                     )
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    g_1[subject, feature0] + jnp.true_divide(g_2[subject, feature0], mu)
+                    g_1[feature0, subject] + jnp.true_divide(g_2[feature0, subject], mu)
                 )
 
                 q = numpyro.deterministic("q", outlier_prob * jnp.ones((n_data, self.n_response)))
