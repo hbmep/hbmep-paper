@@ -82,18 +82,18 @@ class LearnPosterior(BaseModel):
         feature0 = features[0].reshape(-1,)
         n_feature0 = n_features[0]
 
+        """ Global Priors """
+        b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(.1))
+        v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(.1))
+
+        L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(.1))
+        ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(5))
+        H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(2))
+
+        g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
+        g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
+
         with numpyro.plate(site.n_response, self.n_response):
-            """ Global Priors """
-            b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(.1))
-            v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(.1))
-
-            L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(.1))
-            ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(5))
-            H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(2))
-
-            g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
-            g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
-
             with numpyro.plate("n_feature0", n_feature0):
                 """ Hyper-priors """
                 a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(50, 10, low=0))
@@ -229,18 +229,14 @@ mat = mat[ind, ...]
 
 df, encoder_dict = model.load(df=df)
 
+orderby = lambda x: (x[1], x[0])
 
 # In[13]:
-
-
 model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
 
 
 # In[14]:
-
-
 mcmc, posterior_samples = model.run_inference(df=df)
-
 
 # In[15]:
 _posterior_samples = posterior_samples.copy()
@@ -249,8 +245,16 @@ _posterior_samples["outlier_prob"] = _posterior_samples["outlier_prob"] * 0
 prediction_df = model.make_prediction_dataset(df=df)
 posterior_predictive = model.predict(df=prediction_df, posterior_samples=_posterior_samples)
 
-model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=_posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
-model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+model.render_recruitment_curves(df=df, encoder_dict=encoder_dict,
+                                posterior_samples=_posterior_samples,
+                                prediction_df=prediction_df,
+                                posterior_predictive=posterior_predictive,
+                                orderby=orderby)
+
+model.render_predictive_check(df=df, encoder_dict=encoder_dict,
+                              prediction_df=prediction_df,
+                              posterior_predictive=posterior_predictive,
+                              orderby=orderby)
 
 
 # In[11]:
