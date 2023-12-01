@@ -30,7 +30,7 @@ numpyro.enable_validation()
 
 logger = logging.getLogger(__name__)
 
-str_date = datetime.today().strftime('%Y-%m-%d')
+str_date = datetime.today().strftime('%Y-%m-%dTHM')
 
 # In[10]:
 
@@ -201,7 +201,7 @@ toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/conf
 
 config = Config(toml_path=toml_path)
 config.BUILD_DIR = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_paired'
-config.RESPONSE = ["PKPK_APB", "PKPK_ADM"]
+config.RESPONSE = ["AUC_APB", "AUC_ADM"]
 config.MCMC_PARAMS["num_warmup"] = 4000
 config.MCMC_PARAMS["num_samples"] = 1000
 config.FEATURES = ["protocol"]

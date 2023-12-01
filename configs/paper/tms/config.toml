@@ -21,8 +21,8 @@ link = "fixed"
 
 [optional-mep-data]
 mep_matrix_path = ""    # In .npy format with shape: (No. of rows in csv) x (time) x (No. of responses)
-mep_response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']              # Order of responses in MEP matrix
-# mep_response = ['AUC_ADM', 'AUC_APB', 'AUC_Biceps', 'AUC_ECR', 'AUC_FCR', 'AUC_Triceps']
+# mep_response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']              # Order of responses in MEP matrix
+mep_response = ['AUC_ADM', 'AUC_APB', 'AUC_Biceps', 'AUC_ECR', 'AUC_FCR', 'AUC_Triceps']
 mep_time_range = [-0.15, 0.15]
 mep_size_time_range = [0.015, 0.075]
 
