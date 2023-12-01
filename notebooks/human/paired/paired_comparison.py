@@ -6,6 +6,7 @@ import pickle
 import logging
 import multiprocessing
 from pathlib import Path
+from datetime import datetime
 
 import pandas as pd
 import numpy as np
@@ -29,6 +30,7 @@ numpyro.enable_validation()
 
 logger = logging.getLogger(__name__)
 
+str_date = datetime.today().strftime('%Y-%m-%d')
 
 # In[10]:
 
@@ -202,6 +204,7 @@ config.BUILD_DIR = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paire
 config.RESPONSE = ["PKPK_APB", "PKPK_ADM"]
 config.MCMC_PARAMS["num_warmup"] = 4000
 config.MCMC_PARAMS["num_samples"] = 1000
+config.FEATURES = ["protocol"]
 
 model = LearnPosterior(config=config)
 
