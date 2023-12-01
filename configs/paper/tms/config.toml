@@ -6,8 +6,8 @@ build_dir = "/home/vishu/repos/hbmep-paper/reports/paper/tms/"
 subject = "participant"
 features = ["participant_condition"]
 intensity = "TMSInt"
-response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
-# response = ['AUC_ADM', 'AUC_APB', 'AUC_Biceps', 'AUC_ECR', 'AUC_FCR', 'AUC_Triceps']
+# response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
+response = ['AUC_ADM', 'AUC_APB', 'AUC_Biceps', 'AUC_ECR', 'AUC_FCR', 'AUC_Triceps']
 
 [mcmc]
 chains = 4

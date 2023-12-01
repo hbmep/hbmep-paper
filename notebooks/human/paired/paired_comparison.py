@@ -88,12 +88,12 @@ class LearnPosterior(BaseModel):
         a_mean_global_scale = numpyro.sample("a_mean_global_scale", dist.HalfNormal(100))
         a_mean_global_mean = numpyro.sample("a_mean_global_mean", dist.TruncatedNormal(50, 50, low=a_low))
 
-        b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(.1))
-        v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(.1))
+        b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(100))
+        v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(100))
 
-        L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(.1))
-        ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(5))
-        H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(2))
+        L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(10))
+        ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(100))
+        H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(10))
 
         g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
         g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
@@ -206,7 +206,7 @@ toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/conf
 
 config = Config(toml_path=toml_path)
 config.BUILD_DIR = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_paired'
-config.RESPONSE = ["AUC_APB", "AUC_ADM"]
+# config.RESPONSE = ["AUC_APB", "AUC_ADM"]
 config.MCMC_PARAMS["num_warmup"] = 4000
 config.MCMC_PARAMS["num_samples"] = 1000
 config.FEATURES = ["protocol"]
@@ -220,8 +220,8 @@ df = pd.read_csv(src)
 src = "/home/mcintosh/Local/temp/test_hbmep/data/proc_2023-11-29_paired.npy"
 mat = np.load(src)
 
-subset = ["SCA04", "SCA07"]
-# , "SCA11"
+subset = ["SCA04", "SCA07", "SCA11"]
+#
 ind = df[model.subject].isin(subset)
 df = df[ind].reset_index(drop=True).copy()
 mat = mat[ind, ...]
