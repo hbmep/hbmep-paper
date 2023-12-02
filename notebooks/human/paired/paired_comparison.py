@@ -7,6 +7,8 @@ import logging
 import multiprocessing
 from pathlib import Path
 from datetime import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import pandas as pd
 import numpy as np
@@ -205,8 +207,8 @@ toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/conf
 config = Config(toml_path=toml_path)
 config.BUILD_DIR = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_paired'
 # config.RESPONSE = ["AUC_APB", "AUC_ADM"]
-config.MCMC_PARAMS["num_warmup"] = 4000
-config.MCMC_PARAMS["num_samples"] = 1000
+config.MCMC_PARAMS["num_warmup"] = 5000
+config.MCMC_PARAMS["num_samples"] = 2000
 config.FEATURES = ["protocol"]
 
 model = LearnPosterior(config=config)
@@ -240,6 +242,19 @@ model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
 # In[14]:
 mcmc, posterior_samples = model.run_inference(df=df)
 
+# %%
+dest = os.path.join(model.build_dir, "inference.pkl")
+print(dest)
+if os.path.isfile(dest):
+    with open(dest, "wb") as f:
+        pickle.dump((model, mcmc, posterior_samples), f)
+
+    dest_nc = os.path.join(model.build_dir, "inference.nc")
+    az.to_netcdf(mcmc, dest_nc)
+else:
+    with open(dest, "rb") as g:
+        model, mcmc, posterior_samples = pickle.load(g)
+
 # In[15]:
 _posterior_samples = posterior_samples.copy()
 _posterior_samples["outlier_prob"] = _posterior_samples["outlier_prob"] * 0
@@ -262,40 +277,66 @@ model.render_predictive_check(df=df, encoder_dict=encoder_dict,
 # %%
 prediction_df = model.make_prediction_dataset(df=df)
 
-df_local = prediction_df.copy()
-ind = df_local[model.subject].isin(['SCA04'])
-df_local = df_local[np.invert(ind)].reset_index(drop=True).copy()
-# ind = df_local[model.features].isin(['REC'])  # maybe should be 1, 2?
-# df_local = df_local[np.invert(ind)].reset_index(drop=True).copy()
+df_template = prediction_df.copy()
+ind1 = df_template[model.subject].isin([0])
+ind2 = df_template[model.features[0]].isin([0])  # the 0 index on list is because it is a list
+df_template = df_template[ind1 & ind2]
 
-posterior_predictive = model.predict(df=df_local, posterior_samples=_posterior_samples)
+rows = 3
+cols = 3
+pp = [[None for _ in range(cols)] for _ in range(rows)]
+for p in range(rows):
+    for f in range(cols):
+        df_local = df_template.copy()
+        df_local[model.subject] = p
+        df_local[model.features[0]] = f
+        pp[p][f] = model.predict(df=df_local, posterior_samples=_posterior_samples)
+
+# %%
+n_muscles = 6
+x = df_template.TMSInt.values
+conditions = ['Sub-tSCS', 'Supra-tSCS', 'Normal']
+fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
+colors = sns.color_palette('colorblind')
+for ix_p in range(rows):
+    for ix_muscle in range(n_muscles):
+        ax = axs[ix_p, ix_muscle]
+        for ix_cond in range(2):
+            X = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] / pp[ix_p][2][site.mu][:, :, ix_muscle]
+            first_column = X[:, 0].reshape(-1, 1)
+            X = X/first_column
+            y = np.mean(X, 0)
+            y1 = np.percentile(X, 2.5, axis=0)
+            y2 = np.percentile(X, 97.5, axis=0)
+            ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+            ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+            if ix_p == 0 and ix_muscle == 0:
+                ax.legend()
+plt.show()
+fig.savefig(Path(model.build_dir) / "norm_REC.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "norm_REC.png", format='png')
+# %%
+import seaborn as sns
+
+
+
+
+# Adding labels and title if needed
+plt.xlabel('X-axis label')
+plt.ylabel('Y-axis label')
+plt.title('Line Plot with Shaded Area')
+
+# Show legend if you have multiple lines
+# plt.legend()
+
+# Display the plot
+plt.show()
 
 # posterior_predictive[site.mu].shape is chain_length x df height x muscles
 
-
-# In[11]:
-dest = os.path.join(model.build_dir, "inference.pkl")
-with open(dest, "wb") as f:
-    pickle.dump((model, mcmc, posterior_samples), f)
-
-print(dest)
-
-
 # In[12]:
-dest = os.path.join(model.build_dir, "inference.nc")
-az.to_netcdf(mcmc, dest)
-dest
 
 
 # In[13]:
-numpyro_data = az.from_numpyro(mcmc)
-
-""" Model evaluation """
-logger.info("Evaluating model ...")
-
-score = az.loo(numpyro_data, var_name=site.obs)
-logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
-
-score = az.waic(numpyro_data, var_name=site.obs)
-logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
-
+# numpyro_data = az.from_numpyro(mcmc)
