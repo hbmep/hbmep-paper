@@ -33,8 +33,6 @@ logger = logging.getLogger(__name__)
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
 
 # In[10]:
-
-
 import numpyro.distributions as dist
 from hbmep.model import BaseModel
 
@@ -276,42 +274,28 @@ posterior_predictive = model.predict(df=df_local, posterior_samples=_posterior_s
 
 
 # In[11]:
-#
-#
-# dest = os.path.join(model.build_dir, "inference.pkl")
-# with open(dest, "wb") as f:
-#     pickle.dump((model, mcmc, posterior_samples), f)
-#
-# print(dest)
-#
-#
-# # In[12]:
-#
-#
-# dest = os.path.join(model.build_dir, "inference.nc")
-# az.to_netcdf(mcmc, dest)
-# dest
-#
-#
-# # In[13]:
-#
-#
-# numpyro_data = az.from_numpyro(mcmc)
-#
-# """ Model evaluation """
-# logger.info("Evaluating model ...")
-#
-# score = az.loo(numpyro_data, var_name=site.obs)
-# logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
-#
-# score = az.waic(numpyro_data, var_name=site.obs)
-# logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
-#
-#
-# # In[15]:
-#
-#
-# type(posterior_samples)
-# posterior_samples.keys()
-# posterior_samples
-#
+dest = os.path.join(model.build_dir, "inference.pkl")
+with open(dest, "wb") as f:
+    pickle.dump((model, mcmc, posterior_samples), f)
+
+print(dest)
+
+
+# In[12]:
+dest = os.path.join(model.build_dir, "inference.nc")
+az.to_netcdf(mcmc, dest)
+dest
+
+
+# In[13]:
+numpyro_data = az.from_numpyro(mcmc)
+
+""" Model evaluation """
+logger.info("Evaluating model ...")
+
+score = az.loo(numpyro_data, var_name=site.obs)
+logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
+
+score = az.waic(numpyro_data, var_name=site.obs)
+logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
+
