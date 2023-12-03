@@ -316,7 +316,7 @@ for ix_p in range(rows):
 
             Y = (Y - 1) * 100
             # X = X/
-            x = df_template.TMSInt.values
+            x = df_template[config.INTENSITY].values
             y = np.mean(Y, 0)
             y1 = np.percentile(Y, 2.5, axis=0)
             y2 = np.percentile(Y, 97.5, axis=0)
@@ -329,7 +329,7 @@ for ix_p in range(rows):
             if ix_p == 0:
                 ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
             if ix_muscle == 0:
-                ax.set_xlabel('TMS Intensity (%)')
+                ax.set_xlabel(config.INTENSITY + ' Intensity')
             ax.set_xlim([0, 70])
 plt.show()
 fig.savefig(Path(model.build_dir) / "norm_REC.svg", format='svg')
@@ -341,7 +341,7 @@ for ix_p in range(rows):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
         for ix_cond in range(3):
-            x = df_template.TMSInt.values
+            x = df_template[config.INTENSITY].values
             Y = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle]
             y = np.mean(Y, 0)
             y1 = np.percentile(Y, 2.5, axis=0)
@@ -353,7 +353,7 @@ for ix_p in range(rows):
             ind1 = df_local[model.subject].isin([ix_p])
             ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
             df_local = df_local[ind1 & ind2]
-            x = df_local.TMSInt.values
+            x = df_local[config.INTENSITY].values
             y = df_local[config.RESPONSE[ix_muscle]].values
             ax.plot(x, y,
                     color=colors[ix_cond], marker='o', markeredgecolor='w',
@@ -366,7 +366,7 @@ for ix_p in range(rows):
                 ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
             if ix_muscle == 0:
                 ax.set_ylabel('AUC (uVs)')
-                ax.set_xlabel('TMS Intensity (%)')
+                ax.set_xlabel(config.INTENSITY + ' Intensity (%)')
             ax.set_xlim([0, 70])
 
 
