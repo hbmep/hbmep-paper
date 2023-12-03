@@ -294,28 +294,79 @@ for p in range(rows):
 
 # %%
 n_muscles = 6
-x = df_template.TMSInt.values
 conditions = ['Sub-tSCS', 'Supra-tSCS', 'Normal']
-fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
+# I need a good way of linking back to the conditions in the data
 colors = sns.color_palette('colorblind')
+
+fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
 for ix_p in range(rows):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
         for ix_cond in range(2):
-            X = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] / pp[ix_p][2][site.mu][:, :, ix_muscle]
-            first_column = X[:, 0].reshape(-1, 1)
-            X = X/first_column
-            y = np.mean(X, 0)
-            y1 = np.percentile(X, 2.5, axis=0)
-            y2 = np.percentile(X, 97.5, axis=0)
+            first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+            first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+            Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
+                 (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+
+            Y = (Y - 1) * 100
+            # X = X/
+            x = df_template.TMSInt.values
+            y = np.mean(Y, 0)
+            y1 = np.percentile(Y, 2.5, axis=0)
+            y2 = np.percentile(Y, 97.5, axis=0)
             ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
             ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
 
             if ix_p == 0 and ix_muscle == 0:
                 ax.legend()
+                ax.set_ylabel('% Fac. (Paired/Brain-only + Spine-only)')
+            if ix_p == 0:
+                ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+            if ix_muscle == 0:
+                ax.set_xlabel('TMS Intensity (%)')
+            ax.set_xlim([0, 70])
 plt.show()
 fig.savefig(Path(model.build_dir) / "norm_REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "norm_REC.png", format='png')
+
+# %%
+fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
+for ix_p in range(rows):
+    for ix_muscle in range(n_muscles):
+        ax = axs[ix_p, ix_muscle]
+        for ix_cond in range(3):
+            x = df_template.TMSInt.values
+            Y = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle]
+            y = np.mean(Y, 0)
+            y1 = np.percentile(Y, 2.5, axis=0)
+            y2 = np.percentile(Y, 97.5, axis=0)
+            ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+            ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+            df_local = df.copy()
+            ind1 = df_local[model.subject].isin([ix_p])
+            ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
+            df_local = df_local[ind1 & ind2]
+            x = df_local.TMSInt.values
+            y = df_local[config.RESPONSE[ix_muscle]].values
+            ax.plot(x, y,
+                    color=colors[ix_cond], marker='o', markeredgecolor='w',
+                    markerfacecolor=colors[ix_cond], linestyle='None',
+                    markeredgewidth=1, markersize=4)
+
+            if ix_p == 0 and ix_muscle == 0:
+                ax.legend()
+            if ix_p == 0:
+                ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+            if ix_muscle == 0:
+                ax.set_ylabel('AUC (uVs)')
+                ax.set_xlabel('TMS Intensity (%)')
+            ax.set_xlim([0, 70])
+
+
+plt.show()
+fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "REC.png", format='png')
 # %%
 import seaborn as sns
 
