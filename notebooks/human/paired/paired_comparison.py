@@ -202,14 +202,20 @@ class LearnPosterior(BaseModel):
                 )
 
 # In[11]:
+stim_type = 'TMS'
+# stim_type = 'TSCS'
+if stim_type == 'TMS':
+    stim_type_alt = 'TMS'
+elif stim_type == 'TSCS':
+    stim_type_alt = 'TSS'
 toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml"
-
 config = Config(toml_path=toml_path)
-config.BUILD_DIR = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_paired'
+config.BUILD_DIR = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_' + stim_type + '_paired'
 # config.RESPONSE = ["AUC_APB", "AUC_ADM"]
 config.MCMC_PARAMS["num_warmup"] = 5000
 config.MCMC_PARAMS["num_samples"] = 2000
 config.FEATURES = ["protocol"]
+config.INTENSITY = stim_type + 'Int'
 
 model = LearnPosterior(config=config)
 
@@ -226,7 +232,7 @@ ind = df[model.subject].isin(subset)
 df = df[ind].reset_index(drop=True).copy()
 mat = mat[ind, ...]
 
-ind = df['stim_type'].isin(['TMS'])
+ind = df['stim_type'].isin([stim_type_alt])
 df = df[ind].reset_index(drop=True).copy()
 mat = mat[ind, ...]
 
