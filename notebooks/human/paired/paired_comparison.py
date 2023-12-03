@@ -252,14 +252,14 @@ mcmc, posterior_samples = model.run_inference(df=df)
 dest = os.path.join(model.build_dir, "inference.pkl")
 print(dest)
 if os.path.isfile(dest):
+    with open(dest, "rb") as g:
+        model, mcmc, posterior_samples = pickle.load(g)
+else:
     with open(dest, "wb") as f:
         pickle.dump((model, mcmc, posterior_samples), f)
 
     dest_nc = os.path.join(model.build_dir, "inference.nc")
     az.to_netcdf(mcmc, dest_nc)
-else:
-    with open(dest, "rb") as g:
-        model, mcmc, posterior_samples = pickle.load(g)
 
 # In[15]:
 _posterior_samples = posterior_samples.copy()
@@ -373,27 +373,6 @@ for ix_p in range(rows):
 plt.show()
 fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC.png", format='png')
-# %%
-import seaborn as sns
-
-
-
-
-# Adding labels and title if needed
-plt.xlabel('X-axis label')
-plt.ylabel('Y-axis label')
-plt.title('Line Plot with Shaded Area')
-
-# Show legend if you have multiple lines
-# plt.legend()
-
-# Display the plot
-plt.show()
-
-# posterior_predictive[site.mu].shape is chain_length x df height x muscles
-
-# In[12]:
-
 
 # In[13]:
 # numpyro_data = az.from_numpyro(mcmc)
