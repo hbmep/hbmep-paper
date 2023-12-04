@@ -317,7 +317,7 @@ conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df
 participants = list(encoder_dict[model.subject].inverse_transform(np.unique(df[model.subject])))
 
 colors = sns.color_palette('colorblind')
-pp = [[None for _ in range(len(conditions))] for _ in range(rows)]
+pp = [[None for _ in range(len(conditions))] for _ in range(len(participants))]
 for p in range(len(participants)):
     for f in range(len(conditions)):
         df_local = df_template.copy()
