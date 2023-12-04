@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+#
 # %%
 import os
 import pickle
@@ -34,7 +35,7 @@ numpyro.enable_validation()
 logger = logging.getLogger(__name__)
 
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
-
+str_date = '2023-12-02T2221'
 # In[10]:
 import numpyro.distributions as dist
 from hbmep.model import BaseModel
@@ -244,12 +245,6 @@ df, encoder_dict = model.load(df=df)
 
 orderby = lambda x: (x[1], x[0])
 
-# In[13]:
-model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
-
-# In[14]:
-mcmc, posterior_samples = model.run_inference(df=df)
-
 # %%
 dest = os.path.join(build_dir, "inference.pkl")
 print(dest)
@@ -257,6 +252,10 @@ if os.path.isfile(dest):
     with open(dest, "rb") as g:
         model, mcmc, posterior_samples = pickle.load(g)
 else:
+    model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
+
+    mcmc, posterior_samples = model.run_inference(df=df)
+
     with open(dest, "wb") as f:
         pickle.dump((model, mcmc, posterior_samples), f)
 
@@ -290,8 +289,12 @@ ind1 = df_template[model.subject].isin([0])
 ind2 = df_template[model.features[0]].isin([0])  # the 0 index on list is because it is a list
 df_template = df_template[ind1 & ind2]
 
+n_muscles = len(model.response)
+conditions = ['Sub-tSCS', 'Supra-tSCS', 'Normal']
+# I need a good way of linking back to the conditions in the data
+colors = sns.color_palette('colorblind')
 rows = 3
-cols = 3
+cols = len(conditions)
 pp = [[None for _ in range(cols)] for _ in range(rows)]
 for p in range(rows):
     for f in range(cols):
@@ -301,11 +304,6 @@ for p in range(rows):
         pp[p][f] = model.predict(df=df_local, posterior_samples=_posterior_samples)
 
 # %%
-n_muscles = len(model.response)
-conditions = ['Sub-tSCS', 'Supra-tSCS', 'Normal']
-# I need a good way of linking back to the conditions in the data
-colors = sns.color_palette('colorblind')
-
 fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
 for ix_p in range(rows):
     for ix_muscle in range(n_muscles):
@@ -377,59 +375,43 @@ fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC.png", format='png')
 
 # %%
-fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
-for ix_p in range(rows):
-    for ix_muscle in range(n_muscles):
-        ax = axs[ix_p, ix_muscle]
-        for ix_cond in range(3):
-            x = df_template[config.INTENSITY].values
-            Y = pp[ix_p][ix_cond][site.a][:, :, ix_muscle]
+list_params = [site.a, site.H, site.L, 'ell']
+for ix_params in range(len(list_params)):
+    str_p = list_params[ix_params]
+    fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
+    for ix_p in range(rows):
+        for ix_muscle in range(n_muscles):
+            ax = axs[ix_p, ix_muscle]
+            for ix_cond in range(3):
+                x = df_template[config.INTENSITY].values
+                Y = posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
 
-            # Perform KDE
-            kde = stats.gaussian_kde(Y)
+                # Perform KDE
+                kde = stats.gaussian_kde(Y)
 
-            # Evaluate the density on a grid
-            x_grid = np.linspace(min(Y), max(Y), 1000)
-            density = kde(x_grid)
+                # Evaluate the density on a grid
+                # x_grid = np.linspace(0.0, 100.0, 1000)
+                x_grid = np.linspace(min(Y), max(Y), 1000)
 
-            # Plot the density
-            plt.figure(figsize=(8, 6))
-            plt.plot(x_grid, density, label='KDE')
-            plt.hist(Y, bins=30, density=True, alpha=0.5, label='Histogram')
-            plt.title('Kernel Density Estimation')
-            plt.legend()
-            plt.show()
-            #
-            # y = np.mean(Y, 0)
-            # y1 = np.percentile(Y, 2.5, axis=0)
-            # y2 = np.percentile(Y, 97.5, axis=0)
-            # ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
-            # ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
-            #
-            # df_local = df.copy()
-            # ind1 = df_local[model.subject].isin([ix_p])
-            # ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
-            # df_local = df_local[ind1 & ind2]
-            # x = df_local[model.intensity].values
-            # y = df_local[model.response[ix_muscle]].values
-            # ax.plot(x, y,
-            #         color=colors[ix_cond], marker='o', markeredgecolor='w',
-            #         markerfacecolor=colors[ix_cond], linestyle='None',
-            #         markeredgewidth=1, markersize=4)
-            #
-            # if ix_p == 0 and ix_muscle == 0:
-            #     ax.legend()
-            # if ix_p == 0:
-            #     ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
-            # if ix_muscle == 0:
-            #     ax.set_ylabel('AUC (uVs)')
-            #     ax.set_xlabel(config.INTENSITY + ' Intensity (%)')
-            # ax.set_xlim([0, 70])
+                density = kde(x_grid)
 
+                # Plot the density
+                ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
+                # ax.hist(Y, bins=30, density=True, alpha=0.5, label='Histogram')
 
-plt.show()
-fig.savefig(Path(model.build_dir) / "param_a.svg", format='svg')
-fig.savefig(Path(model.build_dir) / "param_a.png", format='png')
+                if ix_p == 0 and ix_muscle == 0:
+                    ax.legend()
+                if ix_p == 0:
+                    ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+                if ix_muscle == 0:
+                    # ax.set_ylabel('AUC (uVs)')
+                    ax.set_xlabel(str_p)
+                # ax.set_xlim([0, 70])
+
+    plt.show()
+    # fig.savefig(Path(model.build_dir) / f"param_{str_p}.svg", format='svg')
+    fig.savefig(Path(model.build_dir) / f"param_{str_p}.png", format='png')
+    plt.close()
 
 # In[13]:
 # numpyro_data = az.from_numpyro(mcmc)
