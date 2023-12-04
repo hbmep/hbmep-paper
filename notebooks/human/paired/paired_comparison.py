@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import datetime
 import matplotlib.pyplot as plt
 import seaborn as sns
+from jax import grad, vmap
 
 import pandas as pd
 import numpy as np
@@ -35,7 +36,7 @@ numpyro.enable_validation()
 logger = logging.getLogger(__name__)
 
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
-str_date = '2023-12-02T2221'
+# str_date = '2023-12-02T2221'
 # In[10]:
 import numpyro.distributions as dist
 from hbmep.model import BaseModel
@@ -72,6 +73,20 @@ class LearnPosterior(BaseModel):
                 )
             )
         )
+
+    # Scalar gradient function
+    def gradient_fn(self, x, a, b, v, L, ell, H):
+        # Scalar gradient function
+        scalar_grad_fn = grad(self.fn, argnums=0)
+
+        # First level of vectorization (e.g., over the first dimension of x)
+        vectorized_grad_fn_level1 = vmap(scalar_grad_fn, in_axes=(0, 0, 0, 0, 0, 0, 0))
+
+        # Second level of vectorization (e.g., over the second dimension of x)
+        vectorized_grad_fn = vmap(vectorized_grad_fn_level1, in_axes=(1, 1, 1, 1, 1, 1, 1))
+
+        # Apply the double-vectorized gradient function
+        return vectorized_grad_fn(x, a, b, v, L, ell, H)
 
     def _model(self, subject, features, intensity, response_obs=None):
         subject, n_subject = subject
@@ -178,6 +193,20 @@ class LearnPosterior(BaseModel):
                     g_1[feature0, subject] + jnp.true_divide(g_2[feature0, subject], mu)
                 )
 
+                gradient = numpyro.deterministic(
+                    "gradient",
+                    self.gradient_fn(
+                    x=intensity,
+                    a=a[feature0, subject],
+                    b=b[feature0, subject],
+                    v=v[feature0, subject],
+                    L=L[feature0, subject],
+                    ell=ell[feature0, subject],
+                    H=H[feature0, subject]
+                    )
+                )
+
+                # Use the gradient as a deterministic value in your model
                 main_component = dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta)
                 q = numpyro.deterministic("q", outlier_prob * jnp.ones((n_data, self.n_response)))
                 bg_scale = numpyro.deterministic("bg_scale", outlier_scale * jnp.ones((n_data, self.n_response)))
@@ -373,9 +402,49 @@ for ix_p in range(rows):
 plt.show()
 fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC.png", format='png')
+# %%
+posterior_samples['max_grad'] = np.zeros(posterior_samples['H'].shape)
+fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
+for ix_p in range(rows):
+    for ix_muscle in range(n_muscles):
+        ax = axs[ix_p, ix_muscle]
+        for ix_cond in range(3):
+            x = df_template[config.INTENSITY].values
+            Y = pp[ix_p][ix_cond]['gradient'][:, ix_muscle, :]  # not sure why this index is flipped...
+            posterior_samples['max_grad'][:, ix_cond, ix_p, ix_muscle] = np.max(Y, axis=1)
+            y = np.mean(Y, 0)
+            y1 = np.percentile(Y, 2.5, axis=0)
+            y2 = np.percentile(Y, 97.5, axis=0)
+            ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+            ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+            # df_local = df.copy()
+            # ind1 = df_local[model.subject].isin([ix_p])
+            # ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
+            # df_local = df_local[ind1 & ind2]
+            # x = df_local[model.intensity].values
+            # y = df_local[model.response[ix_muscle]].values
+            # ax.plot(x, y,
+            #         color=colors[ix_cond], marker='o', markeredgecolor='w',
+            #         markerfacecolor=colors[ix_cond], linestyle='None',
+            #         markeredgewidth=1, markersize=4)
+
+            if ix_p == 0 and ix_muscle == 0:
+                ax.legend()
+            if ix_p == 0:
+                ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+            if ix_muscle == 0:
+                ax.set_ylabel('AUC (uVs)')
+                ax.set_xlabel(config.INTENSITY + ' Intensity (%)')
+            ax.set_xlim([0, 70])
+
+
+plt.show()
+# fig.savefig(Path(model.build_dir) / "GRAD.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "GRAD.png", format='png')
 
 # %%
-list_params = [site.a, site.H, site.L, 'ell']
+list_params = [site.a, site.H, 'max_grad']
 for ix_params in range(len(list_params)):
     str_p = list_params[ix_params]
     fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
@@ -386,18 +455,11 @@ for ix_params in range(len(list_params)):
                 x = df_template[config.INTENSITY].values
                 Y = posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
 
-                # Perform KDE
                 kde = stats.gaussian_kde(Y)
-
-                # Evaluate the density on a grid
-                # x_grid = np.linspace(0.0, 100.0, 1000)
                 x_grid = np.linspace(min(Y), max(Y), 1000)
 
                 density = kde(x_grid)
-
-                # Plot the density
                 ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
-                # ax.hist(Y, bins=30, density=True, alpha=0.5, label='Histogram')
 
                 if ix_p == 0 and ix_muscle == 0:
                     ax.legend()
