@@ -299,7 +299,7 @@ for p in range(rows):
         pp[p][f] = model.predict(df=df_local, posterior_samples=_posterior_samples)
 
 # %%
-n_muscles = 6
+n_muscles = len(model.response)
 conditions = ['Sub-tSCS', 'Supra-tSCS', 'Normal']
 # I need a good way of linking back to the conditions in the data
 colors = sns.color_palette('colorblind')
@@ -327,9 +327,9 @@ for ix_p in range(rows):
                 ax.legend()
                 ax.set_ylabel('% Fac. (Paired/Brain-only + Spine-only)')
             if ix_p == 0:
-                ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+                ax.set_title(model.response[ix_muscle].split('_')[1])
             if ix_muscle == 0:
-                ax.set_xlabel(config.INTENSITY + ' Intensity')
+                ax.set_xlabel(model.intensity + ' Intensity')
             ax.set_xlim([0, 70])
 plt.show()
 fig.savefig(Path(model.build_dir) / "norm_REC.svg", format='svg')
@@ -353,8 +353,8 @@ for ix_p in range(rows):
             ind1 = df_local[model.subject].isin([ix_p])
             ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
             df_local = df_local[ind1 & ind2]
-            x = df_local[config.INTENSITY].values
-            y = df_local[config.RESPONSE[ix_muscle]].values
+            x = df_local[model.intensity].values
+            y = df_local[model.response[ix_muscle]].values
             ax.plot(x, y,
                     color=colors[ix_cond], marker='o', markeredgecolor='w',
                     markerfacecolor=colors[ix_cond], linestyle='None',
