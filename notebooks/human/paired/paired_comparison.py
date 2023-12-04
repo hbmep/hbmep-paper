@@ -12,6 +12,7 @@ import seaborn as sns
 
 import pandas as pd
 import numpy as np
+import scipy.stats as stats
 import jax
 import jax.numpy as jnp
 
@@ -209,8 +210,9 @@ if stim_type == 'TMS':
 elif stim_type == 'TSCS':
     stim_type_alt = 'TSS'
 toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml"
+build_dir = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_' + stim_type + '_paired'
 config = Config(toml_path=toml_path)
-config.BUILD_DIR = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_' + stim_type + '_paired'
+config.BUILD_DIR = build_dir
 # config.RESPONSE = ["AUC_APB", "AUC_ADM"]
 config.MCMC_PARAMS["num_warmup"] = 5000
 config.MCMC_PARAMS["num_samples"] = 2000
@@ -249,7 +251,7 @@ model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
 mcmc, posterior_samples = model.run_inference(df=df)
 
 # %%
-dest = os.path.join(model.build_dir, "inference.pkl")
+dest = os.path.join(build_dir, "inference.pkl")
 print(dest)
 if os.path.isfile(dest):
     with open(dest, "rb") as g:
@@ -373,6 +375,61 @@ for ix_p in range(rows):
 plt.show()
 fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC.png", format='png')
+
+# %%
+fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
+for ix_p in range(rows):
+    for ix_muscle in range(n_muscles):
+        ax = axs[ix_p, ix_muscle]
+        for ix_cond in range(3):
+            x = df_template[config.INTENSITY].values
+            Y = pp[ix_p][ix_cond][site.a][:, :, ix_muscle]
+
+            # Perform KDE
+            kde = stats.gaussian_kde(Y)
+
+            # Evaluate the density on a grid
+            x_grid = np.linspace(min(Y), max(Y), 1000)
+            density = kde(x_grid)
+
+            # Plot the density
+            plt.figure(figsize=(8, 6))
+            plt.plot(x_grid, density, label='KDE')
+            plt.hist(Y, bins=30, density=True, alpha=0.5, label='Histogram')
+            plt.title('Kernel Density Estimation')
+            plt.legend()
+            plt.show()
+            #
+            # y = np.mean(Y, 0)
+            # y1 = np.percentile(Y, 2.5, axis=0)
+            # y2 = np.percentile(Y, 97.5, axis=0)
+            # ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+            # ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+            #
+            # df_local = df.copy()
+            # ind1 = df_local[model.subject].isin([ix_p])
+            # ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
+            # df_local = df_local[ind1 & ind2]
+            # x = df_local[model.intensity].values
+            # y = df_local[model.response[ix_muscle]].values
+            # ax.plot(x, y,
+            #         color=colors[ix_cond], marker='o', markeredgecolor='w',
+            #         markerfacecolor=colors[ix_cond], linestyle='None',
+            #         markeredgewidth=1, markersize=4)
+            #
+            # if ix_p == 0 and ix_muscle == 0:
+            #     ax.legend()
+            # if ix_p == 0:
+            #     ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+            # if ix_muscle == 0:
+            #     ax.set_ylabel('AUC (uVs)')
+            #     ax.set_xlabel(config.INTENSITY + ' Intensity (%)')
+            # ax.set_xlim([0, 70])
+
+
+plt.show()
+fig.savefig(Path(model.build_dir) / "param_a.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "param_a.png", format='png')
 
 # In[13]:
 # numpyro_data = az.from_numpyro(mcmc)
