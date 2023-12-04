@@ -8,22 +8,25 @@ import logging
 import multiprocessing
 from pathlib import Path
 from datetime import datetime
-import matplotlib.pyplot as plt
-import seaborn as sns
-from jax import grad, vmap
 
 import pandas as pd
 import numpy as np
 import scipy.stats as stats
-import jax
-import jax.numpy as jnp
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 import arviz as az
 import numpyro
+import numpyro.distributions as dist
+import jax
+import jax.numpy as jnp
+from jax import grad, vmap
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
+from hbmep.model import BaseModel
 
+# %%
 PLATFORM = "cpu"
 jax.config.update("jax_platforms", PLATFORM)
 numpyro.set_platform(PLATFORM)
@@ -36,12 +39,8 @@ numpyro.enable_validation()
 logger = logging.getLogger(__name__)
 
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
-# str_date = '2023-12-02T2221'
+str_date = '2023-12-03T2154'
 # In[10]:
-import numpyro.distributions as dist
-from hbmep.model import BaseModel
-
-
 class LearnPosterior(BaseModel):
     LINK = "learn_posterior"
 
@@ -74,18 +73,10 @@ class LearnPosterior(BaseModel):
             )
         )
 
-    # Scalar gradient function
     def gradient_fn(self, x, a, b, v, L, ell, H):
-        # Scalar gradient function
         scalar_grad_fn = grad(self.fn, argnums=0)
-
-        # First level of vectorization (e.g., over the first dimension of x)
         vectorized_grad_fn_level1 = vmap(scalar_grad_fn, in_axes=(0, 0, 0, 0, 0, 0, 0))
-
-        # Second level of vectorization (e.g., over the second dimension of x)
         vectorized_grad_fn = vmap(vectorized_grad_fn_level1, in_axes=(1, 1, 1, 1, 1, 1, 1))
-
-        # Apply the double-vectorized gradient function
         return vectorized_grad_fn(x, a, b, v, L, ell, H)
 
     def _model(self, subject, features, intensity, response_obs=None):
@@ -268,8 +259,6 @@ ind = df['stim_type'].isin([stim_type_alt])
 df = df[ind].reset_index(drop=True).copy()
 mat = mat[ind, ...]
 
-# df = df.astype({'TSCSInt': 'string'})
-
 df, encoder_dict = model.load(df=df)
 
 orderby = lambda x: (x[1], x[0])
@@ -323,10 +312,9 @@ conditions = ['Sub-tSCS', 'Supra-tSCS', 'Normal']
 # I need a good way of linking back to the conditions in the data
 colors = sns.color_palette('colorblind')
 rows = 3
-cols = len(conditions)
-pp = [[None for _ in range(cols)] for _ in range(rows)]
+pp = [[None for _ in range(len(conditions))] for _ in range(rows)]
 for p in range(rows):
-    for f in range(cols):
+    for f in range(len(conditions)):
         df_local = df_template.copy()
         df_local[model.subject] = p
         df_local[model.features[0]] = f
@@ -337,7 +325,7 @@ fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
 for ix_p in range(rows):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
-        for ix_cond in range(2):
+        for ix_cond in range(len(conditions) - 1):
             first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
             first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
             Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
@@ -345,7 +333,7 @@ for ix_p in range(rows):
 
             Y = (Y - 1) * 100
             # X = X/
-            x = df_template[config.INTENSITY].values
+            x = df_template[model.intensity].values
             y = np.mean(Y, 0)
             y1 = np.percentile(Y, 2.5, axis=0)
             y2 = np.percentile(Y, 97.5, axis=0)
@@ -369,8 +357,51 @@ fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
 for ix_p in range(rows):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
-        for ix_cond in range(3):
-            x = df_template[config.INTENSITY].values
+        for ix_cond in range(len(conditions) - 1):
+            first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+            first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+            Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
+                 (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+
+            Y = (Y - 1) * 100
+            # X = X/
+            x = df_template[model.intensity].values
+            y = np.mean(Y, 0)
+            y1 = np.percentile(Y, 2.5, axis=0)
+            y2 = np.percentile(Y, 97.5, axis=0)
+            a_mea = np.mean(posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
+            x = (x/a_mea) * 100
+            ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+            ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+            if ix_p == 0 and ix_muscle == 0:
+                ax.legend()
+                ax.set_ylabel('% Fac. (Paired/Brain-only + Spine-only)')
+            if ix_p == 0:
+                ax.set_title(model.response[ix_muscle].split('_')[1])
+            if ix_muscle == 0:
+                ax.set_xlabel('Motor threshold %')
+            ax.set_xlim([0, 300])
+            ax.set_axisbelow(True)
+            ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
+
+            if ix_cond == 0:
+                x_max = x[np.argmax(y)]
+                ax.plot(x_max * np.ones(2), ax.get_ylim(), color=colors[ix_cond], linestyle='--')
+                y_text = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.75
+                ax.text(x_max, y_text, f"{x_max:0.1f}%")
+
+plt.show()
+fig.savefig(Path(model.build_dir) / "norm_REC_MT.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "norm_REC_MT.png", format='png')
+
+# %%
+fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
+for ix_p in range(rows):
+    for ix_muscle in range(n_muscles):
+        ax = axs[ix_p, ix_muscle]
+        for ix_cond in range(len(conditions)):
+            x = df_template[model.intensity].values
             Y = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle]
             y = np.mean(Y, 0)
             y1 = np.percentile(Y, 2.5, axis=0)
@@ -395,7 +426,7 @@ for ix_p in range(rows):
                 ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
             if ix_muscle == 0:
                 ax.set_ylabel('AUC (uVs)')
-                ax.set_xlabel(config.INTENSITY + ' Intensity (%)')
+                ax.set_xlabel(model.intensity + ' Intensity (%)')
             ax.set_xlim([0, 70])
 
 
@@ -408,8 +439,8 @@ fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
 for ix_p in range(rows):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
-        for ix_cond in range(3):
-            x = df_template[config.INTENSITY].values
+        for ix_cond in range(len(conditions)):
+            x = df_template[model.intensity].values
             Y = pp[ix_p][ix_cond]['gradient'][:, ix_muscle, :]  # not sure why this index is flipped...
             posterior_samples['max_grad'][:, ix_cond, ix_p, ix_muscle] = np.max(Y, axis=1)
             y = np.mean(Y, 0)
@@ -418,24 +449,13 @@ for ix_p in range(rows):
             ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
             ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
 
-            # df_local = df.copy()
-            # ind1 = df_local[model.subject].isin([ix_p])
-            # ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
-            # df_local = df_local[ind1 & ind2]
-            # x = df_local[model.intensity].values
-            # y = df_local[model.response[ix_muscle]].values
-            # ax.plot(x, y,
-            #         color=colors[ix_cond], marker='o', markeredgecolor='w',
-            #         markerfacecolor=colors[ix_cond], linestyle='None',
-            #         markeredgewidth=1, markersize=4)
-
             if ix_p == 0 and ix_muscle == 0:
                 ax.legend()
             if ix_p == 0:
                 ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
             if ix_muscle == 0:
                 ax.set_ylabel('AUC (uVs)')
-                ax.set_xlabel(config.INTENSITY + ' Intensity (%)')
+                ax.set_xlabel(model.intensity + ' Intensity (%)')
             ax.set_xlim([0, 70])
 
 
@@ -451,8 +471,8 @@ for ix_params in range(len(list_params)):
     for ix_p in range(rows):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
-            for ix_cond in range(3):
-                x = df_template[config.INTENSITY].values
+            for ix_cond in range(len(conditions)):
+                x = df_template[model.intensity].values
                 Y = posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
 
                 kde = stats.gaussian_kde(Y)
@@ -466,7 +486,6 @@ for ix_params in range(len(list_params)):
                 if ix_p == 0:
                     ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
                 if ix_muscle == 0:
-                    # ax.set_ylabel('AUC (uVs)')
                     ax.set_xlabel(str_p)
                 # ax.set_xlim([0, 70])
 
