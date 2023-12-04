@@ -39,7 +39,7 @@ numpyro.enable_validation()
 logger = logging.getLogger(__name__)
 
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
-str_date = '2023-12-03T2154'
+# str_date = '2023-12-03T2154'
 stim_type = 'TMS'
 # str_date = '2023-12-03T2155'
 # stim_type = 'TSCS'
@@ -116,6 +116,12 @@ class LearnPosterior(BaseModel):
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_subject, n_subject):
+                with numpyro.plate("x", 1):
+                    ell_baseline = numpyro.sample("ell_baseline", dist.HalfNormal(100))
+                    # print("ell_baseline", ell_baseline.shape)
+
+        with numpyro.plate(site.n_response, self.n_response):
+            with numpyro.plate(site.n_subject, n_subject):
                 """ Hyper-priors """
                 a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(a_mean_global_mean, a_mean_global_scale, low=a_low))
                 a_scale = numpyro.sample("a_scale", dist.HalfNormal(a_scale_global_scale))
@@ -129,8 +135,8 @@ class LearnPosterior(BaseModel):
                 L_scale_raw = numpyro.sample("L_scale_raw", dist.HalfNormal(scale=1))
                 L_scale = numpyro.deterministic("L_scale", jnp.multiply(L_scale_global_scale, L_scale_raw))
 
-                ell_scale_raw = numpyro.sample("ell_scale_raw", dist.HalfNormal(scale=1))
-                ell_scale = numpyro.deterministic("ell_scale", jnp.multiply(ell_scale_global_scale, ell_scale_raw))
+                # ell_scale_raw = numpyro.sample("ell_scale_raw", dist.HalfNormal(scale=1))
+                # ell_scale = numpyro.deterministic("ell_scale", jnp.multiply(ell_scale_global_scale, ell_scale_raw))
 
                 H_scale_raw = numpyro.sample("H_scale_raw", dist.HalfNormal(scale=1))
                 H_scale = numpyro.deterministic("H_scale", jnp.multiply(H_scale_global_scale, H_scale_raw))
@@ -156,8 +162,10 @@ class LearnPosterior(BaseModel):
                     L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
                     L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
 
-                    ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
-                    ell = numpyro.deterministic("ell", jnp.multiply(ell_scale, ell_raw))
+                    # ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                    ell = numpyro.deterministic(site.ell, jnp.concatenate([ell_baseline, ell_baseline, ell_baseline], axis=0))
+                    # print("ell", ell.shape)
+                    # print("a", a.shape)
 
                     H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
                     H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
