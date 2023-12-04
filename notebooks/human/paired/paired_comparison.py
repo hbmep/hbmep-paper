@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
 # str_date = '2023-12-03T2154'
+# str_date = '2023-12-04T1039'
 stim_type = 'TMS'
 # str_date = '2023-12-03T2155'
 # stim_type = 'TSCS'
@@ -364,8 +365,8 @@ for ix_p in range(len(participants)):
                 ax.set_xlabel(model.intensity + ' Intensity')
             ax.set_xlim([0, 70])
 plt.show()
-fig.savefig(Path(model.build_dir) / "norm_REC.svg", format='svg')
-fig.savefig(Path(model.build_dir) / "norm_REC.png", format='png')
+fig.savefig(Path(model.build_dir) / "REC_norm.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "REC_norm.png", format='png')
 
 # %%
 fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -395,8 +396,8 @@ for ix_p in range(len(participants)):
             if ix_p == 0:
                 ax.set_title(model.response[ix_muscle].split('_')[1])
             if ix_muscle == 0:
-                ax.set_xlabel('Motor threshold %')
-            ax.set_xlim([0, 300])
+                ax.set_xlabel('Threshold %')
+            ax.set_xlim([50, 200])
             ax.set_axisbelow(True)
             ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
 
@@ -405,10 +406,53 @@ for ix_p in range(len(participants)):
                 ax.plot(x_max * np.ones(2), ax.get_ylim(), color=colors[ix_cond], linestyle='--')
                 y_text = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.75
                 ax.text(x_max, y_text, f"{x_max:0.1f}%")
+            ax.set_xlim([50, 200])
 
 plt.show()
-fig.savefig(Path(model.build_dir) / "norm_REC_MT.svg", format='svg')
-fig.savefig(Path(model.build_dir) / "norm_REC_MT.png", format='png')
+fig.savefig(Path(model.build_dir) / "REC_norm_MT.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "REC_norm_MT.png", format='png')
+
+# %%
+fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+for ix_p in range(len(participants)):
+    for ix_muscle in range(n_muscles):
+        ax = axs[ix_p, ix_muscle]
+        for ix_cond in range(len(conditions) - 1):
+            first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+            first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+            Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) -
+                 (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+
+            x = df_template[model.intensity].values
+            y = np.mean(Y, 0)
+            y1 = np.percentile(Y, 2.5, axis=0)
+            y2 = np.percentile(Y, 97.5, axis=0)
+            a_mea = np.mean(posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
+            x = (x/a_mea) * 100
+            ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+            ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+            if ix_p == 0 and ix_muscle == 0:
+                ax.legend()
+                ax.set_ylabel('AUC: Paired - (Brain-only + Spine-only)')
+            if ix_p == 0:
+                ax.set_title(model.response[ix_muscle].split('_')[1])
+            if ix_muscle == 0:
+                ax.set_xlabel('Threshold %')
+            ax.set_xlim([50, 200])
+            ax.set_axisbelow(True)
+            ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
+
+            if ix_cond == 0:
+                x_max = x[np.argmax(y)]
+                ax.plot(x_max * np.ones(2), ax.get_ylim(), color=colors[ix_cond], linestyle='--')
+                y_text = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.75
+                ax.text(x_max, y_text, f"{x_max:0.1f}")
+            ax.set_xlim([50, 200])
+
+plt.show()
+fig.savefig(Path(model.build_dir) / "REC_sub_MT.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "REC_sub_MT.png", format='png')
 
 # %%
 fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -475,8 +519,8 @@ for ix_p in range(len(participants)):
 
 
 plt.show()
-# fig.savefig(Path(model.build_dir) / "GRAD.svg", format='svg')
-fig.savefig(Path(model.build_dir) / "GRAD.png", format='png')
+# fig.savefig(Path(model.build_dir) / "REC_GRAD.svg", format='svg')
+fig.savefig(Path(model.build_dir) / "REC_GRAD.png", format='png')
 
 # %%
 list_params = [site.a, site.H, 'max_grad']
@@ -494,8 +538,8 @@ for ix_params in range(len(list_params)):
                 x_grid = np.linspace(min(Y), max(Y), 1000)
 
                 density = kde(x_grid)
-                # ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
-                sns.histplot(Y)
+                ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
+                # sns.histplot(Y, ax=ax)
                 if ix_p == 0 and ix_muscle == 0:
                     ax.legend()
                 if ix_p == 0:
