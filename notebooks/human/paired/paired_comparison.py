@@ -40,6 +40,10 @@ logger = logging.getLogger(__name__)
 
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
 str_date = '2023-12-03T2154'
+stim_type = 'TMS'
+# str_date = '2023-12-03T2155'
+# stim_type = 'TSCS'
+
 # In[10]:
 class LearnPosterior(BaseModel):
     LINK = "learn_posterior"
@@ -224,8 +228,6 @@ class LearnPosterior(BaseModel):
                 )
 
 # In[11]:
-stim_type = 'TMS'
-# stim_type = 'TSCS'
 if stim_type == 'TMS':
     stim_type_alt = 'TMS'
 elif stim_type == 'TSCS':
@@ -308,21 +310,25 @@ ind2 = df_template[model.features[0]].isin([0])  # the 0 index on list is becaus
 df_template = df_template[ind1 & ind2]
 
 n_muscles = len(model.response)
-conditions = ['Sub-tSCS', 'Supra-tSCS', 'Normal']
-# I need a good way of linking back to the conditions in the data
+conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
+mapping = {'RE2': 'Sub-tSCS', 'RE3': 'Supra-tSCS', 'REC': 'Normal'}
+conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
+conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
+participants = list(encoder_dict[model.subject].inverse_transform(np.unique(df[model.subject])))
+
 colors = sns.color_palette('colorblind')
-rows = 3
 pp = [[None for _ in range(len(conditions))] for _ in range(rows)]
-for p in range(rows):
+for p in range(len(participants)):
     for f in range(len(conditions)):
         df_local = df_template.copy()
         df_local[model.subject] = p
         df_local[model.features[0]] = f
         pp[p][f] = model.predict(df=df_local, posterior_samples=_posterior_samples)
 
+
 # %%
-fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
-for ix_p in range(rows):
+fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+for ix_p in range(len(participants)):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
         for ix_cond in range(len(conditions) - 1):
@@ -342,7 +348,8 @@ for ix_p in range(rows):
 
             if ix_p == 0 and ix_muscle == 0:
                 ax.legend()
-                ax.set_ylabel('% Fac. (Paired/Brain-only + Spine-only)')
+            if ix_muscle == 0:
+                ax.set_ylabel(participants[ix_p] + '\n% Fac. (pMEP/(cMEP + sMEP)')
             if ix_p == 0:
                 ax.set_title(model.response[ix_muscle].split('_')[1])
             if ix_muscle == 0:
@@ -353,8 +360,8 @@ fig.savefig(Path(model.build_dir) / "norm_REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "norm_REC.png", format='png')
 
 # %%
-fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
-for ix_p in range(rows):
+fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+for ix_p in range(len(participants)):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
         for ix_cond in range(len(conditions) - 1):
@@ -396,8 +403,8 @@ fig.savefig(Path(model.build_dir) / "norm_REC_MT.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "norm_REC_MT.png", format='png')
 
 # %%
-fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
-for ix_p in range(rows):
+fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+for ix_p in range(len(participants)):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
         for ix_cond in range(len(conditions)):
@@ -435,8 +442,8 @@ fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC.png", format='png')
 # %%
 posterior_samples['max_grad'] = np.zeros(posterior_samples['H'].shape)
-fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
-for ix_p in range(rows):
+fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+for ix_p in range(len(participants)):
     for ix_muscle in range(n_muscles):
         ax = axs[ix_p, ix_muscle]
         for ix_cond in range(len(conditions)):
@@ -467,11 +474,11 @@ fig.savefig(Path(model.build_dir) / "GRAD.png", format='png')
 list_params = [site.a, site.H, 'max_grad']
 for ix_params in range(len(list_params)):
     str_p = list_params[ix_params]
-    fig, axs = plt.subplots(rows, n_muscles, figsize=(15, 10))
-    for ix_p in range(rows):
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+    for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
-            ax = axs[ix_p, ix_muscle]
             for ix_cond in range(len(conditions)):
+                ax = axs[ix_p, ix_muscle]
                 x = df_template[model.intensity].values
                 Y = posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
 
@@ -479,8 +486,8 @@ for ix_params in range(len(list_params)):
                 x_grid = np.linspace(min(Y), max(Y), 1000)
 
                 density = kde(x_grid)
-                ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
-
+                # ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
+                sns.histplot(Y)
                 if ix_p == 0 and ix_muscle == 0:
                     ax.legend()
                 if ix_p == 0:
