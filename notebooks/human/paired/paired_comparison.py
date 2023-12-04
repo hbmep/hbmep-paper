@@ -521,7 +521,15 @@ plt.show()
 fig.savefig(Path(model.build_dir) / "REC_GRAD.png", format='png')
 
 # %%
-list_params = [site.a, site.H, 'max_grad']
+posterior_samples["HpL"] = np.zeros(posterior_samples['H'].shape)
+for ix_p in range(len(participants)):
+    for ix_muscle in range(n_muscles):
+        for ix_cond in range(len(conditions)):
+            posterior_samples["HpL"][:, ix_cond, ix_p, ix_muscle] = (
+                    posterior_samples[site.L][:, ix_cond, ix_p, ix_muscle] + posterior_samples[site.H][:, ix_cond, ix_p, ix_muscle])
+
+# %%
+list_params = [site.a, site.H, 'max_grad', 'HpL']
 for ix_params in range(len(list_params)):
     str_p = list_params[ix_params]
     fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
