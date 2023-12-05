@@ -36,12 +36,27 @@ numpyro.set_host_device_count(cpu_count)
 numpyro.enable_x64()
 numpyro.enable_validation()
 
-logger = logging.getLogger(__name__)
-
+# %%
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
 # str_date = '2023-12-04T1617'  # str_date = '2023-12-04T2113'
-stim_type = 'TMS'
-# stim_type = 'TSCS'
+# stim_type = 'TMS'
+stim_type = 'TSCS'
+toml_path = Path("/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml")
+build_dir = Path(r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment') / str_date / (stim_type + '_paired')
+
+# %%
+if not os.path.exists(build_dir):
+    os.makedirs(build_dir)
+logger = logging.getLogger(__name__)
+FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+logging.basicConfig(
+    format=FORMAT,
+    level=logging.INFO,
+    handlers=[
+        logging.FileHandler(Path(build_dir) / "logs.log", mode="w"),
+        logging.StreamHandler()
+    ]
+)
 
 # In[10]:
 class LearnPosterior(BaseModel):
@@ -235,10 +250,12 @@ class LearnPosterior(BaseModel):
 # In[11]:
 if stim_type == 'TMS':
     stim_type_alt = 'TMS'
+    xlim = [0, 70]
 elif stim_type == 'TSCS':
     stim_type_alt = 'TSS'
-toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml"
-build_dir = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '/' + stim_type + '_paired'
+    xlim = [0, 70]
+else:
+    raise Exception
 config = Config(toml_path=toml_path)
 config.BUILD_DIR = build_dir
 # config.RESPONSE = ["AUC_APB", "AUC_ADM"]
@@ -308,7 +325,7 @@ model.render_predictive_check(df=df, encoder_dict=encoder_dict,
                               orderby=orderby)
 
 # %%
-prediction_df = model.make_prediction_dataset(df=df)
+prediction_df = model.make_prediction_dataset(df=df, min_intensity=xlim[0], max_intensity=xlim[1])
 
 df_template = prediction_df.copy()
 ind1 = df_template[model.subject].isin([0])
@@ -357,7 +374,7 @@ for ix_p in range(len(participants)):
                 ax.set_title(model.response[ix_muscle].split('_')[1])
             if ix_muscle == 0:
                 ax.set_xlabel(model.intensity + ' Intensity')
-            ax.set_xlim([0, 70])
+            ax.set_xlim(xlim)
 plt.show()
 # fig.savefig(Path(model.build_dir) / "REC_norm.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC_norm.png", format='png')
@@ -480,7 +497,7 @@ for ix_p in range(len(participants)):
             if ix_muscle == 0:
                 ax.set_ylabel('AUC (uVs)')
                 ax.set_xlabel(model.intensity + ' Intensity (%)')
-            ax.set_xlim([0, 70])
+            ax.set_xlim(xlim)
 
 
 plt.show()
@@ -510,7 +527,7 @@ for ix_p in range(len(participants)):
             if ix_muscle == 0:
                 ax.set_ylabel('AUC (uVs)')
                 ax.set_xlabel(model.intensity + ' Intensity (%)')
-            ax.set_xlim([0, 70])
+            ax.set_xlim(xlim)
 
 
 plt.show()
@@ -518,15 +535,15 @@ plt.show()
 fig.savefig(Path(model.build_dir) / "REC_GRAD.png", format='png')
 
 # %%
-posterior_samples["HpL"] = np.zeros(posterior_samples['H'].shape)
+posterior_samples["H+L"] = np.zeros(posterior_samples['H'].shape)
 for ix_p in range(len(participants)):
     for ix_muscle in range(n_muscles):
         for ix_cond in range(len(conditions)):
-            posterior_samples["HpL"][:, ix_cond, ix_p, ix_muscle] = (
+            posterior_samples["H+L"][:, ix_cond, ix_p, ix_muscle] = (
                     posterior_samples[site.L][:, ix_cond, ix_p, ix_muscle] + posterior_samples[site.H][:, ix_cond, ix_p, ix_muscle])
 
 # %%
-list_params = [site.a, site.H, 'max_grad', 'HpL']
+list_params = [site.a, site.H, 'max_grad', 'H+L']
 for ix_params in range(len(list_params)):
     str_p = list_params[ix_params]
     fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -536,7 +553,10 @@ for ix_params in range(len(list_params)):
                 ax = axs[ix_p, ix_muscle]
                 x = df_template[model.intensity].values
                 Y = posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
-
+                case_isfinite = np.isfinite(Y)
+                if len(case_isfinite) - np.sum(case_isfinite) != 0:
+                    Y = Y[case_isfinite]
+                    logger.info(f'{str_p} - number of non-finite vals. = {len(case_isfinite) - np.sum(case_isfinite)}!')
                 kde = stats.gaussian_kde(Y)
                 x_grid = np.linspace(min(Y), max(Y), 1000)
 
