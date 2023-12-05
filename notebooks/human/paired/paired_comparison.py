@@ -77,9 +77,10 @@ class LearnPosterior(BaseModel):
         )
 
     def gradient_fn(self, x, a, b, v, L, ell, H):
+        n_params = 7
         scalar_grad_fn = grad(self.fn, argnums=0)
-        vectorized_grad_fn_level1 = vmap(scalar_grad_fn, in_axes=(0, 0, 0, 0, 0, 0, 0))
-        vectorized_grad_fn = vmap(vectorized_grad_fn_level1, in_axes=(1, 1, 1, 1, 1, 1, 1))
+        vectorized_grad_fn_level1 = vmap(scalar_grad_fn, in_axes=tuple([0] * n_params))
+        vectorized_grad_fn = vmap(vectorized_grad_fn_level1, in_axes=tuple([1] * n_params))
         return vectorized_grad_fn(x, a, b, v, L, ell, H)
 
     def _model(self, subject, features, intensity, response_obs=None):
@@ -280,6 +281,7 @@ else:
     model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
 
     mcmc, posterior_samples = model.run_inference(df=df)
+    logger.info('Done running.')
 
     with open(dest, "wb") as f:
         pickle.dump((model, mcmc, posterior_samples), f)
