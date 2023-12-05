@@ -39,10 +39,8 @@ numpyro.enable_validation()
 logger = logging.getLogger(__name__)
 
 str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
-# str_date = '2023-12-03T2154'
-# str_date = '2023-12-04T1039'
+# str_date = '2023-12-04T1617'  # str_date = '2023-12-04T2113'
 stim_type = 'TMS'
-# str_date = '2023-12-03T2155'
 # stim_type = 'TSCS'
 
 # In[10]:
@@ -240,7 +238,7 @@ if stim_type == 'TMS':
 elif stim_type == 'TSCS':
     stim_type_alt = 'TSS'
 toml_path = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml"
-build_dir = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '_' + stim_type + '_paired'
+build_dir = r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment/' + str_date + '/' + stim_type + '_paired'
 config = Config(toml_path=toml_path)
 config.BUILD_DIR = build_dir
 # config.RESPONSE = ["AUC_APB", "AUC_ADM"]
@@ -320,7 +318,6 @@ n_muscles = len(model.response)
 conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
 mapping = {'RE2': 'Sub-tSCS', 'RE3': 'Supra-tSCS', 'REC': 'Normal'}
 conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
-conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
 participants = list(encoder_dict[model.subject].inverse_transform(np.unique(df[model.subject])))
 
 colors = sns.color_palette('colorblind')
@@ -331,7 +328,6 @@ for p in range(len(participants)):
         df_local[model.subject] = p
         df_local[model.features[0]] = f
         pp[p][f] = model.predict(df=df_local, posterior_samples=_posterior_samples)
-
 
 # %%
 fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -345,7 +341,6 @@ for ix_p in range(len(participants)):
                  (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
 
             Y = (Y - 1) * 100
-            # X = X/
             x = df_template[model.intensity].values
             y = np.mean(Y, 0)
             y1 = np.percentile(Y, 2.5, axis=0)
@@ -363,7 +358,7 @@ for ix_p in range(len(participants)):
                 ax.set_xlabel(model.intensity + ' Intensity')
             ax.set_xlim([0, 70])
 plt.show()
-fig.savefig(Path(model.build_dir) / "REC_norm.svg", format='svg')
+# fig.savefig(Path(model.build_dir) / "REC_norm.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC_norm.png", format='png')
 
 # %%
@@ -407,7 +402,7 @@ for ix_p in range(len(participants)):
             ax.set_xlim([50, 200])
 
 plt.show()
-fig.savefig(Path(model.build_dir) / "REC_norm_MT.svg", format='svg')
+# fig.savefig(Path(model.build_dir) / "REC_norm_MT.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC_norm_MT.png", format='png')
 
 # %%
@@ -449,7 +444,7 @@ for ix_p in range(len(participants)):
             ax.set_xlim([50, 200])
 
 plt.show()
-fig.savefig(Path(model.build_dir) / "REC_sub_MT.svg", format='svg')
+# fig.savefig(Path(model.build_dir) / "REC_sub_MT.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC_sub_MT.png", format='png')
 
 # %%
@@ -488,8 +483,9 @@ for ix_p in range(len(participants)):
 
 
 plt.show()
-fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
+# fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
 fig.savefig(Path(model.build_dir) / "REC.png", format='png')
+
 # %%
 posterior_samples['max_grad'] = np.zeros(posterior_samples['H'].shape)
 fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -560,4 +556,9 @@ for ix_params in range(len(list_params)):
     plt.close()
 
 # In[13]:
-# numpyro_data = az.from_numpyro(mcmc)
+numpyro_data = az.from_numpyro(mcmc)
+score = az.loo(numpyro_data)
+str_out = f"ELPD LOO (Log): {score.elpd_loo:.2f} for {str_date}"
+print(str_out)
+logger.info(str_out)
+
