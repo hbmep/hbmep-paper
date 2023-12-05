@@ -76,12 +76,11 @@ class LearnPosterior(BaseModel):
             )
         )
 
-    def gradient_fn(self, x, a, b, v, L, ell, H):
-        n_params = 7
-        scalar_grad_fn = grad(self.fn, argnums=0)
-        vectorized_grad_fn_level1 = vmap(scalar_grad_fn, in_axes=tuple([0] * n_params))
-        vectorized_grad_fn = vmap(vectorized_grad_fn_level1, in_axes=tuple([1] * n_params))
-        return vectorized_grad_fn(x, a, b, v, L, ell, H)
+    def gradient_fn(self, x, **kwargs):
+        grad = jax.grad(self.fn, argnums=0)
+        for _ in range(len(x.shape)):
+            grad = jax.vmap(grad)
+        return grad(x, **kwargs)
 
     def _model(self, subject, features, intensity, response_obs=None):
         subject, n_subject = subject
@@ -496,7 +495,7 @@ for ix_p in range(len(participants)):
         ax = axs[ix_p, ix_muscle]
         for ix_cond in range(len(conditions)):
             x = df_template[model.intensity].values
-            Y = pp[ix_p][ix_cond]['gradient'][:, ix_muscle, :]  # not sure why this index is flipped...
+            Y = pp[ix_p][ix_cond]['gradient'][:, :, ix_muscle]  # not sure why this index is flipped...
             posterior_samples['max_grad'][:, ix_cond, ix_p, ix_muscle] = np.max(Y, axis=1)
             y = np.mean(Y, 0)
             y1 = np.percentile(Y, 2.5, axis=0)
