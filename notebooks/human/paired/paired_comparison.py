@@ -105,7 +105,7 @@ class LearnPosterior(BaseModel):
         v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(100))
 
         L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(10))
-        ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(100))
+        # ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(100))
         H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(10))
 
         g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
@@ -115,10 +115,10 @@ class LearnPosterior(BaseModel):
         outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .005))
         outlier_scale = numpyro.sample("outlier_scale", dist.HalfNormal(10))
 
-        # with numpyro.plate(site.n_response, self.n_response):
-        #     with numpyro.plate("ell_subject", 1):
-        #         with numpyro.plate("ell_feature", 1):
-        #             ell_baseline = numpyro.sample("ell_baseline", dist.HalfNormal(100))
+        with numpyro.plate(site.n_response, self.n_response):
+            with numpyro.plate("ell_subject", 1):
+                with numpyro.plate("ell_feature", 1):
+                    ell_baseline = numpyro.sample("ell_baseline", dist.HalfNormal(100))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_subject, n_subject):
@@ -135,8 +135,8 @@ class LearnPosterior(BaseModel):
                 L_scale_raw = numpyro.sample("L_scale_raw", dist.HalfNormal(scale=1))
                 L_scale = numpyro.deterministic("L_scale", jnp.multiply(L_scale_global_scale, L_scale_raw))
 
-                ell_scale_raw = numpyro.sample("ell_scale_raw", dist.HalfNormal(scale=1))
-                ell_scale = numpyro.deterministic("ell_scale", jnp.multiply(ell_scale_global_scale, ell_scale_raw))
+                # ell_scale_raw = numpyro.sample("ell_scale_raw", dist.HalfNormal(scale=1))
+                # ell_scale = numpyro.deterministic("ell_scale", jnp.multiply(ell_scale_global_scale, ell_scale_raw))
 
                 H_scale_raw = numpyro.sample("H_scale_raw", dist.HalfNormal(scale=1))
                 H_scale = numpyro.deterministic("H_scale", jnp.multiply(H_scale_global_scale, H_scale_raw))
@@ -162,9 +162,9 @@ class LearnPosterior(BaseModel):
                     L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
                     L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
 
-                    ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
-                    ell = numpyro.deterministic("ell", jnp.multiply(ell_scale, ell_raw))
-                    # ell = numpyro.deterministic(site.ell, jnp.tile(ell_baseline, (n_feature0, n_subject, 1)))
+                    # ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                    # ell = numpyro.deterministic("ell", jnp.multiply(ell_scale, ell_raw))
+                    ell = numpyro.deterministic(site.ell, jnp.tile(ell_baseline, (n_feature0, n_subject, 1)))
 
                     H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
                     H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
