@@ -94,8 +94,8 @@ class LearnPosterior(BaseModel):
         g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
 
         """ Outlier Distribution """
-        outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .005))
-        outlier_scale = numpyro.sample("outlier_scale", dist.HalfNormal(10))
+        outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .01))
+        outlier_scale = numpyro.sample("outlier_scale", dist.HalfNormal(20))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("ell_subject", 1):
@@ -230,14 +230,15 @@ if __name__ == "__main__":
 
     # %%
     str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
-    # str_date = '2023-12-04T1617'  # str_date = '2023-12-04T2113'
-    # stim_type = 'TMS'
-    stim_type = 'TSCS'
+    str_date = '2023-12-07T0935'  # str_date = '2023-12-04T2113'
+    stim_type = 'TMS'
+    # stim_type = 'TSCS'
     toml_path = Path(r"/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml")
     build_dir = Path(r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment') / str_date / (
-                stim_type + '_paired')
+                stim_type + '_paired') / 'info'
     fig_format = 'png'
     fig_dpi = 300
+    fig_size = (20, 12)
 
     # %%
     if not os.path.exists(build_dir):
@@ -257,11 +258,11 @@ if __name__ == "__main__":
     if stim_type == 'TMS':
         stim_type_alt = 'TMS'
         mapping = {'RE2': 'Sub-tSCS', 'RE3': 'Supra-tSCS', 'REC': 'TMS-only'}
-        xlim = [0, 70]
+        xlim = [0, 80]
     elif stim_type == 'TSCS':
         stim_type_alt = 'TSS'
         mapping = {'RE2': 'Sub-TMS', 'RE3': 'Supra-TMS', 'REC': 'tSCS-only'}
-        xlim = [0, 70]
+        xlim = [0, 80]
     else:
         raise Exception
     config = Config(toml_path=toml_path)
@@ -296,9 +297,10 @@ if __name__ == "__main__":
     orderby = lambda x: (x[1], x[0])
 
     # %%
-    dest = os.path.join(build_dir, "inference.pkl")
+    dest = Path(build_dir).parent / "inference" / "inference.pkl"
     print(dest)
     if os.path.isfile(dest):
+        logger.info('Loading model.')
         with open(dest, "rb") as g:
             model, mcmc, posterior_samples = pickle.load(g)
     else:
@@ -310,7 +312,7 @@ if __name__ == "__main__":
         with open(dest, "wb") as f:
             pickle.dump((model, mcmc, posterior_samples), f)
 
-        dest_nc = os.path.join(model.build_dir, "inference.nc")
+        dest_nc = Path(build_dir).parent / "inference" / "inference.nc"
         az.to_netcdf(mcmc, dest_nc)
 
     # In[15]:
@@ -355,6 +357,24 @@ if __name__ == "__main__":
             pp[p][f] = model.predict(df=df_local, posterior_samples=_posterior_samples)
 
     # %%
+    _posterior_samples["H+L"] = np.zeros(_posterior_samples['H'].shape)
+    for ix_p in range(len(participants)):
+        for ix_muscle in range(n_muscles):
+            for ix_cond in range(len(conditions)):
+                _posterior_samples["H+L"][:, ix_cond, ix_p, ix_muscle] = (
+                        _posterior_samples[site.L][:, ix_cond, ix_p, ix_muscle] + _posterior_samples[site.H][:, ix_cond, ix_p, ix_muscle])
+
+    # %%
+    _posterior_samples['max_grad'] = np.zeros(_posterior_samples['H'].shape)
+    for ix_p in range(len(participants)):
+        for ix_muscle in range(n_muscles):
+            for ix_cond in range(len(conditions)):
+                Y = pp[ix_p][ix_cond]['gradient'][:, :, ix_muscle]  # not sure why this index is flipped...
+                _posterior_samples['max_grad'][:, ix_cond, ix_p, ix_muscle] = np.max(Y, axis=1)
+
+    # %%
+    _posterior_samples['max_facilitation_value'] = np.zeros(_posterior_samples['H'].shape)
+    _posterior_samples['max_facilitation_location'] = np.zeros(_posterior_samples['H'].shape)
     fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
@@ -364,116 +384,19 @@ if __name__ == "__main__":
                 first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
                 Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
                      (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
-
+                a_mea = np.mean(_posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
                 Y = (Y - 1) * 100
                 x = df_template[model.intensity].values
+                x = (x / a_mea) * 100
                 y = np.mean(Y, 0)
-                y1 = np.percentile(Y, 2.5, axis=0)
-                y2 = np.percentile(Y, 97.5, axis=0)
-                ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
-                ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+                _posterior_samples['max_facilitation_value'][:, ix_cond, ix_p, ix_muscle] = np.max(Y, axis=1)
+                ix_am = np.argmax(Y, axis=1)
+                x_ = x[ix_am]
+                x_[ix_am == 0] = np.nan  # ignore cases where you get instant suppression and you don't recover... not sure about this
+                _posterior_samples['max_facilitation_location'][:, ix_cond, ix_p, ix_muscle] = x_
 
-                if ix_p == 0 and ix_muscle == 0:
-                    ax.legend()
-                if ix_muscle == 0:
-                    ax.set_ylabel(participants[ix_p] + '\n% Fac. (pMEP/(cMEP + sMEP)')
-                if ix_p == 0:
-                    ax.set_title(model.response[ix_muscle].split('_')[1])
-                if ix_muscle == 0:
-                    ax.set_xlabel(model.intensity + ' Intensity')
-                ax.set_xlim(xlim)
-    plt.show()
-    # fig.savefig(Path(model.build_dir) / "REC_norm.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / f"REC_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
-
-    # %%
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
-    for ix_p in range(len(participants)):
-        for ix_muscle in range(n_muscles):
-            ax = axs[ix_p, ix_muscle]
-            for ix_cond in range(len(conditions) - 1):
-                first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
-                first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
-                Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
-                     (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
-
-                Y = (Y - 1) * 100
-                # X = X/
-                x = df_template[model.intensity].values
-                y = np.mean(Y, 0)
-                y1 = np.percentile(Y, 2.5, axis=0)
-                y2 = np.percentile(Y, 97.5, axis=0)
-                a_mea = np.mean(posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
-                x = (x/a_mea) * 100
-                ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
-                ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
-
-                if ix_p == 0 and ix_muscle == 0:
-                    ax.legend()
-                    ax.set_ylabel('% Fac. (Paired/Brain-only + Spine-only)')
-                if ix_p == 0:
-                    ax.set_title(model.response[ix_muscle].split('_')[1])
-                if ix_muscle == 0:
-                    ax.set_xlabel('Threshold %')
-                ax.set_xlim([50, 200])
-                ax.set_axisbelow(True)
-                ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
-
-                if ix_cond == 0:
-                    x_max = x[np.argmax(y)]
-                    ax.plot(x_max * np.ones(2), ax.get_ylim(), color=colors[ix_cond], linestyle='--')
-                    y_text = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.75
-                    ax.text(x_max, y_text, f"{x_max:0.1f}%")
-                ax.set_xlim([50, 200])
-
-    plt.show()
-    # fig.savefig(Path(model.build_dir) / "REC_norm_MT.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / f"REC_norm_MT.{fig_format}", format=fig_format, dpi=fig_dpi)
-
-    # %%
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
-    for ix_p in range(len(participants)):
-        for ix_muscle in range(n_muscles):
-            ax = axs[ix_p, ix_muscle]
-            for ix_cond in range(len(conditions) - 1):
-                first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
-                first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
-                Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) -
-                     (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
-
-                x = df_template[model.intensity].values
-                y = np.mean(Y, 0)
-                y1 = np.percentile(Y, 2.5, axis=0)
-                y2 = np.percentile(Y, 97.5, axis=0)
-                a_mea = np.mean(posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
-                x = (x/a_mea) * 100
-                ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
-                ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
-
-                if ix_p == 0 and ix_muscle == 0:
-                    ax.legend()
-                    ax.set_ylabel('AUC: Paired - (Brain-only + Spine-only)')
-                if ix_p == 0:
-                    ax.set_title(model.response[ix_muscle].split('_')[1])
-                if ix_muscle == 0:
-                    ax.set_xlabel('Threshold %')
-                ax.set_xlim([50, 200])
-                ax.set_axisbelow(True)
-                ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
-
-                if ix_cond == 0:
-                    x_max = x[np.argmax(y)]
-                    ax.plot(x_max * np.ones(2), ax.get_ylim(), color=colors[ix_cond], linestyle='--')
-                    y_text = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.75
-                    ax.text(x_max, y_text, f"{x_max:0.1f}")
-                ax.set_xlim([50, 200])
-
-    plt.show()
-    # fig.savefig(Path(model.build_dir) / "REC_sub_MT.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / f"REC_sub_MT.{fig_format}", format=fig_format, dpi=fig_dpi)
-
-    # %%
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+    # %% Basic recruitment curve
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
@@ -503,7 +426,7 @@ if __name__ == "__main__":
                     ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
                 if ix_muscle == 0:
                     ax.set_ylabel('AUC (uVs)')
-                    ax.set_xlabel(model.intensity + ' Intensity (%)')
+                    ax.set_xlabel(model.intensity + ' Intensity (%/mA)')
                 ax.set_xlim(xlim)
 
 
@@ -511,16 +434,55 @@ if __name__ == "__main__":
     # fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
     fig.savefig(Path(model.build_dir) / f"REC.{fig_format}", format=fig_format, dpi=fig_dpi)
 
+    # %% Recruitment curve - abscissa rescaled to MT.
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    for ix_p in range(len(participants)):
+        for ix_muscle in range(n_muscles):
+            ax = axs[ix_p, ix_muscle]
+            for ix_cond in range(len(conditions)):
+                Y = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle]
+                a_mea = np.mean(_posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
+                x = df_template[model.intensity].values
+                x = (x/a_mea) * 100
+                y = np.mean(Y, 0)
+                y1 = np.percentile(Y, 2.5, axis=0)
+                y2 = np.percentile(Y, 97.5, axis=0)
+                ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+                ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+                df_local = df.copy()
+                ind1 = df_local[model.subject].isin([ix_p])
+                ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
+                df_local = df_local[ind1 & ind2]
+                x = df_local[model.intensity].values
+                x = (x/a_mea) * 100
+                y = df_local[model.response[ix_muscle]].values
+                ax.plot(x, y,
+                        color=colors[ix_cond], marker='o', markeredgecolor='w',
+                        markerfacecolor=colors[ix_cond], linestyle='None',
+                        markeredgewidth=1, markersize=4)
+
+                if ix_p == 0 and ix_muscle == 0:
+                    ax.legend()
+                if ix_p == 0:
+                    ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+                if ix_muscle == 0:
+                    ax.set_ylabel('AUC (uVs)')
+                    ax.set_xlabel(model.intensity + ' Intensity (% MT)')
+                ax.set_xlim([50, 200])
+
+    plt.show()
+    # fig.savefig(Path(model.build_dir) / "REC_MT.svg", format='svg')
+    fig.savefig(Path(model.build_dir) / f"REC_MT.{fig_format}", format=fig_format, dpi=fig_dpi)
+
     # %%
-    posterior_samples['max_grad'] = np.zeros(posterior_samples['H'].shape)
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
             for ix_cond in range(len(conditions)):
                 x = df_template[model.intensity].values
                 Y = pp[ix_p][ix_cond]['gradient'][:, :, ix_muscle]  # not sure why this index is flipped...
-                posterior_samples['max_grad'][:, ix_cond, ix_p, ix_muscle] = np.max(Y, axis=1)
                 y = np.mean(Y, 0)
                 y1 = np.percentile(Y, 2.5, axis=0)
                 y2 = np.percentile(Y, 97.5, axis=0)
@@ -536,38 +498,33 @@ if __name__ == "__main__":
                     ax.set_xlabel(model.intensity + ' Intensity (%)')
                 ax.set_xlim(xlim)
 
-
     plt.show()
     # fig.savefig(Path(model.build_dir) / "REC_GRAD.svg", format='svg')
     fig.savefig(Path(model.build_dir) / f"REC_GRAD.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
-    posterior_samples["H+L"] = np.zeros(posterior_samples['H'].shape)
-    for ix_p in range(len(participants)):
-        for ix_muscle in range(n_muscles):
-            for ix_cond in range(len(conditions)):
-                posterior_samples["H+L"][:, ix_cond, ix_p, ix_muscle] = (
-                        posterior_samples[site.L][:, ix_cond, ix_p, ix_muscle] + posterior_samples[site.H][:, ix_cond, ix_p, ix_muscle])
-
-    # %%
     list_params = [site.a, site.H, 'max_grad', 'H+L']
     for ix_params in range(len(list_params)):
         str_p = list_params[ix_params]
-        fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+        fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
         for ix_p in range(len(participants)):
             for ix_muscle in range(n_muscles):
                 for ix_cond in range(len(conditions)):
                     ax = axs[ix_p, ix_muscle]
                     x = df_template[model.intensity].values
-                    Y = posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
+                    Y = _posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
                     case_isfinite = np.isfinite(Y)
                     if len(case_isfinite) - np.sum(case_isfinite) != 0:
                         Y = Y[case_isfinite]
                         logger.info(f'{str_p} - number of non-finite vals. = {len(case_isfinite) - np.sum(case_isfinite)}!')
-                    kde = stats.gaussian_kde(Y)
-                    x_grid = np.linspace(min(Y), max(Y), 1000)
+                    if np.all(Y == 0):
+                        x_grid = np.linspace(0, 100, 1000)
+                        density = np.zeros(np.shape(x_grid))
+                    else:
+                        kde = stats.gaussian_kde(Y)
+                        x_grid = np.linspace(min(Y) * 0.9, max(Y) * 1.1, 1000)
+                        density = kde(x_grid)
 
-                    density = kde(x_grid)
                     ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
                     # sns.histplot(Y, ax=ax)
                     if ix_p == 0 and ix_muscle == 0:
@@ -576,12 +533,146 @@ if __name__ == "__main__":
                         ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
                     if ix_muscle == 0:
                         ax.set_xlabel(str_p)
-                    # ax.set_xlim([0, 70])
+                    ax.set_xlim([0, 200])
+                    ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
+                    ax.grid(which='minor', color=np.ones((1, 3)) * 0.5, linestyle='--')
 
         plt.show()
         # fig.savefig(Path(model.build_dir) / f"param_{str_p}.svg", format='svg')
         fig.savefig(Path(model.build_dir) / f"param_{str_p}.{fig_format}", format=fig_format, dpi=fig_dpi)
         plt.close()
+
+# %%
+    list_params = ['max_facilitation_value', 'max_facilitation_location']
+    for ix_params in range(len(list_params)):
+        str_p = list_params[ix_params]
+        fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+        for ix_p in range(len(participants)):
+            for ix_muscle in range(n_muscles):
+                for ix_cond in range(0, 1):
+                    ax = axs[ix_p, ix_muscle]
+                    x = df_template[model.intensity].values
+                    Y = _posterior_samples[str_p][:, ix_cond, ix_p, ix_muscle]
+                    case_isfinite = np.isfinite(Y)
+                    if len(case_isfinite) - np.sum(case_isfinite) != 0:
+                        Y = Y[case_isfinite]
+                        logger.info(f'{str_p} - number of non-finite vals. = {len(case_isfinite) - np.sum(case_isfinite)}!')
+                    if np.all(Y == 0):
+                        x_grid = np.linspace(0, 100, 1000)
+                        density = np.zeros(np.shape(x_grid))
+                        x02p5 = 0
+                        x97p5 = 0
+                    else:
+                        kde = stats.gaussian_kde(Y)
+                        x_grid = np.linspace(0, 200, 1000)
+                        density = kde(x_grid)
+                        x02p5 = x_grid[np.argmin(abs(np.cumsum(density) / np.sum(density) - 2.5e-2))]
+                        x97p5 = x_grid[np.argmin(abs(np.cumsum(density) / np.sum(density) - 97.5e-2))]
+
+                    ax.plot(x_grid, density, color=colors[ix_cond], label=conditions[ix_cond])
+                    # sns.histplot(Y, ax=ax)
+                    yl = ax.get_ylim()
+                    ax.plot(x02p5 * np.ones(2), yl, color='black', linestyle='--')
+                    ax.plot(x97p5 * np.ones(2), yl, color='black', linestyle='--')
+                    ax.text(x97p5, yl[1] * 0.75, f'{x02p5:0.0f}-{x97p5:0.0f}%', color='red')
+                    if ix_p == 0 and ix_muscle == 0:
+                        ax.legend()
+                    if ix_p == 0:
+                        ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
+                    if ix_muscle == 0:
+                        ax.set_xlabel(str_p)
+                    ax.set_xlim([0, 200])
+                    ax.set_ylim(yl)
+                    ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
+
+    plt.show()
+    # fig.savefig(Path(model.build_dir) / f"param_{str_p}.svg", format='svg')
+    fig.savefig(Path(model.build_dir) / f"param_{str_p}.{fig_format}", format=fig_format, dpi=fig_dpi)
+    plt.close()
+    # %%
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    for ix_p in range(len(participants)):
+        for ix_muscle in range(n_muscles):
+            ax = axs[ix_p, ix_muscle]
+            for ix_cond in range(len(conditions) - 1):
+                first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+                first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+                Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
+                     (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+
+                Y = (Y - 1) * 100
+                x = df_template[model.intensity].values
+                y = np.mean(Y, 0)
+                y1 = np.percentile(Y, 2.5, axis=0)
+                y2 = np.percentile(Y, 97.5, axis=0)
+                a_mea = np.mean(_posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
+                x = (x / a_mea) * 100
+                ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+                ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+                if ix_p == 0 and ix_muscle == 0:
+                    ax.legend()
+                    ax.set_ylabel('% Fac. (Paired/Brain-only + Spine-only)')
+                if ix_p == 0:
+                    ax.set_title(model.response[ix_muscle].split('_')[1])
+                if ix_muscle == 0:
+                    ax.set_xlabel('Threshold %')
+                ax.set_xlim([50, 200])
+                ax.set_axisbelow(True)
+                ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
+
+                if ix_cond == 0:
+                    x_max = x[np.argmax(y)]
+                    ax.plot(x_max * np.ones(2), ax.get_ylim(), color=colors[ix_cond], linestyle='--')
+                    y_text = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.75
+                    ax.text(x_max, y_text, f"{x_max:0.1f}%")
+                ax.set_xlim([50, 200])
+
+    plt.show()
+    # fig.savefig(Path(model.build_dir) / "REC_MT_cond_norm.svg", format='svg')
+    fig.savefig(Path(model.build_dir) / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
+
+    # %%
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    for ix_p in range(len(participants)):
+        for ix_muscle in range(n_muscles):
+            ax = axs[ix_p, ix_muscle]
+            for ix_cond in range(len(conditions) - 1):
+                first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+                first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+                Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) -
+                     (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+
+                x = df_template[model.intensity].values
+                y = np.mean(Y, 0)
+                y1 = np.percentile(Y, 2.5, axis=0)
+                y2 = np.percentile(Y, 97.5, axis=0)
+                a_mea = np.mean(_posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
+                x = (x / a_mea) * 100
+                ax.plot(x, y, color=colors[ix_cond], label=conditions[ix_cond])
+                ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
+
+                if ix_p == 0 and ix_muscle == 0:
+                    ax.legend()
+                    ax.set_ylabel('AUC: Paired - (Brain-only + Spine-only)')
+                if ix_p == 0:
+                    ax.set_title(model.response[ix_muscle].split('_')[1])
+                if ix_muscle == 0:
+                    ax.set_xlabel('Threshold %')
+                ax.set_xlim([50, 200])
+                ax.set_axisbelow(True)
+                ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
+
+                if ix_cond == 0:
+                    x_max = x[np.argmax(y)]
+                    ax.plot(x_max * np.ones(2), ax.get_ylim(), color=colors[ix_cond], linestyle='--')
+                    y_text = ax.get_ylim()[0] + (ax.get_ylim()[1] - ax.get_ylim()[0]) * 0.75
+                    ax.text(x_max, y_text, f"{x_max:0.1f}")
+                ax.set_xlim([50, 200])
+
+    plt.show()
+    # fig.savefig(Path(model.build_dir) / "REC_MT_cond_sub.svg", format='svg')
+    fig.savefig(Path(model.build_dir) / f"REC_MT_cond_sub.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
     command = f"find {build_dir.parent} -name '*.pdf' -exec sh -c '[ ! -f \"${{0%.pdf}}.png\" ] && convert \"$0\" \"${{0%.pdf}}.png\"' {{}} \;" # command = f"find {build_dir.parent} -name '*.pdf' -exec sh -c 'convert \"$0\" \"${{0%.pdf}}.png\"' {{}} \;"
