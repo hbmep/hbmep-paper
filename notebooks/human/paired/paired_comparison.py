@@ -243,6 +243,7 @@ if __name__ == "__main__":
     # %%
     if not os.path.exists(build_dir):
         os.makedirs(build_dir)
+
     logger = logging.getLogger(__name__)
     FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(
@@ -297,11 +298,13 @@ if __name__ == "__main__":
     orderby = lambda x: (x[1], x[0])
 
     # %%
-    dest = Path(build_dir).parent / "inference" / "inference.pkl"
-    print(dest)
-    if os.path.isfile(dest):
+    dest = Path(build_dir).parent / "inference"
+    if not os.path.exists(dest):
+        os.makedirs(dest)
+    p_pkl = dest / "inference.pkl"
+    if os.path.isfile(p_pkl):
         logger.info('Loading model.')
-        with open(dest, "rb") as g:
+        with open(p_pkl, "rb") as g:
             model, mcmc, posterior_samples = pickle.load(g)
     else:
         model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
@@ -309,11 +312,10 @@ if __name__ == "__main__":
         mcmc, posterior_samples = model.run_inference(df=df)
         logger.info('Done running.')
 
-        with open(dest, "wb") as f:
+        with open(p_pkl, "wb") as f:
             pickle.dump((model, mcmc, posterior_samples), f)
 
-        dest_nc = Path(build_dir).parent / "inference" / "inference.nc"
-        az.to_netcdf(mcmc, dest_nc)
+        az.to_netcdf(mcmc, str(dest / "inference.nc"))
 
     # In[15]:
     _posterior_samples = posterior_samples.copy()
@@ -533,7 +535,7 @@ if __name__ == "__main__":
                         ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
                     if ix_muscle == 0:
                         ax.set_xlabel(str_p)
-                    ax.set_xlim([0, 200])
+                    # ax.set_xlim([0, 200])
                     ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
                     ax.grid(which='minor', color=np.ones((1, 3)) * 0.5, linestyle='--')
 
@@ -589,6 +591,7 @@ if __name__ == "__main__":
     # fig.savefig(Path(model.build_dir) / f"param_{str_p}.svg", format='svg')
     fig.savefig(Path(model.build_dir) / f"param_{str_p}.{fig_format}", format=fig_format, dpi=fig_dpi)
     plt.close()
+
     # %%
     fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
     for ix_p in range(len(participants)):
