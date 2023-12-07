@@ -236,6 +236,8 @@ if __name__ == "__main__":
     toml_path = Path(r"/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml")
     build_dir = Path(r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment') / str_date / (
                 stim_type + '_paired')
+    fig_format = 'png'
+    fig_dpi = 300
 
     # %%
     if not os.path.exists(build_dir):
@@ -382,7 +384,7 @@ if __name__ == "__main__":
                 ax.set_xlim(xlim)
     plt.show()
     # fig.savefig(Path(model.build_dir) / "REC_norm.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / "REC_norm.png", format='png')
+    fig.savefig(Path(model.build_dir) / f"REC_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
     fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -426,7 +428,7 @@ if __name__ == "__main__":
 
     plt.show()
     # fig.savefig(Path(model.build_dir) / "REC_norm_MT.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / "REC_norm_MT.png", format='png')
+    fig.savefig(Path(model.build_dir) / f"REC_norm_MT.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
     fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -468,7 +470,7 @@ if __name__ == "__main__":
 
     plt.show()
     # fig.savefig(Path(model.build_dir) / "REC_sub_MT.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / "REC_sub_MT.png", format='png')
+    fig.savefig(Path(model.build_dir) / f"REC_sub_MT.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
     fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
@@ -507,7 +509,7 @@ if __name__ == "__main__":
 
     plt.show()
     # fig.savefig(Path(model.build_dir) / "REC.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / "REC.png", format='png')
+    fig.savefig(Path(model.build_dir) / f"REC.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
     posterior_samples['max_grad'] = np.zeros(posterior_samples['H'].shape)
@@ -537,7 +539,7 @@ if __name__ == "__main__":
 
     plt.show()
     # fig.savefig(Path(model.build_dir) / "REC_GRAD.svg", format='svg')
-    fig.savefig(Path(model.build_dir) / "REC_GRAD.png", format='png')
+    fig.savefig(Path(model.build_dir) / f"REC_GRAD.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
     posterior_samples["H+L"] = np.zeros(posterior_samples['H'].shape)
@@ -578,7 +580,7 @@ if __name__ == "__main__":
 
         plt.show()
         # fig.savefig(Path(model.build_dir) / f"param_{str_p}.svg", format='svg')
-        fig.savefig(Path(model.build_dir) / f"param_{str_p}.png", format='png')
+        fig.savefig(Path(model.build_dir) / f"param_{str_p}.{fig_format}", format=fig_format, dpi=fig_dpi)
         plt.close()
 
     # %%
