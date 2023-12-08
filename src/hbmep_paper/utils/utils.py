@@ -233,7 +233,6 @@ def load_rats_data(
             subdirs = sorted(subdirs)
 
             for subdir in subdirs:
-
                 fpath = glob.glob(f"{subdir}/*auc_table.csv")[0]
                 temp_df = pd.read_csv(fpath)
 
