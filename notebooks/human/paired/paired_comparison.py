@@ -26,6 +26,7 @@ from jax import grad, vmap
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
 from hbmep.model import BaseModel
+from hbmep.model import functional as F
 
 # In[10]:
 class LearnPosterior(BaseModel):
@@ -33,49 +34,33 @@ class LearnPosterior(BaseModel):
 
     def __init__(self, config: Config):
         super(LearnPosterior, self).__init__(config=config)
-        self.combination_columns = self.features + [self.subject]
+        # self.combination_columns = self.features + [self.subject]
         # self.combination_columns = [self.subject] + self.features
 
-    def fn(self, x, a, b, v, L, ell, H):
-        return (
-            L
-            + jnp.where(
-                jnp.less(x, a),
-                0.,
-                -ell + jnp.true_divide(
-                    H + ell,
-                    jnp.power(
-                        1
-                        + jnp.multiply(
-                            -1
-                            + jnp.power(
-                                jnp.true_divide(H + ell, ell),
-                                v
-                            ),
-                            jnp.exp(jnp.multiply(-b, x - a))
-                        ),
-                        jnp.true_divide(1, v)
-                    )
-                )
-            )
-        )
+    # def gradient_fn(self, x, **kwargs):
+    #     grad = jax.grad(F, argnums=0)
+    #     for _ in range(len(x.shape)):
+    #         grad = jax.vmap(grad)
+    #     return grad(x, **kwargs)
 
-    def gradient_fn(self, x, **kwargs):
-        grad = jax.grad(self.fn, argnums=0)
-        for _ in range(len(x.shape)):
-            grad = jax.vmap(grad)
-        return grad(x, **kwargs)
-
-    def _model(self, subject, features, intensity, response_obs=None):
-        subject, n_subject = subject
+    def _model(self, features, intensity, response_obs=None):
         features, n_features = features
         intensity, n_data = intensity
-
         intensity = intensity.reshape(-1, 1)
         intensity = np.tile(intensity, (1, self.n_response))
 
-        feature0 = features[0].reshape(-1,)
-        n_feature0 = n_features[0]
+        feature0 = features[0].reshape(-1, )
+        feature1 = features[1].reshape(-1, )
+
+        # subject, n_subject = subject
+        # features, n_features = features
+        # intensity, n_data = intensity
+
+        # intensity = intensity.reshape(-1, 1)
+        # intensity = np.tile(intensity, (1, self.n_response))
+
+        # feature0 = features[0].reshape(-1,)
+        # n_feature0 = n_features[0]
         a_low = 0
 
         """ Global Priors """
@@ -103,7 +88,7 @@ class LearnPosterior(BaseModel):
                     ell_baseline = numpyro.sample("ell_baseline", dist.HalfNormal(100))
 
         with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate(site.n_subject, n_subject):
+            with numpyro.plate(site.n_features[1], n_features[1]):
                 """ Hyper-priors """
                 a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(a_mean_global_mean, a_mean_global_scale, low=a_low))
                 a_scale = numpyro.sample("a_scale", dist.HalfNormal(a_scale_global_scale))
@@ -129,7 +114,7 @@ class LearnPosterior(BaseModel):
                 g_2_scale_raw = numpyro.sample("g_2_scale_raw", dist.HalfNormal(scale=1))
                 g_2_scale = numpyro.deterministic("g_2_scale", jnp.multiply(g_2_scale_global_scale, g_2_scale_raw))
 
-                with numpyro.plate("n_feature0", n_feature0):
+                with numpyro.plate(site.n_features[0], n_features[0]):
                     """ Priors """
                     a = numpyro.sample(
                         "a", dist.TruncatedNormal(a_mean, a_scale, low=a_low)
@@ -146,7 +131,7 @@ class LearnPosterior(BaseModel):
 
                     # ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
                     # ell = numpyro.deterministic("ell", jnp.multiply(ell_scale, ell_raw))
-                    ell = numpyro.deterministic(site.ell, jnp.tile(ell_baseline, (n_feature0, n_subject, 1)))
+                    ell = numpyro.deterministic(site.ell, jnp.tile(ell_baseline, (n_features[1], n_features[1], 1)))
 
                     H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
                     H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
@@ -162,31 +147,31 @@ class LearnPosterior(BaseModel):
                 """ Model """
                 mu = numpyro.deterministic(
                     site.mu,
-                    self.fn(
+                    F.rectified_logistic(
                         x=intensity,
-                        a=a[feature0, subject],
-                        b=b[feature0, subject],
-                        v=v[feature0, subject],
-                        L=L[feature0, subject],
-                        ell=ell[feature0, subject],
-                        H=H[feature0, subject]
+                        a=a[feature0, feature1],
+                        b=b[feature0, feature1],
+                        v=v[feature0, feature1],
+                        L=L[feature0, feature1],
+                        ell=ell[feature0, feature1],
+                        H=H[feature0, feature1]
                     )
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    g_1[feature0, subject] + jnp.true_divide(g_2[feature0, subject], mu)
+                    g_1[feature0, feature1] + jnp.true_divide(g_2[feature0, feature1], mu)
                 )
 
                 gradient = numpyro.deterministic(
                     "gradient",
-                    self.gradient_fn(
-                    x=intensity,
-                    a=a[feature0, subject],
-                    b=b[feature0, subject],
-                    v=v[feature0, subject],
-                    L=L[feature0, subject],
-                    ell=ell[feature0, subject],
-                    H=H[feature0, subject]
+                    F.prime(F.rectified_logistic,
+                    intensity,
+                    a[feature0, feature1],
+                    b[feature0, feature1],
+                    v[feature0, feature1],
+                    L[feature0, feature1],
+                    ell[feature0, feature1],
+                    H[feature0, feature1]
                     )
                 )
 
@@ -252,7 +237,8 @@ if __name__ == "__main__":
         handlers=[
             logging.FileHandler(Path(build_dir) / "logs.log", mode="w"),
             logging.StreamHandler()
-        ]
+        ],
+        force=True
     )
 
     # In[11]:
@@ -271,7 +257,7 @@ if __name__ == "__main__":
     # config.RESPONSE = ["AUC_APB", "AUC_ADM"]
     config.MCMC_PARAMS["num_warmup"] = 5000
     config.MCMC_PARAMS["num_samples"] = 2000
-    config.FEATURES = ["protocol"]
+    config.FEATURES = ["protocol", "participant"]
     config.INTENSITY = stim_type + 'Int'
 
     model = LearnPosterior(config=config)
@@ -285,7 +271,7 @@ if __name__ == "__main__":
 
     subset = ["SCA04", "SCA07", "SCA11"]
     #
-    ind = df[model.subject].isin(subset)
+    ind = df[model.features[1]].isin(subset)
     df = df[ind].reset_index(drop=True).copy()
     mat = mat[ind, ...]
 
@@ -340,21 +326,21 @@ if __name__ == "__main__":
     prediction_df = model.make_prediction_dataset(df=df, min_intensity=xlim[0], max_intensity=xlim[1])
 
     df_template = prediction_df.copy()
-    ind1 = df_template[model.subject].isin([0])
+    ind1 = df_template[model.features[1]].isin([0])
     ind2 = df_template[model.features[0]].isin([0])  # the 0 index on list is because it is a list
     df_template = df_template[ind1 & ind2]
 
     n_muscles = len(model.response)
     conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
     conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
-    participants = list(encoder_dict[model.subject].inverse_transform(np.unique(df[model.subject])))
+    participants = list(encoder_dict[model.features[1]].inverse_transform(np.unique(df[model.features[1]])))
 
     colors = sns.color_palette('colorblind')
     pp = [[None for _ in range(len(conditions))] for _ in range(len(participants))]
     for p in range(len(participants)):
         for f in range(len(conditions)):
             df_local = df_template.copy()
-            df_local[model.subject] = p
+            df_local[model.features[1]] = p
             df_local[model.features[0]] = f
             pp[p][f] = model.predict(df=df_local, posterior_samples=_posterior_samples)
 
@@ -412,7 +398,7 @@ if __name__ == "__main__":
                 ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
 
                 df_local = df.copy()
-                ind1 = df_local[model.subject].isin([ix_p])
+                ind1 = df_local[model.features[1]].isin([ix_p])
                 ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
                 df_local = df_local[ind1 & ind2]
                 x = df_local[model.intensity].values
@@ -453,7 +439,7 @@ if __name__ == "__main__":
                 ax.fill_between(x, y1, y2, color=colors[ix_cond], alpha=0.3)
 
                 df_local = df.copy()
-                ind1 = df_local[model.subject].isin([ix_p])
+                ind1 = df_local[model.features[1]].isin([ix_p])
                 ind2 = df_local[model.features[0]].isin([ix_cond])  # the 0 index on list is because it is a list
                 df_local = df_local[ind1 & ind2]
                 x = df_local[model.intensity].values
