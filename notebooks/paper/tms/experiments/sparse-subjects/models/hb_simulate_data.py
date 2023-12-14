@@ -235,7 +235,7 @@ class HBSimulator(BaseModel):
 
 
 def main():
-    a_random_mean, a_random_scale = -1.5, 1
+    a_random_mean, a_random_scale = -5, 2
 
     toml_path = "/home/vishu/repos/hbmep-paper/configs/paper/tms/config.toml"
     config = Config(toml_path=toml_path)
@@ -254,7 +254,7 @@ def main():
     with open(src, "rb") as g:
         _, _, posterior_samples_learnt = pickle.load(g)
     """ Create template dataframe for simulation """
-    N_SUBJECTS_TO_SIMULATE = 30
+    N_SUBJECTS_TO_SIMULATE = 12
     simulation_df = \
         pd.DataFrame(np.arange(0, N_SUBJECTS_TO_SIMULATE, 1), columns=[simulator.features[0]]) \
         .merge(
@@ -269,7 +269,7 @@ def main():
         df=simulation_df,
         min_intensity=0,
         max_intensity=100,
-        num=36
+        num=48
     )
     logger.info(f"Simulation dataframe: {simulation_df.shape}")
 
@@ -323,7 +323,7 @@ def main():
     a = simulation_posterior_predictive[site.a]
     b = simulation_posterior_predictive[site.b]
     H = simulation_posterior_predictive[site.H]
-    ind = ((a > 10) & (a < 70) & (b > .01) & (H > .1)).all(axis=(1, 2, 3))
+    ind = ((a > 10) & (a < 70) & (b > .05) & (H > .1)).all(axis=(1, 2, 3))
     n_valid_draws = ind.sum()
     logger.info(f"No. of valid simulations: {n_valid_draws}")
     simulation_posterior_predictive = {
@@ -356,28 +356,28 @@ def main():
         pickle.dump((simulator, simulation_posterior_predictive), f)
     logger.info(f"Saved simulation posterior predictive to {dest}")
 
-    """ Plot """
-    N_DRAWS_TO_PLOT = 50
-    temp_ppd = {
-        k: v[:N_DRAWS_TO_PLOT, ...] for k, v in simulation_posterior_predictive.items()
-    }
-    assert temp_ppd[site.obs].shape[0] == N_DRAWS_TO_PLOT
+    # """ Plot """
+    # N_DRAWS_TO_PLOT = 50
+    # temp_ppd = {
+    #     k: v[:N_DRAWS_TO_PLOT, ...] for k, v in simulation_posterior_predictive.items()
+    # }
+    # assert temp_ppd[site.obs].shape[0] == N_DRAWS_TO_PLOT
 
-    temp_df = simulation_df.copy()
-    temp_ppd = {
-        k: v.swapaxes(0, -1) for k, v in temp_ppd.items()
-    }
-    obs = temp_ppd[site.obs]
-    response = [simulator.response[0] + f"_{i}" for i in range(N_DRAWS_TO_PLOT)]
-    temp_df[response] = obs[0, ...]
-    simulator.render_recruitment_curves(
-        df=temp_df,
-        response=response,
-        response_colors = plt.cm.rainbow(np.linspace(0, 1, N_DRAWS_TO_PLOT)),
-        prediction_df=temp_df,
-        posterior_predictive=temp_ppd,
-        posterior_samples=temp_ppd
-    )
+    # temp_df = simulation_df.copy()
+    # temp_ppd = {
+    #     k: v.swapaxes(0, -1) for k, v in temp_ppd.items()
+    # }
+    # obs = temp_ppd[site.obs]
+    # response = [simulator.response[0] + f"_{i}" for i in range(N_DRAWS_TO_PLOT)]
+    # temp_df[response] = obs[0, ...]
+    # simulator.render_recruitment_curves(
+    #     df=temp_df,
+    #     response=response,
+    #     response_colors = plt.cm.rainbow(np.linspace(0, 1, N_DRAWS_TO_PLOT)),
+    #     prediction_df=temp_df,
+    #     posterior_predictive=temp_ppd,
+    #     posterior_samples=temp_ppd
+    # )
 
 
 if __name__ == "__main__":

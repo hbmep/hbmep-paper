@@ -30,7 +30,7 @@ numpyro.enable_validation()
 
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-dest = "/home/vishu/logs/midline-lateral.log"
+dest = "/home/vishu/logs/tms-group-comparison.log"
 logging.basicConfig(
     format=FORMAT,
     level=logging.INFO,
@@ -42,11 +42,11 @@ logging.basicConfig(
 )
 
 
-class MixedEffects(BaseModel):
-    LINK = "mixed_effects"
+class MixtureModel(BaseModel):
+    NAME = "mixture_model"
 
     def __init__(self, config: Config):
-        super(MixedEffects, self).__init__(config=config)
+        super(MixtureModel, self).__init__(config=config)
 
     def _model(self, features, intensity, response_obs=None):
         features, n_features = features
@@ -56,47 +56,24 @@ class MixedEffects(BaseModel):
 
         feature0 = features[0].reshape(-1,)
         feature1 = features[1].reshape(-1,)
-        n_fixed = 1
-        n_random = n_features[1] - 1
-
-        """ Fixed Effects (Baseline) """
-        with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("n_fixed", n_fixed):
-                a_fixed_mean = numpyro.sample("a_fixed_mean", dist.TruncatedNormal(5, 10, low=0))
-                a_fixed_scale = numpyro.sample("a_fixed_scale", dist.HalfNormal(10.0))
-
-                with numpyro.plate(site.n_features[0], n_features[0]):
-                    a_fixed = numpyro.sample(
-                        "a_fixed", dist.TruncatedNormal(a_fixed_mean, a_fixed_scale, low=0)
-                    )
-
-        """ Random Effects (Delta) """
-        with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("n_random", n_random):
-                a_random_mean = numpyro.sample("a_random_mean", dist.Normal(0, 10))
-                a_random_scale = numpyro.sample("a_random_scale", dist.HalfNormal(10.0))
-
-                with numpyro.plate(site.n_features[0], n_features[0]):
-                    a_random = numpyro.sample("a_random", dist.Normal(a_random_mean, a_random_scale))
-
-                    """ Penalty """
-                    penalty_for_negative_a = (jnp.fabs(a_fixed + a_random) - (a_fixed + a_random))
-                    numpyro.factor("penalty_for_negative_a", -penalty_for_negative_a)
 
         with numpyro.plate(site.n_response, self.n_response):
             """ Global Priors """
-            b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(100))
-            v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(100))
+            b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(5))
+            v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(5))
 
-            L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(1))
-            ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(100))
-            H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(10))
+            L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(.5))
+            ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(5))
+            H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(5))
 
-            g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(100))
-            g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(100))
+            g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
+            g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
 
             with numpyro.plate(site.n_features[1], n_features[1]):
                 """ Hyper-priors """
+                a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(50., 20., low=0))
+                a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+
                 b_scale_raw = numpyro.sample("b_scale_raw", dist.HalfNormal(scale=1))
                 b_scale = numpyro.deterministic("b_scale", jnp.multiply(b_scale_global_scale, b_scale_raw))
 
@@ -107,7 +84,7 @@ class MixedEffects(BaseModel):
                 L_scale = numpyro.deterministic("L_scale", jnp.multiply(L_scale_global_scale, L_scale_raw))
 
                 ell_scale_raw = numpyro.sample("ell_scale_raw", dist.HalfNormal(scale=1))
-                ell_scale = numpyro.deterministic("sigma_ell", jnp.multiply(ell_scale_global_scale, ell_scale_raw))
+                ell_scale = numpyro.deterministic("ell_scale", jnp.multiply(ell_scale_global_scale, ell_scale_raw))
 
                 H_scale_raw = numpyro.sample("H_scale_raw", dist.HalfNormal(scale=1))
                 H_scale = numpyro.deterministic("H_scale", jnp.multiply(H_scale_global_scale, H_scale_raw))
@@ -120,9 +97,8 @@ class MixedEffects(BaseModel):
 
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     """ Priors """
-                    a = numpyro.deterministic(
-                        site.a,
-                        jnp.concatenate([a_fixed, a_fixed + a_random], axis=1)
+                    a = numpyro.sample(
+                        site.a, dist.TruncatedNormal(a_mean, a_scale, low=0)
                     )
 
                     b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
@@ -135,7 +111,7 @@ class MixedEffects(BaseModel):
                     L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
 
                     ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
-                    ell = numpyro.deterministic("ell", jnp.multiply(ell_scale, ell_raw))
+                    ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
 
                     H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
                     H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
@@ -147,8 +123,8 @@ class MixedEffects(BaseModel):
                     g_2 = numpyro.deterministic(site.g_2, jnp.multiply(g_2_scale, g_2_raw))
 
         """ Outlier Distribution """
-        outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .05))
-        outlier_scale = numpyro.sample("outlier_scale", dist.HalfNormal(30))
+        outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .01))
+        outlier_scale = numpyro.sample("outlier_scale", dist.HalfNormal(10))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -170,7 +146,6 @@ class MixedEffects(BaseModel):
                     g_1[feature0, feature1] + jnp.true_divide(g_2[feature0, feature1], mu)
                 )
 
-                """ Mixture """
                 q = numpyro.deterministic("q", outlier_prob * jnp.ones((n_data, self.n_response)))
                 bg_scale = numpyro.deterministic("bg_scale", outlier_scale * jnp.ones((n_data, self.n_response)))
 
@@ -181,6 +156,8 @@ class MixedEffects(BaseModel):
                     dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
                     dist.HalfNormal(scale=bg_scale)
                 ]
+
+                """ Mixture """
                 Mixture = dist.MixtureGeneral(
                     mixing_distribution=mixing_distribution,
                     component_distributions=component_distributions
@@ -195,23 +172,18 @@ class MixedEffects(BaseModel):
 
 
 def main():
-    toml_path = "/home/vishu/repos/hbmep-paper/configs/paper/intraoperative/config.toml"
+    toml_path = "/home/vishu/repos/hbmep-paper/configs/paper/tms/config.toml"
     config = Config(toml_path=toml_path)
-    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "midline-lateral", "all-muscles")
-    config.FEATURES = ["participant", "sc_laterality"]
-    config.RESPONSE = ["Triceps", "APB", "ADM"]
+    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "group-comparison")
+    config.FEATURES = ["participant", "participant_condition"]
+    config.RESPONSE = ['PKPK_APB', 'PKPK_ECR', 'PKPK_FCR']
     config.MCMC_PARAMS["num_warmup"] = 5000
     config.MCMC_PARAMS["num_samples"] = 1000
-    config.MCMC_PARAMS["num_chains"] = 12
-    model = MixedEffects(config=config)
+    model = MixtureModel(config=config)
 
-    src = "/home/vishu/data/hbmep-processed/human/intraoperative/data.csv"
+    src = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
     df = pd.read_csv(src)
-    df[model.features[0]] = df[model.features[0]].replace({"L": "01_L", "M": "02_M"})
-    ind = ~df[model.response].isna().values.any(axis=-1)
-    df = df[ind].reset_index(drop=True).copy()
     df, encoder_dict = model.load(df=df)
-
     mcmc, posterior_samples = model.run_inference(df=df)
 
     _posterior_samples = posterior_samples.copy()
@@ -221,22 +193,22 @@ def main():
     model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=_posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
     model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
 
+    numpyro_data = az.from_numpyro(mcmc)
+    """ Model evaluation """
+    logger.info("Evaluating model ...")
+    score = az.loo(numpyro_data)
+    logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
+    score = az.waic(numpyro_data)
+    logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
+
     dest = os.path.join(model.build_dir, "inference.pkl")
     with open(dest, "wb") as f:
         pickle.dump((model, mcmc, posterior_samples), f)
     logger.info(dest)
 
-    dest = os.path.join(model.build_dir, "inference.nc")
-    az.to_netcdf(mcmc, dest)
+    dest = os.path.join(model.build_dir, "numpyro_data.nc")
+    az.to_netcdf(numpyro_data, dest)
     logger.info(dest)
-
-    numpyro_data = az.from_numpyro(mcmc)
-    """ Model evaluation """
-    logger.info("Evaluating model ...")
-    score = az.loo(numpyro_data, var_name=site.obs)
-    logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
-    score = az.waic(numpyro_data, var_name=site.obs)
-    logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
 
 
 if __name__ == "__main__":

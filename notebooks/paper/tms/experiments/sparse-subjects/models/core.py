@@ -219,21 +219,67 @@ class NHBModel(BaseModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
                 with numpyro.plate(site.n_features[0], n_features[0]):
+                    """ Global Priors """
+                    b_scale_global_scale = numpyro.sample("b_scale_global_scale", dist.HalfNormal(5))
+                    v_scale_global_scale = numpyro.sample("v_scale_global_scale", dist.HalfNormal(5))
+
+                    L_scale_global_scale = numpyro.sample("L_scale_global_scale", dist.HalfNormal(.5))
+                    ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(10))
+                    H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(5))
+
+                    g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
+                    g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
+
+                    """ Hyper-priors """
+                    a_mean = numpyro.sample("a_mean", dist.TruncatedNormal(50., 20., low=0))
+                    a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+
+                    b_scale_raw = numpyro.sample("b_scale_raw", dist.HalfNormal(scale=1))
+                    b_scale = numpyro.deterministic("b_scale", jnp.multiply(b_scale_global_scale, b_scale_raw))
+
+                    v_scale_raw = numpyro.sample("v_scale_raw", dist.HalfNormal(scale=1))
+                    v_scale = numpyro.deterministic("v_scale", jnp.multiply(v_scale_global_scale, v_scale_raw))
+
+                    L_scale_raw = numpyro.sample("L_scale_raw", dist.HalfNormal(scale=1))
+                    L_scale = numpyro.deterministic("L_scale", jnp.multiply(L_scale_global_scale, L_scale_raw))
+
+                    ell_scale_raw = numpyro.sample("ell_scale_raw", dist.HalfNormal(scale=1))
+                    ell_scale = numpyro.deterministic("ell_scale", jnp.multiply(ell_scale_global_scale, ell_scale_raw))
+
+                    H_scale_raw = numpyro.sample("H_scale_raw", dist.HalfNormal(scale=1))
+                    H_scale = numpyro.deterministic("H_scale", jnp.multiply(H_scale_global_scale, H_scale_raw))
+
+                    g_1_scale_raw = numpyro.sample("g_1_scale_raw", dist.HalfNormal(scale=1))
+                    g_1_scale = numpyro.deterministic("g_1_scale", jnp.multiply(g_1_scale_global_scale, g_1_scale_raw))
+
+                    g_2_scale_raw = numpyro.sample("g_2_scale_raw", dist.HalfNormal(scale=1))
+                    g_2_scale = numpyro.deterministic("g_2_scale", jnp.multiply(g_2_scale_global_scale, g_2_scale_raw))
+
                     """ Priors """
                     a = numpyro.sample(
-                        site.a,
-                        dist.TruncatedNormal(50., 30., low=0)
+                        site.a, dist.TruncatedNormal(a_mean, a_scale, low=0)
                     )
 
-                    b = numpyro.sample(site.b, dist.HalfNormal(scale=5.))
-                    v = numpyro.sample(site.v, dist.HalfNormal(scale=5.))
+                    b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
+                    b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
 
-                    L = numpyro.sample(site.L, dist.HalfNormal(scale=.5))
-                    ell = numpyro.sample(site.ell, dist.HalfNormal(scale=10.))
-                    H = numpyro.sample(site.H, dist.HalfNormal(scale=5.))
+                    v_raw = numpyro.sample("v_raw", dist.HalfNormal(scale=1))
+                    v = numpyro.deterministic(site.v, jnp.multiply(v_scale, v_raw))
 
-                    g_1 = numpyro.sample(site.g_1, dist.HalfCauchy(scale=5.))
-                    g_2 = numpyro.sample(site.g_2, dist.HalfCauchy(scale=5.))
+                    L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
+                    L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
+
+                    ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                    ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
+
+                    H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
+                    H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
+
+                    g_1_raw = numpyro.sample("g_1_raw", dist.HalfCauchy(scale=1))
+                    g_1 = numpyro.deterministic(site.g_1, jnp.multiply(g_1_scale, g_1_raw))
+
+                    g_2_raw = numpyro.sample("g_2_raw", dist.HalfCauchy(scale=1))
+                    g_2 = numpyro.deterministic(site.g_2, jnp.multiply(g_2_scale, g_2_raw))
 
         """ Outlier Distribution """
         outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .01))
@@ -286,7 +332,7 @@ class NHBModel(BaseModel):
 
 @timing
 def main():
-    dir ="/home/vishu/repos/hbmep-paper/reports/paper/tms/experiments/sparse-subjects/hb-simulate-data/a_random_mean_-1.5_a_random_scale_1"
+    dir ="/home/vishu/repos/hbmep-paper/reports/paper/tms/experiments/sparse-subjects/hb-simulate-data/a_random_mean_-5_a_random_scale_2/"
     src = os.path.join(dir, "simulation_posterior_predictive.pkl")
     with open(src, "rb") as g:
         simulator, simulation_posterior_predictive = pickle.load(g)
@@ -353,16 +399,12 @@ def main():
         gc.collect()
 
     # n_subjects_space = [1, 2, 4, 6, 8, 12, 16, 20]
-    n_subjects_space = [1, 4, 8, 16]
-    # n_subjects_space = [1, 2, 4]
-    n_subjects_space = [1, 4, 8]
-    n_subjects_space = [16]
-    # draws_space = [i for i in range(110, 600)]
-    draws_space = [i for i in range(88, 110)]
+    n_subjects_space = [1, 2, 4, 8, 12]
+    draws_space = [i for i in range(600)]
+    # models = [HBModel]
+    models = [NHBModel]
 
-    models = [HBModel]
-
-    parallel = Parallel(n_jobs=-1)
+    parallel = Parallel(n_jobs=12)
     parallel(
         delayed(_process)(n_sub, draw, model) \
         for draw in draws_space \
