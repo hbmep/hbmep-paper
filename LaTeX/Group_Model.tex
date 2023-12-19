@@ -1,0 +1,113 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usepackage{fullpage}
+\usepackage{bm}
+\usepackage{float}
+\usetikzlibrary{bayesnet}
+\DeclareMathOperator{\E}{\mathbb{E}}
+
+\begin{document}
+
+The simplest form of the standard $3-$stage hierarchical model in the context of MEP size modeling can be described as follows. Let there be $N_P$ exchangle sequences $\{(x_i^j, y_i^j)_{i=1}^{n_j} \mid j = 1, 2 \ldots N_P\}$ of MEP size $y_i^j$ recorded at stimulus intensity $x_i^j$ from $j^{th}$ participant, for  a total of $N_P$ participants.\\
+
+The first stage of hierarchy is the \textit{participant-level} and specifies parametric model $P(y_i^j \mid x_i^j, \theta_j)$ for each of the $N_P$ sequences and models the MEP size $y_i^j$ as a function of stimulus intensity $x_i^j$ and participant specific parameters $\theta_j$. In the second stage, $\theta_1, \theta_2 \ldots \theta_P$ are  assumed to be exchangeable and generated from  a common distribution P($\theta_j \mid \gamma$) with hyper-parameters $\gamma$. In the third stage, the hyper-parameters $\gamma$ are assumed to be unknown and are assigned a non-informative prior density $P(\gamma)$.
+\begin{align*}
+y_i^j \mid x_i^j, \theta_j, \gamma &\sim P(y_i^j \mid x_i^j, \theta_j, \gamma) \tag{4.3.1} \\
+\theta_j \mid \gamma &\sim P(\theta_j \mid \gamma) \tag{4.3.2} \\
+\gamma &\sim P(\gamma) \tag{4.3.3}
+\end{align*}
+Figure $4.3.1$ shows the graphical representation of the basic hierarchical model implemented by hbmep (Section $5.1$) for recruitment-curve fitting\\
+\begin{minipage}{.5\textwidth}
+    \begin{figure}[H]
+        \centering
+        \tikz{ %
+            % Obs
+            \node[obs,fill] (obs) {$y_i^j$};%
+
+            % Deterministic mu, beta
+            \node[det,above=of obs,xshift=-.8cm,fill] (beta) {$\beta_i^j$}; %
+            \node[det,above=of obs,xshift=.8cm,yshift=.5cm,fill] (mu) {$\mu_i^j$}; %
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$i = 1, 2 \ldots n_j$};
+
+            % % PRIORS
+            % a, b
+            \node[latent,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a_j$};
+            \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b_j$};
+            % L, H, v, ell
+            \node[latent,right=of b,xshift=-.7cm,fill] (L) {$L_j$};
+            \node[latent,right=of L,xshift=-.9cm,fill] (H) {$H_j$};
+            \node[latent,right=of H,xshift=-.9cm,fill] (v) {$v_j$};
+            \node[latent,right=of v,xshift=-.9cm,fill] (ell) {$\ell_j$};
+            % g1, g2
+            \node[latent,left=of a,xshift=.3cm,fill] (g2) {${g_2}_j$};
+            \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}_j$};
+
+            % Participants plate
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$j = 1, 2 \ldots N_P$};
+
+            % % HYPER-PRIORS
+            % a_mean, a_scale, b_scale
+            \node[latent,above=of a,xshift=-.4cm,fill] (a_mean) {$\mu_a$};
+            \node[latent,above=of a,xshift=.4cm,fill] (a_scale) {$\sigma_a$};
+            \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
+            % g1_scale, g2_scale, L_scale, H_scale, v_scale, ell_scale
+            \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{g_2}$};
+            \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{g_1}$};
+            \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
+            \node[latent,above=of H,fill] (H_scale) {$\sigma_H$};
+            \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
+            \node[latent,above=of ell,fill] (ell_scale) {$\sigma_\ell$};
+
+            % % GLOBAL PRIORS
+            % \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{g_1}}$};
+            % \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{g_2}}$};
+            % \node[latent,above=of b_scale,fill] (b_scale_global_scale) {$\sigma_{\sigma_{b}}$};
+            % \node[latent,above=of L_scale,fill] (L_scale_global_scale) {$\sigma_{\sigma_L}$};
+            % \node[latent,above=of H_scale,fill] (H_scale_global_scale) {$\sigma_{\sigma_H}$};
+            % \node[latent,above=of v_scale,fill] (v_scale_global_scale) {$\sigma_{\sigma_v}$};
+            % \node[latent,above=of ell_scale,fill] (ell_scale_global_scale) {$\sigma_{\sigma_\ell}$};
+
+            % % Edges from Global-priors to Priors
+            % \edge {g1_scale_global_scale} {g1_scale}
+            % \edge {g2_scale_global_scale} {g2_scale}
+            % \edge {b_scale_global_scale} {b_scale}
+            % \edge {L_scale_global_scale} {L_scale}
+            % \edge {H_scale_global_scale} {H_scale}
+            % \edge {v_scale_global_scale} {v_scale}
+            % \edge {ell_scale_global_scale} {ell_scale}
+
+            % Edges from Hyper-priors to Priors
+            \edge {g1_scale} {g1}
+            \edge {g2_scale} {g2}
+            \edge {a_mean, a_scale} {a}
+            \edge {b_scale} {b}
+            \edge {L_scale} {L}
+            \edge {H_scale} {H}
+            \edge {v_scale} {v}
+            \edge {ell_scale} {ell}
+
+            % Edges from Priors to Deterministic
+            \edge {g1, g2} {beta}
+            \edge {a, b, v, L, ell, H} {mu}
+
+            % Edges to obs
+            \edge {beta,mu} {obs};
+            \edge {mu} {beta};
+        }
+    \end{figure}
+\end{minipage}
+\begin{minipage}{.6\textwidth}
+    \begin{align*}
+        &y_i^j \mid x_i^j, \Omega_1^j \sim \mathcal{G}\left(\mu_i^j\cdot\beta_i^j, \beta_i^j\right) \\
+        &\mu_i^j = \mathcal{F}\left(x_i^j \mid \Omega_1^j\right) \;\; \beta_i^j = {g_1}_j + \frac{\mu_i^j}{{g_2}_j}\\\\
+        &a_j \sim \mathcal{TN}\left(\mu_a, \sigma_a\right)\\
+        &\theta_j \sim \mathcal{HN}\left(\sigma_{\theta_j}\right) \; \forall \theta_j \in \Omega \setminus \{a_j\}\\\\
+        & \mu_a \sim \mathcal{TN}\left(50, 20\right)\;\; \sigma_a \sim \mathcal{HN}\left(30\right)\\
+        &\sigma_{\sigma_L} \sim \mathcal{HN}\left(.05\right) \;\; \sigma_\theta \sim \mathcal{HN}\left(5\right) \;\forall \theta \in \Omega_2\\\\
+        &\Omega_1^j = \{ a_j, b_j, v_j, L_j, \ell_j, H_j, {g_1}_j, {g_2}_j\}\\
+        &\Omega_2 = \{\sigma_{L}, \sigma_{H}, \sigma_{v}, \sigma_{\ell}, \sigma_{g_1}, \sigma_{g_2}\}
+    \end{align*}
+\end{minipage}
+
+\end{document}

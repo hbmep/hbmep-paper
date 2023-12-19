@@ -3,8 +3,7 @@ csv = ""
 build_dir = "/home/vishu/repos/hbmep-paper/reports/paper/rats/J_RCML_000/"
 
 [vars]
-subject = "participant"
-features = ["compound_position"]
+features = ["participant", "compound_position"]
 intensity = "pulse_amplitude"
 response = ["LADM", "LBiceps", "LDeltoid", "LECR", "LFCR", "LTriceps"]
 
