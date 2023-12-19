@@ -221,15 +221,17 @@ def main():
 
         counter += 1
 
-    for c in [(22, 0)]:
+    cc = 0
+    for c in [(26, 0), (17, 0)]:
         ind = simulation_df[model.features].apply(tuple, axis=1).isin([c])
         temp_df = simulation_df[ind].reset_index(drop=True)
+        ax = axes[3, cc + 1]
+        sns.scatterplot(x=temp_df[model.intensity], y=ppd_new_participants[site.obs][0, ind, 0], ax=ax, color="black", alpha=.5)
+        cc += 1
 
-        for draw in range(2):
-            ax = axes[counter, draw + 1]
-            sns.scatterplot(x=temp_df[model.intensity], y=ppd_new_participants[site.obs][draw, ind, 0], ax=ax, color="black", alpha=.5)
-
-        counter += 1
+    for i in range(nrows):
+        for j in range(nrows):
+            
 
     dest = os.path.join(model.build_dir, "visual_comparison.png")
     fig.savefig(dest, dpi=600)
