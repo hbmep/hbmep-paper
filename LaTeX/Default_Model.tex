@@ -31,14 +31,14 @@ Figure $4.3.1$ shows the graphical representation of the basic hierarchical mode
             \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$i = 1, 2 \ldots n_j$};
 
             % % PRIORS
-            % a, b
+            % a, b, v
             \node[latent,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a_j$};
             \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b_j$};
-            % L, H, v, ell
-            \node[latent,right=of b,xshift=-.7cm,fill] (L) {$L_j$};
-            \node[latent,right=of L,xshift=-.9cm,fill] (H) {$H_j$};
-            \node[latent,right=of H,xshift=-.9cm,fill] (v) {$v_j$};
-            \node[latent,right=of v,xshift=-.9cm,fill] (ell) {$\ell_j$};
+            \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v_j$};
+            % L, ell, H
+            \node[latent,right=of v,xshift=-.9cm,fill] (L) {$L_j$};
+            \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell_j$};
+            \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H_j$};
             % g1, g2
             \node[latent,left=of a,xshift=.3cm,fill] (g2) {${g_2}_j$};
             \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}_j$};
@@ -47,11 +47,9 @@ Figure $4.3.1$ shows the graphical representation of the basic hierarchical mode
             \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$j = 1, 2 \ldots N_P$};
 
             % % HYPER-PRIORS
-            % a_mean, a_scale, b_scale
             \node[latent,above=of a,xshift=-.4cm,fill] (a_mean) {$\mu_a$};
             \node[latent,above=of a,xshift=.4cm,fill] (a_scale) {$\sigma_a$};
             \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
-            % g1_scale, g2_scale, L_scale, H_scale, v_scale, ell_scale
             \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{g_2}$};
             \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{g_1}$};
             \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};

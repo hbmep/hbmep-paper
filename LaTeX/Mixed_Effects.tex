@@ -22,28 +22,27 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         % Deterministic mu, beta
         \node[det,above=of obs,xshift=-.8cm,fill] (beta) {$\beta$}; %
         \node[det,above=of obs,xshift=.8cm,yshift=.5cm,fill] (mu) {$\mu$}; %
-        \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$1, 2 \ldots n(p)$};
+        \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$1, 2 \ldots n(p, h)$};
 
         % % PRIORS
         % a, b, v
-        \node[latent,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a$};
-        \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b$};
+        \node[det,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a$};
+        \node[latent,right=of a,xshift=-.9cm,fill] (b) {$b$};
         \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v$};
-        % L, ell, H
+        % L, H, v, ell
         \node[latent,right=of v,xshift=-.9cm,fill] (L) {$L$};
         \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell$};
         \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H$};
         % g1, g2
-        \node[latent,left=of a,xshift=.3cm,fill] (g2) {${g_2}$};
+        \node[latent,left=of a,xshift=.9cm,fill] (g2) {${g_2}$};
         \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}$};
 
         % Participants plate
-        \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p:1, 2 \ldots N(g)$};
+        \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p:1, 2 \ldots N_P$};
 
         % % HYPER-PRIORS
-        \node[latent,above=of a,xshift=-.4cm,fill] (a_mean) {$\mu_a$};
-        \node[latent,above=of a,xshift=.4cm,fill] (a_scale) {$\sigma_a$};
         \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
+        % g1_scale, g2_scale, L_scale, H_scale, v_scale, ell_scale
         \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{g_2}$};
         \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{g_1}$};
         \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
@@ -52,7 +51,7 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[latent,above=of ell,fill] (ell_scale) {$\sigma_\ell$};
 
         % Groups plate
-        \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(a_mean)(a_scale)(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(plate_participant)} {$g: 1, 2 \ldots N_G$};
+        \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(plate_participant)} {$h: 1, 2 \ldots N_H$};
 
         % GLOBAL PRIORS
         \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{g_1}}$};
@@ -75,7 +74,6 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         % Edges from Hyper-priors to Priors
         \edge {g1_scale} {g1}
         \edge {g2_scale} {g2}
-        \edge {a_mean, a_scale} {a}
         \edge {b_scale} {b}
         \edge {L_scale} {L}
         \edge {H_scale} {H}
@@ -89,6 +87,33 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         % Edges to obs
         \edge {beta,mu} {obs};
         \edge {mu} {beta};
+
+        % Fixed
+        \node[latent,left=of a,xshift=-3cm,yshift=.8cm,fill] (a_fixed) {$a_{\text{fixed}}$};
+        \node[latent,above=of a_fixed,xshift=-.6cm,yshift=-.5cm,fill] (a_fixed_mean) {$\mu_{a_{\text{fixed}}}$};
+        \node[latent,above=of a_fixed,xshift=.6cm,yshift=-.5cm,fill] (a_fixed_scale) {$\sigma_{a_{\text{fixed}}}$};
+        % \plate[inner sep=.1cm, yshift=.0cm] {plate_participant_fixed} {(a_fixed)} {$p: 1, 2 \ldots N_P$};
+        % \plate[inner sep=.1cm, yshift=.0cm] {plate_group_fixed} {(a_fixed_mean)(a_fixed_scale)(plate_participant_fixed)} {$h: 1$};
+        \tikzset{plate caption/.style={caption, node distance=0, inner sep=0cm,
+        below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.3em}}
+        \plate {plate_participant_fixed} {(a_fixed)} {$p: 1, 2 \ldots N_P$};
+        \tikzset{plate caption/.style={caption, node distance=0, inner sep=-.1cm,
+        below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.3em}}
+        \plate {plate_group_fixed} {(a_fixed_mean)(a_fixed_scale)(plate_participant_fixed)} {$h: 1$};
+
+        % Random
+        \node[latent,below=of a_fixed,yshift=-3cm,fill] (a_random) {$a_{\text{random}}$};
+        \node[latent,above=of a_random,xshift=-.7cm,yshift=-.5cm,fill] (a_random_mean) {$\mu_{a_{\text{random}}}$};
+        \node[latent,above=of a_random,xshift=.7cm,yshift=-.5cm,fill] (a_random_scale) {$\sigma_{a_{\text{random}}}$};
+        \tikzset{plate caption/.style={caption, node distance=0, inner sep=0cm,
+        below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.3em}}
+        \plate {plate_participant_random} {(a_random)} {$p: 1, 2 \ldots N_P$};
+        \tikzset{plate caption/.style={caption, node distance=0, inner sep=-.1cm,
+        below left=0cm and -1.2cm of #1.south,text height=1.2em,text depth=0.3em}}
+        \plate {plate_group_random} {(a_random_mean)(a_random_scale)(plate_participant_random)} {$h: 2, 3 \ldots N_H$};
+
+        % Edges from a_fixed and a_random to deterministic a
+        \edge {a_fixed, a_random} {a}
     }
 \end{figure}
 
