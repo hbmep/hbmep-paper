@@ -9,12 +9,12 @@
 
 \begin{document}
 
-The simplest form of the standard $3-$stage hierarchical model in the context of MEP size modeling can be described as follows. Let there be $N_P$ exchangle sequences $\{(x_i^j, y_i^j)_{i=1}^{n_j} \mid j = 1, 2 \ldots N_P\}$ of MEP size $y_i^j$ recorded at stimulus intensity $x_i^j$ from $j^{th}$ participant, for  a total of $N_P$ participants.\\
+The simplest form of the standard $3-$stage hierarchical model in the context of MEP size modeling can be described as follows. Let there be $N_P$ exchangle sequences $\{(x_i^p, y_i^p)_{i=1}^{n(p)} \mid j = 1, 2 \ldots N_P\}$ of MEP size $y_i^p$ recorded at stimulus intensity $x_i^p$ from $p^{th}$ participant, for  a total of $N_P$ participants.\\
 
-The first stage of hierarchy is the \textit{participant-level} and specifies parametric model $P(y_i^j \mid x_i^j, \theta_j)$ for each of the $N_P$ sequences and models the MEP size $y_i^j$ as a function of stimulus intensity $x_i^j$ and participant specific parameters $\theta_j$. In the second stage, $\theta_1, \theta_2 \ldots \theta_P$ are  assumed to be exchangeable and generated from  a common distribution P($\theta_j \mid \gamma$) with hyper-parameters $\gamma$. In the third stage, the hyper-parameters $\gamma$ are assumed to be unknown and are assigned a non-informative prior density $P(\gamma)$.
+The first stage of hierarchy is the \textit{participant-level} and specifies parametric model $P(y_i^p \mid x_i^p, \theta_p)$ for each of the $N_P$ sequences and models the MEP size $y_i^p$ as a function of stimulus intensity $x_i^p$ and participant specific parameters $\theta_p$. In the second stage, $\theta_1, \theta_2 \ldots \theta_P$ are  assumed to be exchangeable and generated from  a common distribution P($\theta_p \mid \gamma$) with hyper-parameters $\gamma$. In the third stage, the hyper-parameters $\gamma$ are assumed to be unknown and are assigned a non-informative prior, also called hyperprior, density $P(\gamma)$.
 \begin{align*}
-y_i^j \mid x_i^j, \theta_j, \gamma &\sim P(y_i^j \mid x_i^j, \theta_j, \gamma) \tag{4.3.1} \\
-\theta_j \mid \gamma &\sim P(\theta_j \mid \gamma) \tag{4.3.2} \\
+y_i^p \mid x_i^p, \theta_p, \gamma &\sim P(y_i^p \mid x_i^p, \theta_p, \gamma) \tag{4.3.1} \\
+\theta_p \mid \gamma &\sim P(\theta_p \mid \gamma) \tag{4.3.2} \\
 \gamma &\sim P(\gamma) \tag{4.3.3}
 \end{align*}
 Figure $4.3.1$ shows the graphical representation of the basic hierarchical model implemented by hbmep (Section $5.1$) for recruitment-curve fitting\\
@@ -23,28 +23,28 @@ Figure $4.3.1$ shows the graphical representation of the basic hierarchical mode
         \centering
         \tikz{ %
             % Obs
-            \node[obs,fill] (obs) {$y_i^j$};%
+            \node[obs,fill] (obs) {$y_i^p$};%
 
             % Deterministic mu, beta
-            \node[det,above=of obs,xshift=-.8cm,fill] (beta) {$\beta_i^j$}; %
-            \node[det,above=of obs,xshift=.8cm,yshift=.5cm,fill] (mu) {$\mu_i^j$}; %
-            \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$i = 1, 2 \ldots n_j$};
+            \node[det,above=of obs,xshift=-.8cm,fill] (beta) {$\beta_i^p$}; %
+            \node[det,above=of obs,xshift=.8cm,yshift=.5cm,fill] (mu) {$\mu_i^p$}; %
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$i : 1, 2 \ldots n(p)$};
 
             % % PRIORS
             % a, b, v
-            \node[latent,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a_j$};
-            \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b_j$};
-            \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v_j$};
+            \node[latent,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a_p$};
+            \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b_p$};
+            \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v_p$};
             % L, ell, H
-            \node[latent,right=of v,xshift=-.9cm,fill] (L) {$L_j$};
-            \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell_j$};
-            \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H_j$};
+            \node[latent,right=of v,xshift=-.9cm,fill] (L) {$L_p$};
+            \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell_p$};
+            \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H_p$};
             % g1, g2
-            \node[latent,left=of a,xshift=.3cm,fill] (g2) {${g_2}_j$};
-            \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}_j$};
+            \node[latent,left=of a,xshift=.3cm,fill] (g2) {${g_2}_p$};
+            \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}_p$};
 
             % Participants plate
-            \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$j = 1, 2 \ldots N_P$};
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p : 1, 2 \ldots N_P$};
 
             % % HYPER-PRIORS
             \node[latent,above=of a,xshift=-.4cm,fill] (a_mean) {$\mu_a$};
@@ -97,13 +97,13 @@ Figure $4.3.1$ shows the graphical representation of the basic hierarchical mode
 \end{minipage}
 \begin{minipage}{.6\textwidth}
     \begin{align*}
-        &y_i^j \mid x_i^j, \Omega_1^j \sim \mathcal{G}\left(\mu_i^j\cdot\beta_i^j, \beta_i^j\right) \\
-        &\mu_i^j = \mathcal{F}\left(x_i^j \mid \Omega_1^j\right) \;\; \beta_i^j = {g_1}_j + \frac{\mu_i^j}{{g_2}_j}\\\\
-        &a_j \sim \mathcal{TN}\left(\mu_a, \sigma_a\right)\\
-        &\theta_j \sim \mathcal{HN}\left(\sigma_{\theta_j}\right) \; \forall \theta_j \in \Omega \setminus \{a_j\}\\\\
+        &y_i^p \mid x_i^p, \Omega_1^p \sim \mathcal{G}\left(\mu_i^p\cdot\beta_i^p, \beta_i^p\right) \\
+        &\mu_i^p = \mathcal{F}\left(x_i^p \mid \Omega_1^p\right) \;\; \beta_i^p = {g_1}_p + \frac{\mu_i^p}{{g_2}_p}\\\\
+        &a_p \sim \mathcal{TN}\left(\mu_a, \sigma_a\right)\\
+        &\theta_p \sim \mathcal{HN}\left(\sigma_{\theta_p}\right) \; \forall \theta_p \in \Omega \setminus \{a_p\}\\\\
         & \mu_a \sim \mathcal{TN}\left(50, 20\right)\;\; \sigma_a \sim \mathcal{HN}\left(30\right)\\
         &\sigma_{\sigma_L} \sim \mathcal{HN}\left(.05\right) \;\; \sigma_\theta \sim \mathcal{HN}\left(5\right) \;\forall \theta \in \Omega_2\\\\
-        &\Omega_1^j = \{ a_j, b_j, v_j, L_j, \ell_j, H_j, {g_1}_j, {g_2}_j\}\\
+        &\Omega_1^p = \{ a_p, b_p, v_p, L_p, \ell_p, H_p, {g_1}_p, {g_2}_p\}\\
         &\Omega_2 = \{\sigma_{L}, \sigma_{H}, \sigma_{v}, \sigma_{\ell}, \sigma_{g_1}, \sigma_{g_2}\}
     \end{align*}
 \end{minipage}
