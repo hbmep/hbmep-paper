@@ -11,15 +11,15 @@
 \begin{document}
     For $a, b, v, L, \ell, H > 0$, define $\mathcal{F}: \mathbb{R} \to \mathbb{R}^{+}$ such that
     \begin{align*}
-        &x \mapsto L + \max\left(0, -\ell + \frac{H + \ell}{\left[1 + \left(-1 + \left(\frac{H + \ell}{\ell}\right)^{v}\right)e^{-b(x-a)}\right]^{1/v}} \right) \tag{4.2.1}
+        &\mathcal{F}\left(x\right) = L + \max\left(0, -\ell + \frac{H + \ell}{\left[1 + \left(-1 + \left(\frac{H + \ell}{\ell}\right)^{v}\right)e^{-b(x-a)}\right]^{1/v}} \right) \tag{4.2.1}
     \end{align*}
 
 
-For $g_1, g_2 > 0$
+For $c_1, c_2 > 0$
     \begin{align*}
-    &y \mid x, \Omega \sim \mathcal{G}\left(\mu\beta, \beta\right) \;\; \Omega = \{ a, b, v, L, \ell, H, g_1, g_2\} \tag{4.2.2} \\
-    &\mu = \E\left(y \mid x, \Omega\right) = \mathcal{F}\left(x \mid \Omega\right) \tag{4.2.3}\\
-    &\beta = g_1 + \frac{g_2}{\mu} \tag{4.2.4}\\
+    y \mid x, \Omega &\sim \mathcal{G}\left(\mu\beta, \beta\right) \;\; \Omega = \{ a, b, v, L, \ell, H, c_1, c_2\} \tag{4.2.2} \\
+    \mu &= \E\left(y \mid x, \Omega\right) = \mathcal{F}\left(x \mid \Omega\right) \tag{4.2.3}\\
+    \beta &= c_1 + \frac{c_2}{\mu} \tag{4.2.4}\\
     \end{align*}
 
 \end{document}

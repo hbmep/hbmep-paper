@@ -9,7 +9,7 @@
 
 \begin{document}
 
-    In this section, we describe a mixed-effects model consististing of both fixed and random components. This model is particularly useful in settings where the same participants undergo repeated experiments. For instance, one might be interested in assessing intervention benefits by looking at how the thresholds change from pre and post intervention. Fig. 4.3.3 gives the graphical representation of such a model implemented by hbmep. In section 5.3, we use this model $($with $N_H = 2$$)$ to compare midline and lateral stimulation thresholds.
+    Although attempts are made to filter outliers as much as posssible from the data, there is still a possibility that some outliers remain. To account for this, we use a mixture model to model the data. The mixture model is a combination of two normal distributions, one for the outliers and one for the inliers. The mixture model is defined as follows,
 
     \begin{figure}[H]
         \centering
@@ -18,14 +18,13 @@
             \node[obs,fill] (obs) {$y$};%
 
             % Deterministic mu, beta
-            \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill] (beta) {$\beta$}; %
-            \node[det,above=of obs,xshift=1.2cm,yshift=0cm,fill] (mu) {$\mu$}; %
-            \node[obs,above=of obs,xshift=-.8cm,yshift=1cm,fill] (intensity) {$x$};%
-            \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$i: 1, 2 \ldots n(p)$};
+            \node[det,above=of obs,xshift=-.8cm,fill] (beta) {$\beta$}; %
+            \node[det,above=of obs,xshift=.8cm,yshift=.5cm,fill] (mu) {$\mu$}; %
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$1, 2 \ldots n(p, h)$};
 
             % % PRIORS
             % a, b, v
-            \node[det,above=of obs,yshift=2.2cm,xshift=-1.3cm,fill] (a) {$a$};
+            \node[det,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a$};
             \node[latent,right=of a,xshift=-.9cm,fill] (b) {$b$};
             \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v$};
             % L, H, v, ell
@@ -33,8 +32,8 @@
             \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell$};
             \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H$};
             % g1, g2
-            \node[latent,left=of a,xshift=.9cm,fill] (g2) {${c_2}$};
-            \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${c_1}$};
+            \node[latent,left=of a,xshift=.9cm,fill] (g2) {${g_2}$};
+            \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}$};
 
             % Participants plate
             \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p:1, 2 \ldots N_P$};
@@ -42,8 +41,8 @@
             % % HYPER-PRIORS
             \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
             % g1_scale, g2_scale, L_scale, H_scale, v_scale, ell_scale
-            \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{c_2}$};
-            \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{c_1}$};
+            \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{g_2}$};
+            \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{g_1}$};
             \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
             \node[latent,above=of H,fill] (H_scale) {$\sigma_H$};
             \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
@@ -53,8 +52,8 @@
             \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(plate_participant)} {$h: 1, 2 \ldots N_H$};
 
             % GLOBAL PRIORS
-            \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{c_1}}$};
-            \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{c_2}}$};
+            \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{g_1}}$};
+            \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{g_2}}$};
             \node[latent,above=of b_scale,fill] (b_scale_global_scale) {$\sigma_{\sigma_{b}}$};
             \node[latent,above=of L_scale,fill] (L_scale_global_scale) {$\sigma_{\sigma_L}$};
             \node[latent,above=of H_scale,fill] (H_scale_global_scale) {$\sigma_{\sigma_H}$};
@@ -84,12 +83,11 @@
             \edge {a, b, v, L, ell, H} {mu}
 
             % Edges to obs
-            \edge {intensity} {beta, mu}
             \edge {beta,mu} {obs};
             \edge {mu} {beta};
 
             % Fixed
-            \node[latent,left=of a,xshift=-3cm,yshift=1.2cm,fill] (a_fixed) {$a_{\text{fixed}}$};
+            \node[latent,left=of a,xshift=-3cm,yshift=.8cm,fill] (a_fixed) {$a_{\text{fixed}}$};
             \node[latent,above=of a_fixed,xshift=-.6cm,yshift=-.5cm,fill] (a_fixed_mean) {$\mu_{a_{\text{fixed}}}$};
             \node[latent,above=of a_fixed,xshift=.6cm,yshift=-.5cm,fill] (a_fixed_scale) {$\sigma_{a_{\text{fixed}}}$};
             % \plate[inner sep=.1cm, yshift=.0cm] {plate_participant_fixed} {(a_fixed)} {$p: 1, 2 \ldots N_P$};

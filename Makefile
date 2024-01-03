@@ -4,10 +4,6 @@ CWD := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 export
 
 python ?= 3.11
-job ?= inference
-model ?= Baseline
-dataset ?= rats
-tag ?= latest
 
 .PHONY: check-env
 check-env:
@@ -27,14 +23,6 @@ build: build-base
 	pip install -e . && \
 	pip install -e ../hbmep
 
-run:
-	@source .venv/bin/activate && \
-	python -m hbmep_paper $(config)
-
 nb:
 	@source .venv/bin/activate && \
 	jupyter notebook
-
-list:
-	@source .venv/bin/activate && \
-	jupyter notebook list

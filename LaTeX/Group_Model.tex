@@ -20,13 +20,14 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[obs,fill] (obs) {$y$};%
 
         % Deterministic mu, beta
-        \node[det,above=of obs,xshift=-.8cm,fill] (beta) {$\beta$}; %
-        \node[det,above=of obs,xshift=.8cm,yshift=.5cm,fill] (mu) {$\mu$}; %
-        \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$i: 1, 2 \ldots n(p)$};
+        \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill] (beta) {$\beta$}; %
+        \node[det,above=of obs,xshift=1.2cm,yshift=0cm,fill] (mu) {$\mu$}; %
+        \node[obs,above=of obs,xshift=-.8cm,yshift=1cm,fill] (intensity) {$x$};%
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$i: 1, 2 \ldots n(p)$};
 
         % % PRIORS
         % a, b, v
-        \node[latent,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a$};
+        \node[latent,above=of obs,yshift=2.2cm,xshift=-1.3cm,fill] (a) {$a$};
         \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b$};
         \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v$};
         % L, ell, H
@@ -34,8 +35,8 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell$};
         \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H$};
         % g1, g2
-        \node[latent,left=of a,xshift=.3cm,fill] (g2) {${g_2}$};
-        \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}$};
+        \node[latent,left=of a,xshift=.3cm,fill] (g2) {${c_2}$};
+        \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${c_1}$};
 
         % Participants plate
         \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p:1, 2 \ldots N(g)$};
@@ -44,8 +45,8 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[latent,above=of a,xshift=-.4cm,fill] (a_mean) {$\mu_a$};
         \node[latent,above=of a,xshift=.4cm,fill] (a_scale) {$\sigma_a$};
         \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
-        \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{g_2}$};
-        \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{g_1}$};
+        \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{c_2}$};
+        \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{c_1}$};
         \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
         \node[latent,above=of H,fill] (H_scale) {$\sigma_H$};
         \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
@@ -55,8 +56,8 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(a_mean)(a_scale)(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(plate_participant)} {$g: 1, 2 \ldots N_G$};
 
         % GLOBAL PRIORS
-        \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{g_1}}$};
-        \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{g_2}}$};
+        \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{c_2}}$};
+        \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{c_1}}$};
         \node[latent,above=of b_scale,fill] (b_scale_global_scale) {$\sigma_{\sigma_{b}}$};
         \node[latent,above=of L_scale,fill] (L_scale_global_scale) {$\sigma_{\sigma_L}$};
         \node[latent,above=of H_scale,fill] (H_scale_global_scale) {$\sigma_{\sigma_H}$};
@@ -87,11 +88,12 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \edge {a, b, v, L, ell, H} {mu}
 
         % Edges to obs
+        \edge {intensity} {beta, mu}
         \edge {beta,mu} {obs};
         \edge {mu} {beta};
     }
 \end{figure}
 
-Although the group threshold parameters $\mu_a$ and $\sigma_a$ are assumed to be generated from a common population, we consciously avoid pooling these parameters. The reason for doing so is two folds. Firstly, often there is enough information available to directly specify these parameters. Secondly, we expect these parameters to be different between groups. For instance, the thresholds are the most likely to be affected by injury.
+Although the group threshold parameters $\mu_a$ and $\sigma_a$ are assumed to be generated from a common population, we consciously avoid pooling these parameters. The reason for doing so is two fold. Firstly, often there is enough information available to directly specify these parameters. Secondly, we expect these parameters to be different between groups. For instance, the thresholds are the most likely to be affected by injury.
 
 \end{document}

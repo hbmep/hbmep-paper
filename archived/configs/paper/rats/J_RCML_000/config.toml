@@ -1,0 +1,27 @@
+[paths]
+csv = ""
+build_dir = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/"
+
+[vars]
+features = ["participant", "compound_position"]
+intensity = "pulse_amplitude"
+response = ["LADM", "LBiceps", "LDeltoid", "LECR", "LFCR", "LTriceps"]
+
+[mcmc]
+chains = 4
+warmup = 1000
+samples = 1000
+
+[model]
+link = "fixed"
+
+[fixed]
+
+[optional-mep-data]
+mep_matrix_path = ""    # In .npy format with shape: (No. of rows in csv) x (time) x (No. of responses)
+mep_response = ['LADM', 'LBiceps', 'LBicepsFemoris', 'LDeltoid', 'LECR', 'LFCR', 'LTriceps', 'RBiceps']              # Order of responses in MEP matrix
+mep_time_range = [-0.01, 0.025]
+mep_size_time_range = [0.0015, 0.01]
+
+[aesthetics]
+base = 20
