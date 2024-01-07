@@ -54,6 +54,7 @@ def main():
         ],
         force=True
     )
+    logger.info(f"Logging to {dest}")
 
     for k, v in simulation_ppd.items():
         logger.info(f"{k}: {v.shape}")
@@ -61,29 +62,37 @@ def main():
     src = os.path.join(dir, "simulation_df.csv")
     simulation_df = pd.read_csv(src)
 
-    """ Plot """
-    N_DRAWS_TO_PLOT = 10
-    temp_ppd = {
-        k: v[:N_DRAWS_TO_PLOT, ...] for k, v in simulation_ppd.items()
-    }
-    assert temp_ppd[site.obs].shape[0] == N_DRAWS_TO_PLOT
-
-    temp_df = simulation_df.copy()
-    temp_ppd = {
-        k: v.swapaxes(0, -1) for k, v in temp_ppd.items()
-    }
-    obs = temp_ppd[site.obs]
+    obs = simulation_ppd[site.obs]
+    a = simulation_ppd[site.a]
     logger.info(f"obs: {obs.shape}")
-    response = [simulator.response[0] + f"_{i}" for i in range(N_DRAWS_TO_PLOT)]
-    temp_df[response] = obs[0, ...]
-    simulator.render_recruitment_curves(
-        df=temp_df,
-        response=response,
-        response_colors = plt.cm.rainbow(np.linspace(0, 1, N_DRAWS_TO_PLOT)),
-        prediction_df=temp_df,
-        posterior_predictive=temp_ppd,
-        posterior_samples=temp_ppd
-    )
+    logger.info(f"a: {a.shape}")
+    valid_draws = (a > 0).all(axis=(1, 2, 3))
+    logger.info(f"valid_draws: {valid_draws.shape}")
+    logger.info(f"valid_draws: {valid_draws.sum()}")
+
+    # """ Plot """
+    # N_DRAWS_TO_PLOT = 10
+    # temp_ppd = {
+    #     k: v[:N_DRAWS_TO_PLOT, ...] for k, v in simulation_ppd.items()
+    # }
+    # assert temp_ppd[site.obs].shape[0] == N_DRAWS_TO_PLOT
+
+    # temp_df = simulation_df.copy()
+    # temp_ppd = {
+    #     k: v.swapaxes(0, -1) for k, v in temp_ppd.items()
+    # }
+    # obs = temp_ppd[site.obs]
+    # logger.info(f"obs: {obs.shape}")
+    # response = [simulator.response[0] + f"_{i}" for i in range(N_DRAWS_TO_PLOT)]
+    # temp_df[response] = obs[0, ...]
+    # simulator.render_recruitment_curves(
+    #     df=temp_df,
+    #     response=response,
+    #     response_colors = plt.cm.rainbow(np.linspace(0, 1, N_DRAWS_TO_PLOT)),
+    #     prediction_df=temp_df,
+    #     posterior_predictive=temp_ppd,
+    #     posterior_samples=temp_ppd
+    # )
 
 
 if __name__ == "__main__":

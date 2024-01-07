@@ -20,7 +20,7 @@ from hbmep.model import BaseModel
 from hbmep.model import functional as F
 from hbmep.model.utils import Site as site
 
-from learn_posterior import LearnPosterior
+from models import LearnPosterior
 
 PLATFORM = "cpu"
 jax.config.update("jax_platforms", PLATFORM)
@@ -54,9 +54,10 @@ def main():
         ],
         force=True
     )
+    logger.info(f"Logging to {dest}")
 
-    # for k, v in posterior_samples_learnt.items():
-    #     logger.info(f"{k}: {v.shape}")
+    for k, v in posterior_samples_learnt.items():
+        logger.info(f"{k}: {v.shape}")
     logger.info(f"Before removing sites: {', '.join(posterior_samples_learnt.keys())}")
 
     """ Create template dataframe for simulation """

@@ -1,6 +1,6 @@
 [paths]
 csv = ""
-build_dir = "/home/vishu/repos/hbmep-paper/reports/paper/rats/J_RCML_000/"
+build_dir = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/"
 
 [vars]
 features = ["participant", "compound_position"]

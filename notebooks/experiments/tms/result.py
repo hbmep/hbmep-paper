@@ -4,12 +4,15 @@ import logging
 
 import numpy as np
 import scipy.stats as stats
-import jax
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 from hbmep.model.utils import Site as site
-from simulate_data import Simulator
-from core import HBModel
+from models import Simulator, HBModel, NHBModel
+
+from simulate_data import TOTAL_SUBJECTS
+from subjects_exp import fix_rng
+from subjects_exp import EXPERIMENT_NAME, N_DRAWS, N_REPEATS
 
 plt.rcParams['svg.fonttype'] = 'none'
 
@@ -28,42 +31,36 @@ logging.basicConfig(
 
 
 def main():
+    """ Load simulated data """
     dir ="/home/vishu/repos/hbmep-paper/reports/experiments/subjects/simulate-data/a_random_mean_-2.5_a_random_scale_1.5"
     src = os.path.join(dir, "simulation_ppd.pkl")
     with open(src, "rb") as g:
         simulator, simulation_ppd = pickle.load(g)
-    obs = simulation_ppd[site.obs]
-    A_TRUE = simulation_ppd[site.a]
 
-    TOTAL_SUBJECTS = 200
-    n_draws = 50
-    n_repeats = 50
-    keys = jax.random.split(simulator.rng_key, num=2)
-    draws_space = \
-        jax.random.choice(
-            key=keys[0],
-            a=np.arange(0, simulation_ppd[site.a].shape[0], 1),
-            shape=(n_draws,),
-            replace=False
-        ) \
-        .tolist()
-    seeds_for_generating_subjects = \
-        jax.random.choice(
-            key=keys[1],
-            a=np.arange(0, n_repeats * 100, 1),
-            shape=(n_repeats,),
-            replace=False
-        ) \
-        .tolist()
+    ppd_a = simulation_ppd[site.a]
 
+    """ Fix rng """
+    rng_key = simulator.rng_key
+    max_draws = ppd_a.shape[0]
+    max_seeds = N_REPEATS * 100
+    draws_space, seeds_for_generating_subjects = fix_rng(
+        rng_key, 4000, max_seeds
+    )
+
+    """ Results """
     n_subjects_space = [1, 4, 8, 16]
     models = [HBModel]
-    n_jobs = -1
+    # models = [HBModel]
 
-    # n_subjects_space =
-    draws_space = draws_space[:17]
+    # j = 0
+    # n_subjects_space = n_subjects_space[:2]
+    draws_space = draws_space[:25]
+    # seeds_for_generating_subjects = seeds_for_generating_subjects[:1]
+    # draws_space = draws_space[10:12]
+    # seeds_for_generating_subjects = seeds_for_generating_subjects[:5]
+    logger.info(draws_space)
+    logger.info(seeds_for_generating_subjects)
 
-    # HBModel
     mae = []
     mse = []
     prob = []
@@ -72,7 +69,9 @@ def main():
             for seed in seeds_for_generating_subjects:
                 for m in models:
                     n_subjects_dir, draw_dir, seed_dir = f"n{n_subjects}", f"d{draw}", f"s{seed}"
-                    dir = os.path.join(simulator.build_dir, "models", m.NAME, draw_dir, n_subjects_dir, seed_dir)
+                    dir = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, m.NAME)
+                    # dir = "/home/vishu/repos/hbmep-paper/reports/experiments/subjects/simulate-data/a_random_mean_-2.5_a_random_scale_1.5/archived/subjects"
+                    # dir = os.path.join(dir, m.NAME, draw_dir, n_subjects_dir, seed_dir)
                     a_true = np.load(os.path.join(dir, "a_true.npy"))
                     a_pred = np.load(os.path.join(dir, "a_pred.npy"))
 
@@ -81,6 +80,7 @@ def main():
 
                     a_pred = a_pred.mean(axis=0).reshape(-1,)
                     a_true = a_true.reshape(-1,)
+
                     curr_mae = np.abs(a_true - a_pred).mean()
                     curr_mse = np.square(a_true - a_pred).mean()
                     mae.append(curr_mae)
@@ -88,9 +88,11 @@ def main():
 
                     if m.NAME == "hbm":
                         a_random_mean = np.load(os.path.join(dir, "a_random_mean.npy")).reshape(-1,)
-                        a_random_scale = np.load(os.path.join(dir, "a_random_scale.npy")).reshape(-1,)
+                        # a_random_scale = np.load(os.path.join(dir, "a_random_scale.npy")).reshape(-1,)
                         curr_prob = (a_random_mean < 0).mean()
                         prob.append(curr_prob)
+                    else:
+                        prob.append(0)
 
     mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(seeds_for_generating_subjects), len(models))
     mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(seeds_for_generating_subjects), len(models))
@@ -100,8 +102,10 @@ def main():
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"PROB: {prob.shape}")
 
-    mae = mae.reshape(mae.shape[0], -1, len(models))
-    mse = mse.reshape(mse.shape[0], -1, len(models))
+    # mae = mae.reshape(mae.shape[0], -1, len(models))
+    # mse = mse.reshape(mse.shape[0], -1, len(models))
+    mae = mae.mean(axis=-2)
+    mse = mse.mean(axis=-2)
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
 
@@ -133,7 +137,8 @@ def main():
         logger.info(f"PROB: {y.shape}")
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
-        ax.errorbar(x=x, y=yme, yerr=ysem, marker="o", label=f"{model.NAME}", linestyle="--", ms=4)
+        ysd = y.std(axis=-1)
+        ax.errorbar(x=x, y=yme, yerr=ysd, marker="o", label=f"{model.NAME}", linestyle="--", ms=4)
         ax.set_xticks(x)
         ax.legend(loc="upper right")
 
@@ -143,7 +148,9 @@ def main():
     fig.savefig(dest, dpi=600)
     dest = os.path.join(simulator.build_dir, "subjects-exp.png")
     fig.savefig(dest, dpi=600)
+    logger.info(f"Saved to {dest}")
     return
+
 
 if __name__ == "__main__":
     main()
