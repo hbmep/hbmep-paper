@@ -6,6 +6,7 @@ import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+import jax
 
 from hbmep.model.utils import Site as site
 from models import Simulator, HBModel, NHBModel
@@ -32,7 +33,7 @@ logging.basicConfig(
 
 def main():
     """ Load simulated data """
-    dir ="/home/vishu/repos/hbmep-paper/reports/experiments/subjects/simulate-data/a_random_mean_-2.5_a_random_scale_1.5"
+    dir ="/home/vishu/repos/hbmep-paper/reports/experiments/subjects/simulate-data/a_random_mean_-2.5_a_random_scale_1.5/tms_200"
     src = os.path.join(dir, "simulation_ppd.pkl")
     with open(src, "rb") as g:
         simulator, simulation_ppd = pickle.load(g)
@@ -44,7 +45,7 @@ def main():
     max_draws = ppd_a.shape[0]
     max_seeds = N_REPEATS * 100
     draws_space, seeds_for_generating_subjects = fix_rng(
-        rng_key, 4000, max_seeds
+        rng_key, max_draws, max_seeds
     )
 
     """ Results """
@@ -54,10 +55,10 @@ def main():
 
     # j = 0
     # n_subjects_space = n_subjects_space[:2]
-    draws_space = draws_space[:15]
+    draws_space = draws_space[:17]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:1]
     # draws_space = draws_space[10:12]
-    # seeds_for_generating_subjects = seeds_for_generating_subjects[:5]
+    # seeds_for_generating_subjects = seeds_for_generating_subjects[:20]
     logger.info(draws_space)
     logger.info(seeds_for_generating_subjects)
 
@@ -67,9 +68,21 @@ def main():
     for n_subjects in n_subjects_space:
         for draw in draws_space:
             for seed in seeds_for_generating_subjects:
+                valid_subjects = np.arange(0, ppd_a.shape[1], 1)
+                subjects = \
+                    jax.random.choice(
+                        key=jax.random.PRNGKey(seed),
+                        a=valid_subjects,
+                        shape=(n_subjects,),
+                        replace=False
+                    ) \
+                    .tolist()
+                common_subject = subjects[0]
+                argsort = np.array(subjects).argsort().argsort()
+                common_subject = argsort[0]
                 for m in models:
                     n_subjects_dir, draw_dir, seed_dir = f"n{n_subjects}", f"d{draw}", f"s{seed}"
-                    dir = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, m.NAME)
+                    dir = os.path.join(simulator.build_dir, "tms_200", EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, m.NAME)
                     # dir = "/home/vishu/repos/hbmep-paper/reports/experiments/subjects/simulate-data/a_random_mean_-2.5_a_random_scale_1.5/archived/subjects"
                     # dir = os.path.join(dir, m.NAME, draw_dir, n_subjects_dir, seed_dir)
                     a_true = np.load(os.path.join(dir, "a_true.npy"))
@@ -77,6 +90,9 @@ def main():
 
                     # logger.info(f"a_true: {a_true.shape}")
                     # logger.info(f"a_pred: {a_pred.shape}")
+
+                    a_true = a_true[common_subject, ...]
+                    a_pred = a_pred[:, common_subject, ...]
 
                     a_pred = a_pred.mean(axis=0).reshape(-1,)
                     a_true = a_true.reshape(-1,)
@@ -102,10 +118,10 @@ def main():
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"PROB: {prob.shape}")
 
-    # mae = mae.reshape(mae.shape[0], -1, len(models))
-    # mse = mse.reshape(mse.shape[0], -1, len(models))
-    mae = mae.mean(axis=-2)
-    mse = mse.mean(axis=-2)
+    mae = mae.reshape(mae.shape[0], -1, len(models))
+    mse = mse.reshape(mse.shape[0], -1, len(models))
+    # mae = mae.mean(axis=-2)
+    # mse = mse.mean(axis=-2)
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
 
@@ -144,9 +160,9 @@ def main():
 
     fig.align_xlabels()
     fig.align_ylabels()
-    dest = os.path.join(simulator.build_dir, "subjects-exp.svg")
+    dest = os.path.join(simulator.build_dir, "tms_200", "subjects-exp-single.svg")
     fig.savefig(dest, dpi=600)
-    dest = os.path.join(simulator.build_dir, "subjects-exp.png")
+    dest = os.path.join(simulator.build_dir, "tms_200", "subjects-exp-single.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
     return
