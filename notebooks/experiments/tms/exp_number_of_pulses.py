@@ -214,34 +214,34 @@ def main():
 
             """ Run inference """
             df, encoder_dict = model.load(df=df)
-            _, posterior_samples = model.run_inference(df=df)
+            # _, posterior_samples = model.run_inference(df=df)
 
-            """ Predictions and recruitment curves """
-            prediction_df = model.make_prediction_dataset(df=df)
-            posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
-            model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+            # """ Predictions and recruitment curves """
+            # prediction_df = model.make_prediction_dataset(df=df)
+            # posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+            # model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
 
-            """ Compute error and save results """
-            a_true = ppd_a[draw, ...][sorted(subjects), ...]
-            a_pred = posterior_samples[site.a]
-            assert a_pred.mean(axis=0).shape == a_true.shape
-            np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-            np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+            # """ Compute error and save results """
+            # a_true = ppd_a[draw, ...][sorted(subjects), ...]
+            # a_pred = posterior_samples[site.a]
+            # assert a_pred.mean(axis=0).shape == a_true.shape
+            # np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+            # np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-            a_random_mean = posterior_samples["a_random_mean"]
-            a_random_scale = posterior_samples["a_random_scale"]
-            logger.info(f"a_random_mean: {a_random_mean.shape}, {type(a_random_mean)}")
-            logger.info(f"a_random_scale: {a_random_scale.shape}, {type(a_random_scale)}")
-            np.save(os.path.join(model.build_dir, "a_random_mean.npy"), a_random_mean)
-            np.save(os.path.join(model.build_dir, "a_random_scale.npy"), a_random_scale)
+            # a_random_mean = posterior_samples["a_random_mean"]
+            # a_random_scale = posterior_samples["a_random_scale"]
+            # logger.info(f"a_random_mean: {a_random_mean.shape}, {type(a_random_mean)}")
+            # logger.info(f"a_random_scale: {a_random_scale.shape}, {type(a_random_scale)}")
+            # np.save(os.path.join(model.build_dir, "a_random_mean.npy"), a_random_mean)
+            # np.save(os.path.join(model.build_dir, "a_random_scale.npy"), a_random_scale)
 
-            config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
-            model, posterior_samples, posterior_predictive = None, None, None
-            results, a_true, a_pred, a_random_mean, a_random_scale = None, None, None, None, None
-            del config, df, prediction_df, encoder_dict, _
-            del model, posterior_samples, posterior_predictive
-            del results, a_true, a_pred, a_random_mean, a_random_scale
-            gc.collect()
+            # config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+            # model, posterior_samples, posterior_predictive = None, None, None
+            # results, a_true, a_pred, a_random_mean, a_random_scale = None, None, None, None, None
+            # del config, df, prediction_df, encoder_dict, _
+            # del model, posterior_samples, posterior_predictive
+            # del results, a_true, a_pred, a_random_mean, a_random_scale
+            # gc.collect()
 
         # Non-hierarchical Bayesian model needs to be run separately on individual subjects
         # otherwise, there are convergence issues when the number of subjects is large
@@ -260,7 +260,9 @@ def main():
                 ind = df[simulator.intensity].isin(pulses)
                 df = df[ind].reset_index(drop=True).copy()
                 assert df[simulator.intensity].unique().shape[0] == n_pulses
-                assert df.shape[0] == n_pulses
+                print(f"df shape: {df.shape[0]}")
+                print(f"n_pulse: {n_pulses}\n\n")
+                assert df.shape[0] == 2 * n_pulses
 
                 """ Build model """
                 toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
@@ -285,37 +287,39 @@ def main():
 
                 """ Run inference """
                 df, encoder_dict = model.load(df=df)
-                _, posterior_samples = model.run_inference(df=df)
+            #     _, posterior_samples = model.run_inference(df=df)
 
-                """ Predictions and recruitment curves """
-                prediction_df = model.make_prediction_dataset(df=df)
-                posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
-                model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+            #     """ Predictions and recruitment curves """
+            #     prediction_df = model.make_prediction_dataset(df=df)
+            #     posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+            #     model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
 
-                """ Compute error and save results """
-                a_true = ppd_a[draw, ...][[subject], ...]
-                a_pred = posterior_samples[site.a]
-                assert a_pred.mean(axis=0).shape == a_true.shape
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+            #     """ Compute error and save results """
+            #     a_true = ppd_a[draw, ...][[subject], ...]
+            #     a_pred = posterior_samples[site.a]
+            #     assert a_pred.mean(axis=0).shape == a_true.shape
+            #     np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+            #     np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
-                model, posterior_samples, posterior_predictive = None, None, None
-                results, a_true, a_pred, a_random_mean, a_random_scale = None, None, None, None, None
-                del config, df, prediction_df, encoder_dict, _
-                del model, posterior_samples, posterior_predictive
-                del results, a_true, a_pred, a_random_mean, a_random_scale
-            gc.collect()
+            #     config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+            #     model, posterior_samples, posterior_predictive = None, None, None
+            #     results, a_true, a_pred, a_random_mean, a_random_scale = None, None, None, None, None
+            #     del config, df, prediction_df, encoder_dict, _
+            #     del model, posterior_samples, posterior_predictive
+            #     del results, a_true, a_pred, a_random_mean, a_random_scale
+            # gc.collect()
 
         return
 
 
-    draws_space = draws_space[:30]
-    n_pulses_space = [20, 40]
+    # draws_space = draws_space[:30]
+    # n_pulses_space = [20, 40]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:10]
 
     # Run for Hierarchical Bayesian Model
+    models = [HBModel, NHBModel]
     models = [HBModel]
+    models = [NHBModel]
 
     # # Run for Non-Hierarchical Bayesian Model
     # models = [NHBModel]
