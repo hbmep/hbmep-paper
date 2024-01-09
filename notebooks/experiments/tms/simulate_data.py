@@ -104,6 +104,7 @@ def main():
         simulator.predict(df=simulation_df, posterior_samples=posterior_samples_learnt)
 
     """ Shuffle draws """
+    logger.info(f"Shuffling draws ...")
     ind = np.arange(0, simulation_ppd[site.a].shape[0], 1)
     ind = jax.random.permutation(simulator.rng_key, ind)
     ind = np.array(ind)

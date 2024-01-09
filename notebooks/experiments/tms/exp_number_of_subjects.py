@@ -80,7 +80,6 @@ def main():
         rng_key, max_draws, max_seeds
     )
     n_subjects_space = [1, 4, 8, 16]
-    models = [NHBModel]
     n_jobs = -1
 
 
@@ -106,48 +105,51 @@ def main():
                 replace=False
             ) \
             .tolist()
-        ind = simulation_df[simulator.features[0]].isin(subjects)
-        df = simulation_df[ind].reset_index(drop=True).copy()
-        df[simulator.response[0]] = ppd_obs[draw, ind, 0]
-        ind = df[simulator.response[0]] > 0
-        df = df[ind].reset_index(drop=True).copy()
 
-        """ Build model """
-        toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/subjects.toml"
-        config = Config(toml_path=toml_path)
-        config.BUILD_DIR = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, M.NAME)
-        logger = logging.getLogger(__name__)
-        FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        dest = os.path.join(config.BUILD_DIR, "log.log")
-        simulator._make_dir(config.BUILD_DIR)
-        logging.basicConfig(
-            format=FORMAT,
-            level=logging.INFO,
-            handlers=[
-                logging.FileHandler(dest, mode="w"),
-                logging.StreamHandler()
-            ],
-            force=True
-        )
-        model = M(config=config)
+        if M.NAME in ["hbm"]:
+            ind = simulation_df[simulator.features[0]].isin(subjects)
+            df = simulation_df[ind].reset_index(drop=True).copy()
+            df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+            ind = df[simulator.response[0]] > 0
+            df = df[ind].reset_index(drop=True).copy()
 
-        """ Run inference """
-        df, encoder_dict = model.load(df=df)
-        _, posterior_samples = model.run_inference(df=df)
+            """ Build model """
+            toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
+            config = Config(toml_path=toml_path)
+            config.BUILD_DIR = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, M.NAME)
 
-        """ Predictions and recruitment curves """
-        prediction_df = model.make_prediction_dataset(df=df)
-        posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
-        model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+            # Set up logging
+            logger = logging.getLogger(__name__)
+            dest = os.path.join(config.BUILD_DIR, "log.log")
+            simulator._make_dir(config.BUILD_DIR)
+            logging.basicConfig(
+                format=FORMAT,
+                level=logging.INFO,
+                handlers=[
+                    logging.FileHandler(dest, mode="w"),
+                    logging.StreamHandler()
+                ],
+                force=True
+            )
 
-        """ Compute error and save results """
-        a_true = ppd_a[draw, ...][sorted(subjects), ...]
-        a_pred = posterior_samples[site.a]
-        assert a_pred.mean(axis=0).shape == a_true.shape
-        np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-        np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+            model = M(config=config)
 
-        if model.NAME == "hbm":
+            """ Run inference """
+            df, encoder_dict = model.load(df=df)
+            _, posterior_samples = model.run_inference(df=df)
+
+            """ Predictions and recruitment curves """
+            prediction_df = model.make_prediction_dataset(df=df)
+            posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+            model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+
+            """ Compute error and save results """
+            a_true = ppd_a[draw, ...][sorted(subjects), ...]
+            a_pred = posterior_samples[site.a]
+            assert a_pred.mean(axis=0).shape == a_true.shape
+            np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+            np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
             a_random_mean = posterior_samples["a_random_mean"]
             a_random_scale = posterior_samples["a_random_scale"]
             logger.info(f"a_random_mean: {a_random_mean.shape}, {type(a_random_mean)}")
@@ -155,20 +157,82 @@ def main():
             np.save(os.path.join(model.build_dir, "a_random_mean.npy"), a_random_mean)
             np.save(os.path.join(model.build_dir, "a_random_scale.npy"), a_random_scale)
 
-        config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
-        model, posterior_samples, posterior_predictive = None, None, None
-        results, a_true, a_pred, a_random_mean, a_random_scale = None, None, None, None, None
-        del config, df, prediction_df, encoder_dict, _
-        del model, posterior_samples, posterior_predictive
-        del results, a_true, a_pred, a_random_mean, a_random_scale
-        gc.collect()
+            config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+            model, posterior_samples, posterior_predictive = None, None, None
+            results, a_true, a_pred, a_random_mean, a_random_scale = None, None, None, None, None
+            del config, df, prediction_df, encoder_dict, _
+            del model, posterior_samples, posterior_predictive
+            del results, a_true, a_pred, a_random_mean, a_random_scale
+            gc.collect()
+
+        # Non-hierarchical Bayesian model needs to be run separately on individual subjects
+        # otherwise, there are convergence issues when the number of subjects is large
+        elif M.NAME in ["nhbm"]:
+            for subject in subjects:
+                sub_dir = f"p{subject}"
+                ind = simulation_df[simulator.features[0]].isin([subject])
+                df = simulation_df[ind].reset_index(drop=True).copy()
+                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+                ind = df[simulator.response[0]] > 0
+                df = df[ind].reset_index(drop=True).copy()
+
+                """ Build model """
+                toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
+                config = Config(toml_path=toml_path)
+                config.BUILD_DIR = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, M.NAME, sub_dir)
+
+                # Set up logging
+                logger = logging.getLogger(__name__)
+                dest = os.path.join(config.BUILD_DIR, "log.log")
+                simulator._make_dir(config.BUILD_DIR)
+                logging.basicConfig(
+                    format=FORMAT,
+                    level=logging.INFO,
+                    handlers=[
+                        logging.FileHandler(dest, mode="w"),
+                        logging.StreamHandler()
+                    ],
+                    force=True
+                )
+
+                model = M(config=config)
+
+                """ Run inference """
+                df, encoder_dict = model.load(df=df)
+                _, posterior_samples = model.run_inference(df=df)
+
+                """ Predictions and recruitment curves """
+                prediction_df = model.make_prediction_dataset(df=df)
+                posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+                model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+
+                """ Compute error and save results """
+                a_true = ppd_a[draw, ...][[subject], ...]
+                a_pred = posterior_samples[site.a]
+                assert a_pred.mean(axis=0).shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+                config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                model, posterior_samples, posterior_predictive = None, None, None
+                results, a_true, a_pred, a_random_mean, a_random_scale = None, None, None, None, None
+                del config, df, prediction_df, encoder_dict, _
+                del model, posterior_samples, posterior_predictive
+                del results, a_true, a_pred, a_random_mean, a_random_scale
+            gc.collect()
+
         return
 
 
-    draws_space = draws_space[:10]
-    n_subjects_space = [12]
-    models = [HBModel, NHBModel]
-    # seeds_for_generating_subjects = seeds_for_generating_subjects[:2]
+    draws_space = draws_space[:30]
+    # seeds_for_generating_subjects = seeds_for_generating_subjects[:10]
+
+    # Run for Hierarchical Bayesian Model
+    models = [HBModel]
+
+    # # Run for Non-Hierarchical Bayesian Model
+    # n_subjects_space = [16]
+    # models = [NHBModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
