@@ -91,8 +91,7 @@ def main():
         M
     ):
         """ Artefacts directory """
-        n_subjects_dir, draw_dir, seed_dir = \
-            f"n{n_subjects}", f"d{draw}", f"s{seed}"
+        n_subjects_dir, draw_dir, seed_dir = f"n{n_subjects}", f"d{draw}", f"s{seed}"
 
         """ Load data """
         valid_subjects = \
@@ -219,8 +218,7 @@ def main():
                 del config, df, prediction_df, encoder_dict, _
                 del model, posterior_samples, posterior_predictive
                 del results, a_true, a_pred, a_random_mean, a_random_scale
-            gc.collect()
-
+                gc.collect()
         return
 
 
