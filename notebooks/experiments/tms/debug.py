@@ -18,8 +18,11 @@ logging.basicConfig(
 
 
 def main():
-    subjects = np.arange(0, 10, 1)
-    logger.info(subjects)
+    total_pulses = 15
+    pulses = np.arange(0, total_pulses, 1).astype(int)
+    logger.info(pulses)
+    logger.info(type(pulses))
+    logger.info(pulses.dtype)
     # argsort = subjects.argsort().argsort()
     # logger.info(argsort)
     # # logger.info(subjects[argsort])
@@ -28,10 +31,10 @@ def main():
     # for i, num in enumerate(argsort):
     #     sorted_subjects[num] = subjects[i]
     # logger.info(sorted_subjects)
-    rng_key = jax.random.PRNGKey(0)
-    subjects_shuffled = np.array(jax.random.permutation(rng_key, subjects))
-    logger.info(subjects_shuffled)
-    logger.info(type(subjects_shuffled))
+    # rng_key = jax.random.PRNGKey(0)
+    # subjects_shuffled = np.array(jax.random.permutation(rng_key, subjects))
+    # logger.info(subjects_shuffled)
+    # logger.info(type(subjects_shuffled))
     return
 
 

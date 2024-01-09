@@ -227,12 +227,12 @@ def main():
     draws_space = draws_space[:30]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:10]
 
-    # Run for Hierarchical Bayesian Model
-    models = [HBModel]
+    # # Run for Hierarchical Bayesian Model
+    # models = [HBModel]
 
-    # # Run for Non-Hierarchical Bayesian Model
-    # n_subjects_space = [16]
-    # models = [NHBModel]
+    # Run for Non-Hierarchical Bayesian Model
+    n_subjects_space = [16]
+    models = [NHBModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
