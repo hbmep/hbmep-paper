@@ -27,7 +27,7 @@ logging.basicConfig(
     force=True
 )
 
-EXPERIMENT_NAME = "subjects"
+EXPERIMENT_NAME = "exp_number_of_subjects"
 N_DRAWS = 50
 N_REPEATS = 50
 
@@ -58,7 +58,7 @@ def fix_rng(rng_key, max_draws, max_seeds):
 @timing
 def main():
     """ Load simulated data """
-    dir ="/home/vishu/repos/hbmep-paper/reports/experiments/subjects/simulate-data/a_random_mean_-2.5_a_random_scale_1.5"
+    dir ="/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate-data/a_random_mean_-2.5_a_random_scale_1.5"
     src = os.path.join(dir, "simulation_ppd.pkl")
     with open(src, "rb") as g:
         simulator, simulation_ppd = pickle.load(g)
@@ -79,7 +79,7 @@ def main():
     draws_space, seeds_for_generating_subjects = fix_rng(
         rng_key, max_draws, max_seeds
     )
-    n_subjects_space = [1, 16]
+    n_subjects_space = [1, 4, 8, 16]
     models = [NHBModel]
     n_jobs = -1
 

@@ -5,6 +5,7 @@ import logging
 
 import pandas as pd
 import numpy as np
+import jax
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -21,13 +22,13 @@ MIN_VALID_SUBJECTS_PER_DRAW = 200
 
 def main():
     a_random_mean, a_random_scale = -2.5, 1.5
-    toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/subjects.toml"
+    toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
     config = Config(toml_path=toml_path)
     config.BUILD_DIR = os.path.join(config.BUILD_DIR, "simulate-data", f"a_random_mean_{a_random_mean}_a_random_scale_{a_random_scale}")
 
     simulator = Simulator(config=config, a_random_mean=a_random_mean, a_random_scale=a_random_scale)
     simulator._make_dir(simulator.build_dir)
-    dest = os.path.join(simulator.build_dir, "log.log")
+    dest = os.path.join(simulator.build_dir, "simulate_data.log")
     logging.basicConfig(
         format=FORMAT,
         level=logging.INFO,
@@ -102,6 +103,15 @@ def main():
     simulation_ppd = \
         simulator.predict(df=simulation_df, posterior_samples=posterior_samples_learnt)
 
+    """ Shuffle draws """
+    ind = np.arange(0, simulation_ppd[site.a].shape[0], 1)
+    ind = jax.random.permutation(simulator.rng_key, ind)
+    ind = np.array(ind)
+    simulation_ppd = \
+        {
+            k: v[ind, ...] for k, v in simulation_ppd.items()
+        }
+
     """ Valid draws """
     a = simulation_ppd[site.a]
     b = simulation_ppd[site.b]
@@ -122,6 +132,8 @@ def main():
     logger.info(f"Saved filter to {dest}")
 
     # filter = ((a > 0) & (a < 100)).all(axis=(-1, -2, -3))
+    # logger.info(f"Filter shape: {filter.shape}")
+    # logger.info(f"Valid draws: {filter.sum()}")
     # simulation_ppd = \
     #     {
     #         k: v[filter, ...] for k, v in simulation_ppd.items()

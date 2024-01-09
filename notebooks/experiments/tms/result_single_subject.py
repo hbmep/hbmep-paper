@@ -60,7 +60,7 @@ def main():
 
     # j = 0
     # n_subjects_space = n_subjects_space[:2]
-    draws_space = draws_space[:5]
+    draws_space = draws_space[:10]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:1]
     # draws_space = draws_space[10:12]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:5]

@@ -49,12 +49,12 @@ def main():
 
     """ Results """
     n_subjects_space = [1, 4, 8, 16]
-    models = [HBModel, NHBModel]
-    # models = [HBModel]
+    # models = [HBModel, NHBModel]
+    models = [HBModel]
 
     # j = 0
     # n_subjects_space = n_subjects_space[:2]
-    draws_space = draws_space[:15]
+    draws_space = draws_space[:27]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:1]
     # draws_space = draws_space[10:12]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:5]
