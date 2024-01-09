@@ -6,3 +6,6 @@
     * plot_simulated_data.py
         - uses simulated posterior
         - plots specified number of draws (as if they were different muscles, horizontally) and saves it to disk
+
+* All models generally go in models.py (for eg. a new model used for fitting)
+* All OS dependent paths are defined as global variables (ALL_CAPITALS) right below import statements
