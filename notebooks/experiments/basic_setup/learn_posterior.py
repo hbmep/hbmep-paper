@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate toml path
-TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/experiments/basic_setup.toml"
+TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
 
 # Change this to indicate data path
-DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
+DATA_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/data/proc_2023-11-28 1.csv"
 
 
 def main():

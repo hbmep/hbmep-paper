@@ -1,10 +1,11 @@
 [paths]
 csv = ""
-build_dir = "/home/vishu/repos/hbmep-paper/reports/experiments/basic_setup"
+build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build"
 
 [vars]
 features = [["participant", "participant_condition"]]
 intensity = "TMSInt"
+# response = ['PKPK_Triceps', 'PKPK_Biceps', 'PKPK_APB', 'PKPK_ADM']
 response = ['PKPK_APB']
 
 [mcmc]

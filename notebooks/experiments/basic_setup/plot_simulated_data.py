@@ -12,7 +12,7 @@ from hbmep.model.utils import Site as site
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/basic_setup/simulate_data"
+SIMULATION_DIR = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/simulate_data"
 # SIM_TYPE = "existing_participants"
 # SIM_TYPE = "existing_participants_equi_spaced_pulses"
 SIM_TYPE = "new_participants"
