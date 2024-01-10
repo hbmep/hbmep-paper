@@ -6,6 +6,7 @@ data/
 reports/
 dist/
 build/
+**/.idea
 
 
 ## Core latex/pdflatex auxiliary files:

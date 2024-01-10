@@ -222,7 +222,8 @@ def main():
         return
 
 
-    draws_space = draws_space[:30]
+    # draws_space = draws_space[:30]
+    draws_space = draws_space[25:]
     # seeds_for_generating_subjects = seeds_for_generating_subjects[:10]
 
     # # Run for Hierarchical Bayesian Model

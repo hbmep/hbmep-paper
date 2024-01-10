@@ -61,7 +61,7 @@ def main():
     # models = [HBModel, NHBModel]
     models = [NHBModel]
 
-    draws_space = draws_space[:10]
+    draws_space = draws_space[:25]
     logger.info(draws_space)
     logger.info(seeds_for_generating_subjects)
 
