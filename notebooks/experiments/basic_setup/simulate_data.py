@@ -88,10 +88,13 @@ def main():
     logger.info(f"Saved to {dest}")
 
     """
-    Simulate new participants
+    Simulate existing participants
     at equi-spaced intensities.
-    We need to freeze the priors.
+    We don't need to freeze the priors.
     """
+
+    src = DATA_PATH
+    df = pd.read_csv(src)
 
     ind = df["participant_condition"].isin(["Uninjured"])
     df = df[ind].reset_index(drop=True).copy()
@@ -125,9 +128,9 @@ def main():
 
 
     """
-    Simulate existing participants
+    Simulate new participants
     at equi-spaced intensities.
-    We don't need to freeze the priors.
+    We need to freeze the priors.
     """
     # Simulate TOTAL_SUBJECTS subjects
     TOTAL_SUBJECTS = 20
