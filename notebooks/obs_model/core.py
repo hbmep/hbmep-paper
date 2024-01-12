@@ -88,14 +88,15 @@ if __name__ == "__main__":
 
     """ Run multiple models in parallel """
     # models = [Existing, SD, PowerSD, PowerSDMinusL]
-    # n_jobs = -1
-    # with Parallel(n_jobs=n_jobs) as parallel:
-    #     parallel(
-    #         delayed(main)(
-    #             data_src, toml_path, features, M
-    #         ) for M in models
-    #     )
+    models = [PieceWiseVariance, PieceWiseSD]
+    n_jobs = -1
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(main)(
+                data_src, toml_path, features, M
+            ) for M in models
+        )
 
     """ Run a single model """
-    Model = TestModel
-    main(data_src, toml_path, features, Model)
+    # Model = PieceWiseVariance
+    # main(data_src, toml_path, features, Model)

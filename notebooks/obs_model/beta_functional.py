@@ -41,7 +41,26 @@ def PowerSDMinusL(mu, L, c_1, c_2, c_3):
     )
 
 
-def TestModel(mu, c_1, c_2, c_3, x, a,):
+def PieceWiseSD(mu, c_1, c_2, c_3, x, a,):
+    return (
+        jnp.where(
+            jnp.less(x, a),
+            jnp.true_divide(
+                mu,
+                jnp.power(c_3, 2)
+            ),
+            jnp.true_divide(
+                mu,
+                jnp.power(
+                    c_1 + jnp.multiply(c_2, mu),
+                    2
+                )
+            )
+        )
+    )
+
+
+def PieceWiseVariance(mu, c_1, c_2, c_3, x, a,):
     return (
         jnp.where(
             jnp.less(x, a),
