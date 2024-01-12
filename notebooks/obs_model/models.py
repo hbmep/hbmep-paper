@@ -295,7 +295,7 @@ class PowerSDMinusL(BaseModel):
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("c3_feat", 1):
-                c_3_baseline = numpyro.sample("c_3_baseline", dist.HalfNormal(1))
+                c_3_baseline = numpyro.sample("c_3_baseline", dist.HalfNormal(2))
 
         with numpyro.plate(site.n_response, self.n_response):
             """ Hyper Priors """
