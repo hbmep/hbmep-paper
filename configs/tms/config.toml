@@ -1,6 +1,6 @@
 [paths]
 csv = ""
-build_dir = "/home/vishu/repos/hbmep-paper/reports/tms/"
+build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim_obs"
 
 [vars]
 features = ["participant", "participant_condition"]

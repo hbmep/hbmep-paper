@@ -12,8 +12,8 @@ from models import *
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
-TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/tms/config.toml"
-DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
+TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/tms/config.toml"
+DATA_PATH = "/home/mcintosh/Local/temp/test_hbmep/data/proc_2023-11-28.csv"
 
 
 def run_inference(data_src, model):

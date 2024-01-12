@@ -34,7 +34,7 @@ def PowerSDMinusL(mu, L, c_1, c_2, c_3):
         jnp.true_divide(
             mu,
             jnp.power(
-                c_1 + jnp.multiply(c_2, jnp.power(mu - L, c_3)),
+                c_1 + jnp.multiply(c_2, jnp.power(mu - L + 1e-6, c_3)),
                 2
             )
         )
