@@ -87,8 +87,7 @@ if __name__ == "__main__":
     features = [["participant", "participant_condition"]]
 
     """ Run multiple models in parallel """
-    # models = [Existing, SD, PowerSD, PowerSDMinusL]
-    models = [PieceWiseVariance, PieceWiseSD]
+    models = [Existing, SD, PowerSD, PowerSDMinusL, PieceWiseVariance, PieceWiseSD]
     n_jobs = -1
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
