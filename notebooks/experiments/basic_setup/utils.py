@@ -38,3 +38,4 @@ def run_inference(config: Config, model: BaseModel, df: pd.DataFrame):
     logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
     score = az.waic(numpyro_data, var_name=site.obs)
     logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
+ 

@@ -22,7 +22,7 @@ def run_inference(data_src, model):
     df = pd.read_csv(data_src)
     df, encoder_dict = model.load(df=df)
 
-    model.plot(df=df, encoder_dict=encoder_dict)
+    # model.plot(df=df, encoder_dict=encoder_dict)
     """ Run inference """
     mcmc, posterior_samples = model.run_inference(df=df)
 
@@ -80,6 +80,6 @@ def main(data_src, toml_path, features, Model):
 if __name__ == "__main__":
     data_src = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
     toml_path = "/home/vishu/repos/hbmep-paper/configs/rats/J_RCML_000.toml"
-    features = [["participant", "participant_condition"]]
+    features = [["participant", "compound_position"]]
     Model = RectifiedLogistic
     main(data_src, toml_path, features, Model)

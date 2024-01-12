@@ -12,7 +12,7 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
-from models import Simulator, HBModel, NHBModel
+from models import Simulator, HBModel, NHBModel, MLEModel
 
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -166,7 +166,7 @@ def main():
 
         # Non-hierarchical Bayesian model needs to be run separately on individual subjects
         # otherwise, there are convergence issues when the number of subjects is large
-        elif M.NAME in ["nhbm"]:
+        elif M.NAME in ["nhbm", "mle"]:
             for subject in subjects:
                 sub_dir = f"p{subject}"
                 ind = simulation_df[simulator.features[0]].isin([subject])
@@ -179,6 +179,9 @@ def main():
                 toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
                 config = Config(toml_path=toml_path)
                 config.BUILD_DIR = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, M.NAME, sub_dir)
+
+                if M.NAME == "mle":
+                    config.MCMC_PARAMS["num_warmup"] = 2000
 
                 # Set up logging
                 logger = logging.getLogger(__name__)
@@ -223,15 +226,16 @@ def main():
 
 
     # draws_space = draws_space[:30]
-    draws_space = draws_space[25:]
-    # seeds_for_generating_subjects = seeds_for_generating_subjects[:10]
+    draws_space = draws_space[:30]
+    # seeds_for_generating_subjects = seeds_for_generating_subjects[:1]
 
     # # Run for Hierarchical Bayesian Model
     # models = [HBModel]
 
     # Run for Non-Hierarchical Bayesian Model
     n_subjects_space = [16]
-    models = [NHBModel]
+    # models = [NHBModel]
+    models = [MLEModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(

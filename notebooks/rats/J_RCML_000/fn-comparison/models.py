@@ -80,15 +80,23 @@ class RectifiedLogistic(BaseModel):
                         H=H[feature0]
                     )
                 )
+                # beta = numpyro.deterministic(
+                #     site.beta,
+                #     c_1[feature0] + jnp.true_divide(c_2[feature0], mu)
+                # )
                 beta = numpyro.deterministic(
                     site.beta,
-                    c_1[feature0] + jnp.true_divide(c_2[feature0], mu)
+                    F.variance(mu, c_1[feature0], c_2[feature0])
+                )
+                alpha = numpyro.deterministic(
+                    site.alpha,
+                    jnp.multiply(mu, beta)
                 )
 
                 """ Observation """
                 numpyro.sample(
                     site.obs,
-                    dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
+                    dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )
 

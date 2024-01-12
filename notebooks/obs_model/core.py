@@ -4,25 +4,33 @@ import logging
 
 import arviz as az
 import pandas as pd
+from joblib import Parallel, delayed
 
 from hbmep.config import Config
 from models import (
-    RectifiedLogistic,
-    Logistic5,
-    Logistic4,
-    ReLU
+    Existing,
+    SD,
+    PowerSD,
+    PowerSDMinusL
 )
 
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
+TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/tms/config.toml"
+DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
+
 
 def run_inference(data_src, model):
     """ Load data """
     df = pd.read_csv(data_src)
+
+    subset = ["SCA01", "SCA02", "SCA03", "SCA04"]
+    ind = df["participant"].isin(subset)
+    df = df[ind].reset_index(drop=True).copy()
+
     df, encoder_dict = model.load(df=df)
 
-    model.plot(df=df, encoder_dict=encoder_dict)
     """ Run inference """
     mcmc, posterior_samples = model.run_inference(df=df)
 
@@ -55,7 +63,8 @@ def main(data_src, toml_path, features, Model):
     """ Build model """
     config = Config(toml_path=toml_path)
     config.FEATURES = features
-    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "fn-comparison", Model.NAME)
+    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "obs_model", Model.NAME)
+    config.RESPONSE = ["PKPK_APB"]
     Model._make_dir(None, config.BUILD_DIR)
 
     dest = os.path.join(config.BUILD_DIR, "inference.log")
@@ -78,9 +87,20 @@ def main(data_src, toml_path, features, Model):
 
 
 if __name__ == "__main__":
-    data_src = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
-    # data_src = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-12-20.csv"
-    toml_path = "/home/vishu/repos/hbmep-paper/configs/tms/config.toml"
+    data_src = DATA_PATH
+    toml_path = TOML_PATH
     features = [["participant", "participant_condition"]]
-    Model = Logistic5
-    main(data_src, toml_path, features, Model)
+
+    """ Run multiple models in parallel """
+    models = [Existing, SD, PowerSD, PowerSDMinusL]
+    n_jobs = -1
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(main)(
+                data_src, toml_path, features, M
+            ) for M in models
+        )
+
+    """ Run a single model """
+    # model = PowerSDMinusL
+    # main(data_src, toml_path, features, Model)

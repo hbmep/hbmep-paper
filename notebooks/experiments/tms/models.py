@@ -2,6 +2,7 @@ import numpy as np
 import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
+import numpyro.distributions.constraints as constraints
 
 from hbmep.config import Config
 from hbmep.model import BaseModel
@@ -435,6 +436,120 @@ class NHBModel(BaseModel):
 
                     c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
                     c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
+
+        with numpyro.plate(site.n_response, self.n_response):
+            with numpyro.plate(site.n_data, n_data):
+                """ Model """
+                mu = numpyro.deterministic(
+                    site.mu,
+                    F.rectified_logistic(
+                        x=intensity,
+                        a=a[feature0, feature1],
+                        b=b[feature0, feature1],
+                        v=v[feature0, feature1],
+                        L=L[feature0, feature1],
+                        ell=ell[feature0, feature1],
+                        H=H[feature0, feature1]
+                    )
+                )
+                beta = numpyro.deterministic(
+                    site.beta,
+                    c_1[feature0, feature1] + jnp.true_divide(c_2[feature0, feature1], mu)
+                )
+
+                """ Observation """
+                numpyro.sample(
+                    site.obs,
+                    dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
+                    obs=response_obs
+                )
+
+
+class MLEModel(BaseModel):
+    NAME = "mle"
+
+    def __init__(self, config: Config):
+        super(MLEModel, self).__init__(config=config)
+
+    def _model(self, features, intensity, response_obs=None):
+        features, n_features = features
+        intensity, n_data = intensity
+        intensity = intensity.reshape(-1, 1)
+        intensity = np.tile(intensity, (1, self.n_response))
+
+        feature0 = features[0].reshape(-1,)
+        feature1 = features[1].reshape(-1,)
+
+        with numpyro.plate(site.n_response, self.n_response):
+            with numpyro.plate(site.n_features[1], n_features[1]):
+                with numpyro.plate(site.n_features[0], n_features[0]):
+                    """ Priors """
+                    a = numpyro.sample(
+                        site.a,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        )
+                    )
+
+                    b = numpyro.sample(
+                        site.b,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        ))
+                    v = numpyro.sample(
+                        site.v,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        )
+                    )
+
+                    L = numpyro.sample(
+                        site.L,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        )
+                    )
+                    ell = numpyro.sample(
+                        site.ell,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        )
+                    )
+                    H = numpyro.sample(
+                        site.H,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        )
+                    )
+
+                    c_1 = numpyro.sample(
+                        site.c_1,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        )
+                    )
+                    c_2 = numpyro.sample(
+                        site.c_2,
+                        dist.ImproperUniform(
+                            support=constraints.positive,
+                            batch_shape=(),
+                            event_shape=()
+                        )
+                    )
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):

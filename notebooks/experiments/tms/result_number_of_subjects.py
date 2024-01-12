@@ -9,7 +9,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import jax
 
 from hbmep.model.utils import Site as site
-from models import Simulator, HBModel, NHBModel
+from models import Simulator, HBModel, NHBModel, MLEModel
 
 from simulate_data import TOTAL_SUBJECTS
 from exp_number_of_subjects import fix_rng
@@ -56,12 +56,11 @@ def main():
     )
     n_subjects_space = [1, 4, 8, 16]
 
-    """ Results """
-    # n_subjects_space = [1, 4, 8, 16]
-    # models = [HBModel, NHBModel]
-    models = [NHBModel]
 
-    draws_space = draws_space[:25]
+    # draws_space = draws_space[:5]
+
+    """ Results """
+    models = [HBModel, NHBModel]
     logger.info(draws_space)
     logger.info(seeds_for_generating_subjects)
 
@@ -85,7 +84,7 @@ def main():
                         a_random_mean = np.load(os.path.join(dir, "a_random_mean.npy")).reshape(-1,)
                         curr_prob = (a_random_mean < 0).mean()
 
-                    elif M.NAME in ["nhbm"]:
+                    elif M.NAME in ["nhbm", "mle"]:
                         n_subjects_dir = f"n{n_subjects_space[-1]}"
                         valid_subjects = \
                             np.arange(0, ppd_a.shape[1], 1)[filter[draw, ...]]
@@ -98,22 +97,36 @@ def main():
                             ) \
                             .tolist()
 
-                        a_true, a_pred = [], []
+                        a_true, a_pred, differences = [], [], []
                         for subject in subjects:
                             sub_dir = f"p{subject}"
                             dir = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, M.NAME, sub_dir)
                             a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
                             a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
 
-                            a_pred_sub = a_pred_sub.mean(axis=0).reshape(-1,).tolist()
-                            a_true_sub = a_true_sub.reshape(-1,).tolist()
+                            a_pred_sub_map = a_pred_sub.mean(axis=0)
+                            a_true_sub = a_true_sub
+                            # logger.info(f"a_pred_sub_map: {a_pred_sub_map.shape}")
+                            # logger.info(f"a_true_sub: {a_true_sub.shape}")
 
-                            a_true += a_true_sub
-                            a_pred += a_pred_sub
+                            differences += (a_pred_sub_map[0, 1, 0] - a_pred_sub_map[0, 0, 0]).reshape(-1,).tolist()
+
+                            a_true += a_pred_sub_map.reshape(-1,).tolist()
+                            a_pred += a_true_sub.reshape(-1,).tolist()
 
                         a_true = np.array(a_true)
                         a_pred = np.array(a_pred)
-                        curr_prob = 0
+
+                        # curr_prob = 0
+                        differences = np.array(differences)
+                        # logger.info(f"differences: {differences.shape}")
+                        if n_subjects != 1:
+                            curr_prob = stats.ttest_1samp(
+                                a=differences, popmean=0, alternative="less"
+                            ).pvalue.item()
+                            # logger.info(f"curr_prob: {type(curr_prob)}")
+                        else:
+                            curr_prob = 1
 
                     else:
                         raise ValueError
@@ -132,19 +145,14 @@ def main():
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"PROB: {prob.shape}")
 
-    # mae = mae.reshape(mae.shape[0], -1, len(models))
-    # mse = mse.reshape(mse.shape[0], -1, len(models))
     mae = mae.mean(axis=-2)
     mse = mse.mean(axis=-2)
-    logger.info(f"MAE: {mae.shape}")
-    logger.info(f"MSE: {mse.shape}")
-
-    prob = prob > .95
+    prob[..., 0] = prob[..., 0] > .95
+    prob[..., 1] = prob[..., 1] < .05
     prob = prob.mean(axis=-2)
-    # prob = prob.reshape(prob.shape[0], -1, len(models))
-    logger.info(f"PROB: {prob.shape}")
-    # prob = (prob > .95)
-    # prob = prob.mean(axis=-2)
+    logger.info(f"MAE after reps dim removed: {mae.shape}")
+    logger.info(f"MSE after reps dim removed: {mse.shape}")
+    logger.info(f"PROB after reps dim removed: {prob.shape}")
 
     nrows, ncols = 1, 2
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 5, nrows * 3), squeeze=False, constrained_layout=True)
@@ -170,7 +178,7 @@ def main():
         ysd = y.std(axis=-1)
         ax.errorbar(x=x, y=yme, yerr=ysd, marker="o", label=f"{model.NAME}", linestyle="--", ms=4)
         ax.set_xticks(x)
-        ax.legend(loc="upper right")
+        # ax.legend(loc="upper right")
 
     fig.align_xlabels()
     fig.align_ylabels()
