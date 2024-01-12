@@ -102,5 +102,5 @@ if __name__ == "__main__":
         )
 
     """ Run a single model """
-    # model = PowerSDMinusL
+    # Model = PowerSDMinusL
     # main(data_src, toml_path, features, Model)
