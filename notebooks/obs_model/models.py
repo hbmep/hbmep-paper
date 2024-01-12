@@ -399,7 +399,7 @@ class PieceWiseSD(BaseModel):
 
             c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5))
             c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5))
-            c_3_scale = numpyro.sample("c_3_scale", dist.HalfNormal(2))
+            c_3_scale = numpyro.sample("c_3_scale", dist.HalfNormal(5))
 
             with numpyro.plate(site.n_features[0], n_features[0]):
                 """ Priors """
@@ -491,7 +491,7 @@ class PieceWiseVariance(BaseModel):
 
             c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5))
             c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5))
-            c_3_scale = numpyro.sample("c_3_scale", dist.HalfNormal(2))
+            c_3_scale = numpyro.sample("c_3_scale", dist.HalfNormal(5))
 
             with numpyro.plate(site.n_features[0], n_features[0]):
                 """ Priors """
