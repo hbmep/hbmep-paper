@@ -293,9 +293,9 @@ class PowerSDMinusL(BaseModel):
 
         feature0 = features[0].reshape(-1,)
 
-        with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("c3_feat", 1):
-                c_3_baseline = numpyro.sample("c_3_baseline", dist.HalfNormal(2))
+        # with numpyro.plate(site.n_response, self.n_response):
+        #     with numpyro.plate("c3_feat", 1):
+        #         c_3_baseline = numpyro.sample("c_3_baseline", dist.HalfNormal(2))
 
         with numpyro.plate(site.n_response, self.n_response):
             """ Hyper Priors """
@@ -311,6 +311,7 @@ class PowerSDMinusL(BaseModel):
 
             c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5))
             c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5))
+            c_3_scale = numpyro.sample("c_3_scale", dist.HalfNormal(1))
 
             with numpyro.plate(site.n_features[0], n_features[0]):
                 """ Priors """
@@ -339,9 +340,9 @@ class PowerSDMinusL(BaseModel):
                 c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                 c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
-                # c_3_raw = numpyro.sample("c_3_raw", dist.HalfNormal(scale=1))
-                # c_3 = numpyro.deterministic("c_3", jnp.multiply(c_3_scale, c_3_raw))
-                c_3 = numpyro.deterministic("c_3", jnp.tile(c_3_baseline, (n_features[0], 1)))
+                c_3_raw = numpyro.sample("c_3_raw", dist.HalfNormal(scale=1))
+                c_3 = numpyro.deterministic("c_3", jnp.multiply(c_3_scale, c_3_raw))
+                # c_3 = numpyro.deterministic("c_3", jnp.tile(c_3_baseline, (n_features[0], 1)))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
