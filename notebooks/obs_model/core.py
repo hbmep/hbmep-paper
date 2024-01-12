@@ -20,9 +20,9 @@ def run_inference(data_src, model):
     """ Load data """
     df = pd.read_csv(data_src)
 
-    subset = ["SCA01", "SCA02", "SCA03", "SCA04"]
-    ind = df["participant"].isin(subset)
-    df = df[ind].reset_index(drop=True).copy()
+    # subset = ["SCA01", "SCA02", "SCA03", "SCA04"]
+    # ind = df["participant"].isin(subset)
+    # df = df[ind].reset_index(drop=True).copy()
 
     df, encoder_dict = model.load(df=df)
 
