@@ -39,3 +39,13 @@ def PowerSDMinusL(mu, L, c_1, c_2, c_3):
             )
         )
     )
+
+
+def TestModel(mu, c_1, c_2, c_3, x, a,):
+    return (
+        jnp.where(
+            jnp.less(x, a),
+            jnp.true_divide(mu, c_3),
+            jnp.true_divide(mu, c_1 + jnp.multiply(c_2, mu))
+        )
+    )

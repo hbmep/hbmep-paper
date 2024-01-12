@@ -7,12 +7,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from hbmep.config import Config
-from models import (
-    Existing,
-    SD,
-    PowerSD,
-    PowerSDMinusL
-)
+from models import *
 
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -92,15 +87,15 @@ if __name__ == "__main__":
     features = [["participant", "participant_condition"]]
 
     """ Run multiple models in parallel """
-    models = [Existing, SD, PowerSD, PowerSDMinusL]
-    n_jobs = -1
-    with Parallel(n_jobs=n_jobs) as parallel:
-        parallel(
-            delayed(main)(
-                data_src, toml_path, features, M
-            ) for M in models
-        )
+    # models = [Existing, SD, PowerSD, PowerSDMinusL]
+    # n_jobs = -1
+    # with Parallel(n_jobs=n_jobs) as parallel:
+    #     parallel(
+    #         delayed(main)(
+    #             data_src, toml_path, features, M
+    #         ) for M in models
+    #     )
 
     """ Run a single model """
-    # model = PowerSDMinusL
-    # main(data_src, toml_path, features, Model)
+    Model = TestModel
+    main(data_src, toml_path, features, Model)
