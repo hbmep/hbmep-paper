@@ -1,8 +1,8 @@
 import numpy as np
-import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
 import numpyro.distributions.constraints as constraints
+import jax.numpy as jnp
 
 from hbmep.config import Config
 from hbmep.model import BaseModel
