@@ -227,11 +227,8 @@ def main():
             response = mep_size
             responses.append(response)
 
-            # TODO: this needs to be generalised:
-            simulation_df_happened = pd.DataFrame({'TMSInt': intensities,
-                                                   config.RESPONSE[0]: np.array(responses)[:, 0],
-                                                   config.RESPONSE[1]: np.array(responses)[:, 1],
-                                                   })
+            simulation_df_happened = {**{config.RESPONSE[ix]: np.array(responses)[:, ix] for ix in range(len(config.RESPONSE))}, **{'TMSInt': intensities}}
+            simulation_df_happened = pd.DataFrame(simulation_df_happened)
             simulation_df_happened['participant___participant_condition'] = 0
             simulation_df_happened['participant'] = '0'
             simulation_df_happened['participant_condition'] = 'Uninjured'
@@ -244,8 +241,9 @@ def main():
             else:
                 list_candidate_intensities = range(range_min, range_max)
                 vec_entropy = np.zeros((len(list_candidate_intensities)))
-                for ix_future in range(len(list_candidate_intensities)):
-                    N = 12  # this is what has to be very large
+                ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
+                for ix_future in range(ix_start, len(list_candidate_intensities), 2):
+                    N_obs = 30  # this is what has to be very large
                     candidate_int = list_candidate_intensities[ix_future]
                     print(f'Testing intensity: {candidate_int}')
                     simulation_df_future = pd.DataFrame({'TMSInt': [candidate_int]})
@@ -255,23 +253,21 @@ def main():
                     # TODO: turn off mixture here if it is in the model
                     posterior_predictive = model.predict(df=simulation_df_future,
                                                          posterior_samples=posterior_samples_hap)
-                    ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N)
+                    ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N_obs)
 
                     candidate_y_at_this_x = posterior_predictive['obs'][ix_from_chain]
 
                     simulation_df_future = simulation_df_happened.copy()
-                    # TODO: this needs to be generalised:
-                    new_values = {'TMSInt': candidate_int, config.RESPONSE[0]: 0, config.RESPONSE[1]: 0}
+                    new_values = {**{config.RESPONSE[ix]: 0 for ix in range(len(config.RESPONSE))}, **{'TMSInt': candidate_int}}
                     new_row = simulation_df_future.iloc[-1].copy()
                     new_row.update(new_values)
                     new_row = pd.DataFrame([new_row])
                     simulation_df_future = pd.concat([simulation_df_future, new_row], ignore_index=True)
 
-                    fit_lookahead_wrapper(simulation_df_future, candidate_y_at_this_x[0], config)
                     with Parallel(n_jobs=-1) as parallel:
                         entropy_list = parallel(
                             delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample], config)
-                            for ix_sample in range(N)
+                            for ix_sample in range(N_obs)
                         )
 
                     vec_entropy[ix_future] = np.mean(entropy_list)
