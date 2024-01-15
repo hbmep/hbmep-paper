@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate path to inference.pkl from learn_posterior.py
-POSTERIOR_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/learn_posterior/inference.pkl"
+POSTERIOR_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/learn_posterior_2/inference.pkl"
 
 # Change this to indicate toml path
 TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
@@ -47,25 +47,32 @@ def integrand(x, y, kde):
     return -pdf_val * np.log(pdf_val) if pdf_val > 0 else 0
 
 
-def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x):
-    simulation_df_future.iloc[-1, simulation_df_future.columns.get_loc("PKPK_APB")] = cand_y_at_x
+def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x, config):
+    for ix_muscle in range(len(config.RESPONSE)):
+        simulation_df_future.iloc[-1, simulation_df_future.columns.get_loc(config.RESPONSE[ix_muscle])] = cand_y_at_x[0][ix_muscle]
     model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(0, simulation_df_future,
                                                                do_save=False, make_figures=False)
-    entropy = calculate_entropy(posterior_samples_fut)
+    entropy = calculate_entropy(posterior_samples_fut, config)
     return entropy
 
-def calculate_entropy(posterior_samples_fut):
-    posterior_samples_a = posterior_samples_fut['a'][:, 0, 0]
-    posterior_samples_b = posterior_samples_fut['H'][:, 0, 0]
 
-    joint_samples = np.column_stack((posterior_samples_a, posterior_samples_b))
-    kde = gaussian_kde(joint_samples.T)
+def calculate_entropy(posterior_samples_fut, config):
+    entropy = []
+    for ix_muscle in range(len(config.RESPONSE)):
+        posterior_samples_a = posterior_samples_fut['a'][:, 0, ix_muscle]
+        posterior_samples_b = posterior_samples_fut['H'][:, 0, ix_muscle]
 
-    bounds_a = (np.min(posterior_samples_a) * 0.9, np.max(posterior_samples_a) * 1.1)
-    bounds_b = (np.min(posterior_samples_b) * 0.9, np.max(posterior_samples_b) * 1.1)
+        joint_samples = np.column_stack((posterior_samples_a, posterior_samples_b))
+        kde = gaussian_kde(joint_samples.T)
 
-    entropy, _ = nquad(integrand, [bounds_a, bounds_b], args=(kde,))
-    return entropy
+        # the fact that the bw is not set is pretty dodgy I think for an entropy calc.
+        # could introduce a lot of bias/error
+        bounds_a = (np.min(posterior_samples_a) * 0.9, np.max(posterior_samples_a) * 1.1)
+        bounds_b = (np.min(posterior_samples_b) * 0.9, np.max(posterior_samples_b) * 1.1)
+
+        entropy_muscle, _ = nquad(integrand, [bounds_a, bounds_b], args=(kde,))
+        entropy.append(entropy_muscle)
+    return np.mean(entropy)
 
 
 def negative_log_likelihood(params, intensities, responses):
@@ -199,136 +206,14 @@ def main():
     for k in posterior_samples.keys():
         posterior_samples[k] = posterior_samples[k][-5:-4, ...]
 
-    logger.info(f"Simulating new participants ...")
-    x, y, var = [], [], []
-    for ix in range(0, 100, 1):
-        x_ = ix + np.random.random()
-        simulation_df.loc[0, 'TMSInt'] = x_
-        simulation_ppd = \
-            simulator.predict(df=simulation_df, posterior_samples=posterior_samples, random_seed=random_seed_start + ix)
-        y_ = simulation_ppd['obs'][0][0][0]
-        x.append(x_)
-        y.append(y_)
-        var_ = (simulation_ppd[site.mu] / (posterior_samples[site.c_1] + (posterior_samples[site.c_2]/simulation_ppd[site.mu]))).item()
-        var.append(var_)
-
-
-    # plt.subplot(1,2, 1)
-    # plt.plot(x, y, '.')
-    # plt.ylim([0, 1])
-    # plt.subplot(1, 2, 2)
-    # sns.lineplot(x=x, y=var)
-    # plt.show()
     ix_gen_seed = 48
     range_min, range_max = 0, 100
-
-    try_mtat = True
-    if try_mtat:
-        # Parameters
-        np.random.seed(ix_gen_seed)
-
-        # Initial guess
-        intensities = [np.random.uniform(range_min, range_max)]
-        responses = []
-        th = 50e-3
-
-        for ix in range(30):
-            # Simulate response
-            simulation_df.loc[0, 'TMSInt'] = intensities[-1]
-            simulation_ppd = \
-                simulator.predict(df=simulation_df, posterior_samples=posterior_samples, random_seed=random_seed_start + ix)
-            mep_size = simulation_ppd['obs'][0][0][0]
-            response = mep_size > th
-            responses.append(response)
-
-            # Estimate threshold
-            result = minimize(negative_log_likelihood, [np.mean(intensities), 1], args=(intensities, responses),
-                              bounds=[(range_min, range_max), (0.1, 30)])
-            estimated_mu, estimated_sigma = result.x
-            if len(responses) < 5:  # Wait until we have enough data
-                estimated_sigma = 20
-
-            # Choose next intensity
-            next_intensity = choose_next_intensity(estimated_mu, estimated_sigma, range_min, range_max)
-            intensities.append(next_intensity)
-            # intensities[-1] = ix/5
-        intensity_final = intensities.pop()
-
-        simulation_df_local = pd.DataFrame({'TMSInt': range(101)})
-        simulation_df_local['participant___participant_condition'] = 0
-
-        simulation_ppd = \
-            simulator.predict(df=simulation_df_local, posterior_samples=posterior_samples)
-
-        arr = simulation_ppd[site.mu][0, :, 0] > th
-        first_true_index = np.where(arr == True)[0][0]
-        true_mu_at_th = simulation_df_local["TMSInt"][first_true_index]
-
-        print(f"Estimated Threshold (mu): {estimated_mu:.2f}")
-        print(f"Estimated Sigma: {estimated_sigma:.2f}")
-        plt.plot(intensities, 'o')
-        plt.plot([0, len(intensities)], posterior_samples[site.a][0][0][0] * np.ones((2)))
-        plt.plot([0, len(intensities)], true_mu_at_th * np.ones((2)))
-        plt.show()
-
-        # plt.plot(simulation_df_local['TMSInt'], simulation_ppd[site.mu][0, :, 0])
-        # plt.show()
-
-    try_bo = False
-    if try_bo:
-        np.random.seed(ix_gen_seed)
-        # Parameters
-
-        # Initial guess
-        intensities = [np.random.uniform(range_min, range_max)]
-        intensities = [range_min]
-        responses = []
-
-        for ix in range(30):
-            # Simulate response
-            simulation_df.loc[0, 'TMSInt'] = intensities[-1]
-            simulation_ppd = \
-                simulator.predict(df=simulation_df, posterior_samples=posterior_samples, random_seed=random_seed_start + ix)
-            mep_size = simulation_ppd['obs'][0][0][0]
-            response = mep_size
-            responses.append(response)
-
-            simulation_df_happened = pd.DataFrame({'TMSInt': intensities, 'PKPK_APB': responses})
-            simulation_df_happened['participant___participant_condition'] = 0
-            simulation_df_happened['participant'] = '0'
-            simulation_df_happened['participant_condition'] = 'Uninjured'
-            # Choose next intensity
-            model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(ix, simulation_df_happened)
-            simulation_df_happened_pred = model.make_prediction_dataset(df=simulation_df_happened)
-            # TODO: turn off mixture here if it is in the model
-            posterior_predictive = model.predict(df=simulation_df_happened_pred, posterior_samples=posterior_samples_hap)
-            x = np.percentile(posterior_predictive['obs'], [5, 95], 0)
-            x = x[1, :] - x[0, :]
-            ix_max = np.argmax(x)
-
-            if ix < 1:
-                next_intensity = range_max
-            elif ix % 2 == 0:
-                next_intensity = simulation_df_happened_pred.loc[ix_max, "TMSInt"]
-            else:
-                # ix_rand_a = np.random.choice(posterior_samples_hap['a'].shape[0])
-                # next_intensity = posterior_samples_hap['a'][ix_rand_a, 0, 0]
-                next_intensity = np.mean(posterior_samples_hap['a'], 0)[0][0]
-
-                next_intensity = next_intensity * (1 + 0.2 * (np.random.rand() - 0.5) * 2)
-
-            # next_intensity = np.random.rand() * 100 ## REPLACE
-            intensities.append(next_intensity)
-            # intensities[-1] = ix/5
-        intensity_final = intensities.pop()
 
     try_al = True
     if try_al:
         np.random.seed(ix_gen_seed)
-        # Parameters
 
         # Initial guess
-        intensities = [np.random.uniform(range_min, range_max)]
         intensities = [range_min]
         responses = []
         N_max = 30
@@ -338,17 +223,21 @@ def main():
             simulation_df.loc[0, 'TMSInt'] = intensities[-1]
             simulation_ppd = \
                 simulator.predict(df=simulation_df, posterior_samples=posterior_samples, random_seed=random_seed_start + ix)
-            mep_size = simulation_ppd['obs'][0][0][0]
+            mep_size = simulation_ppd['obs'][0][0]
             response = mep_size
             responses.append(response)
 
-            simulation_df_happened = pd.DataFrame({'TMSInt': intensities, 'PKPK_APB': responses})
+            # TODO: this needs to be generalised:
+            simulation_df_happened = pd.DataFrame({'TMSInt': intensities,
+                                                   config.RESPONSE[0]: np.array(responses)[:, 0],
+                                                   config.RESPONSE[1]: np.array(responses)[:, 1],
+                                                   })
             simulation_df_happened['participant___participant_condition'] = 0
             simulation_df_happened['participant'] = '0'
             simulation_df_happened['participant_condition'] = 'Uninjured'
             # Choose next intensity
             model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(ix, simulation_df_happened)
-            entropy_base = calculate_entropy(posterior_samples_hap)
+            entropy_base = calculate_entropy(posterior_samples_hap, config)
 
             if ix < 1:
                 next_intensity = range_max
@@ -366,35 +255,31 @@ def main():
                     # TODO: turn off mixture here if it is in the model
                     posterior_predictive = model.predict(df=simulation_df_future,
                                                          posterior_samples=posterior_samples_hap)
-                    candidate_y_at_this_x = np.random.choice(posterior_predictive['obs'][:, 0, 0], N)
+                    ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N)
+
+                    candidate_y_at_this_x = posterior_predictive['obs'][ix_from_chain]
 
                     simulation_df_future = simulation_df_happened.copy()
-                    new_values = {'TMSInt': candidate_int, 'PKPK_APB': 0}
+                    # TODO: this needs to be generalised:
+                    new_values = {'TMSInt': candidate_int, config.RESPONSE[0]: 0, config.RESPONSE[1]: 0}
                     new_row = simulation_df_future.iloc[-1].copy()
                     new_row.update(new_values)
                     new_row = pd.DataFrame([new_row])
                     simulation_df_future = pd.concat([simulation_df_future, new_row], ignore_index=True)
 
-                    entropy_list = []
-                    # the order of entropy_list is important... should make 100% sure it is preserved
-                    # maybe change to single chain - but only for this rather than everything
+                    fit_lookahead_wrapper(simulation_df_future, candidate_y_at_this_x[0], config)
                     with Parallel(n_jobs=-1) as parallel:
                         entropy_list = parallel(
-                            delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample])
+                            delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample], config)
                             for ix_sample in range(N)
                         )
-
-                    # for ix_sample in range(N):
-                    #     entropy = fit_lookahead_wrapper(simulation_df_future, candidate_y_at_this_x[ix_sample])
-                    #     entropy_list.append(entropy)
 
                     vec_entropy[ix_future] = np.mean(entropy_list)
                 ix_min_entropy = np.argmin(vec_entropy - entropy_base)
                 next_intensity = list_candidate_intensities[ix_min_entropy]
 
-            # next_intensity = np.random.rand() * 100 ## REPLACE
             intensities.append(next_intensity)
-            # intensities[-1] = ix/5
+
         intensity_final = intensities.pop()
 
     return
