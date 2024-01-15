@@ -53,8 +53,8 @@ def calculate_entropy(posterior_samples_fut):
     joint_samples = np.column_stack((posterior_samples_a, posterior_samples_b))
     kde = gaussian_kde(joint_samples.T)
 
-    bounds_a = (np.min(posterior_samples_a), np.max(posterior_samples_a))
-    bounds_b = (np.min(posterior_samples_b), np.max(posterior_samples_b))
+    bounds_a = (np.min(posterior_samples_a) * 0.9, np.max(posterior_samples_a) * 1.1)
+    bounds_b = (np.min(posterior_samples_b) * 0.9, np.max(posterior_samples_b) * 1.1)
 
     entropy, _ = nquad(integrand, [bounds_a, bounds_b], args=(kde,))
     return entropy
@@ -312,8 +312,8 @@ def main():
             # intensities[-1] = ix/5
         intensity_final = intensities.pop()
 
-    try_ab = True
-    if try_ab:
+    try_al = True
+    if try_al:
         np.random.seed(ix_gen_seed)
         # Parameters
 
