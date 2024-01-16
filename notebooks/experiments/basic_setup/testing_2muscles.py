@@ -59,6 +59,7 @@ def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x, config):
 def calculate_entropy(posterior_samples_fut, config):
     entropy = []
     for ix_muscle in range(len(config.RESPONSE)):
+
         posterior_samples_a = posterior_samples_fut['a'][:, 0, ix_muscle]
         posterior_samples_b = posterior_samples_fut['H'][:, 0, ix_muscle]
 
@@ -240,10 +241,10 @@ def main():
                 next_intensity = range_max
             else:
                 list_candidate_intensities = range(range_min, range_max)
-                vec_entropy = np.zeros((len(list_candidate_intensities)))
+                vec_entropy = np.full(len(list_candidate_intensities), np.nan)
                 ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
                 for ix_future in range(ix_start, len(list_candidate_intensities), 2):
-                    N_obs = 30  # this is what has to be very large
+                    N_obs = 15  # this is what has to be very large
                     candidate_int = list_candidate_intensities[ix_future]
                     print(f'Testing intensity: {candidate_int}')
                     simulation_df_future = pd.DataFrame({'TMSInt': [candidate_int]})
@@ -271,7 +272,7 @@ def main():
                         )
 
                     vec_entropy[ix_future] = np.mean(entropy_list)
-                ix_min_entropy = np.argmin(vec_entropy - entropy_base)
+                ix_min_entropy = np.nanargmin(vec_entropy - entropy_base)
                 next_intensity = list_candidate_intensities[ix_min_entropy]
 
             intensities.append(next_intensity)
