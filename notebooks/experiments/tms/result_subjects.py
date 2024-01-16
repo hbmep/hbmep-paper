@@ -46,9 +46,9 @@ def main():
     draws_space, seeds_for_generating_subjects = fix_rng(
         rng_key, max_draws, max_seeds
     )
-    n_subjects_space = [1, 2, 4, 8, 16]
+    n_subjects_space = [1, 4, 8, 16]
 
-    draws_space = draws_space[:5]
+    # draws_space = draws_space[:44]
     # models = [HBModel, NHBModel]
     models = [HBModel]
 
