@@ -5,46 +5,38 @@ import logging
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 import jax
 
 from hbmep.model.utils import Site as site
-from models import Simulator, HBModel, NHBModel, MLEModel
 
+from models import Simulator, HBModel, NHBModel
 from simulate_data import TOTAL_SUBJECTS
-from exp_number_of_subjects import fix_rng
-from exp_number_of_subjects import EXPERIMENT_NAME, N_DRAWS, N_REPEATS
+from core_subjects import fix_rng
+from core_subjects import EXPERIMENT_NAME, N_DRAWS, N_REPEATS
+from utils import setup_logging
 
 plt.rcParams['svg.fonttype'] = 'none'
-
 logger = logging.getLogger(__name__)
-FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-dest = "/home/vishu/logs/subjects-experiment-results.log"
-logging.basicConfig(
-    format=FORMAT,
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler(dest, mode="w"),
-        logging.StreamHandler()
-    ],
-    force=True
-)
+
+SIMULATION_PPD_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/simulation_ppd.pkl"
+FILTER_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/filter.npy"
+EXPERIMENTS_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/experiments/"
 
 
 def main():
     """ Load simulated data """
-    dir ="/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate-data/a_random_mean_-2.5_a_random_scale_1.5"
-    src = os.path.join(dir, "simulation_ppd.pkl")
+    src = SIMULATION_PPD_PATH
     with open(src, "rb") as g:
         simulator, simulation_ppd = pickle.load(g)
 
-    # ppd_obs = simulation_ppd[site.obs]
+    setup_logging(
+        dir=simulator.build_dir,
+        fname=os.path.basename(__file__)
+    )
+
     ppd_a = simulation_ppd[site.a]
 
-    # src = os.path.join(dir, "simulation_df.csv")
-    # simulation_df = pd.read_csv(src)
-
-    src = os.path.join(dir, "filter.npy")
+    src = FILTER_PATH
     filter = np.load(src)
 
     """ Fix rng """
@@ -54,16 +46,15 @@ def main():
     draws_space, seeds_for_generating_subjects = fix_rng(
         rng_key, max_draws, max_seeds
     )
-    n_subjects_space = [1, 4, 8, 16]
+    n_subjects_space = [1, 2, 4, 8, 16]
 
+    draws_space = draws_space[:5]
+    # models = [HBModel, NHBModel]
+    models = [HBModel]
 
-    # draws_space = draws_space[:5]
+    n_reps, n_pulses = 1, 60
 
     """ Results """
-    models = [HBModel, NHBModel]
-    logger.info(draws_space)
-    logger.info(seeds_for_generating_subjects)
-
     mae = []
     mse = []
     prob = []
@@ -71,10 +62,20 @@ def main():
         for draw in draws_space:
             for seed in seeds_for_generating_subjects:
                 for M in models:
-                    n_subjects_dir, draw_dir, seed_dir = f"n{n_subjects}", f"d{draw}", f"s{seed}"
+                    n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
+                    draw_dir, seed_dir = f"d{draw}", f"s{seed}"
 
                     if M.NAME in ["hbm"]:
-                        dir = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, M.NAME)
+                        dir = os.path.join(
+                            EXPERIMENTS_DIR,
+                            EXPERIMENT_NAME,
+                            draw_dir,
+                            n_subjects_dir,
+                            n_reps_dir,
+                            n_pulses_dir,
+                            seed_dir,
+                            M.NAME
+                        )
                         a_true = np.load(os.path.join(dir, "a_true.npy"))
                         a_pred = np.load(os.path.join(dir, "a_pred.npy"))
 
@@ -84,7 +85,7 @@ def main():
                         a_random_mean = np.load(os.path.join(dir, "a_random_mean.npy")).reshape(-1,)
                         curr_prob = (a_random_mean < 0).mean()
 
-                    elif M.NAME in ["nhbm", "mle"]:
+                    elif M.NAME in ["nhbm"]:
                         n_subjects_dir = f"n{n_subjects_space[-1]}"
                         valid_subjects = \
                             np.arange(0, ppd_a.shape[1], 1)[filter[draw, ...]]
@@ -99,15 +100,23 @@ def main():
 
                         a_true, a_pred, differences = [], [], []
                         for subject in subjects:
-                            sub_dir = f"p{subject}"
-                            dir = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_subjects_dir, seed_dir, M.NAME, sub_dir)
+                            sub_dir = f"subject{subject}"
+                            dir = os.path.join(
+                                simulator.build_dir,
+                                EXPERIMENTS_DIR,
+                                draw_dir,
+                                n_subjects_dir,
+                                n_reps_dir,
+                                n_pulses_dir,
+                                seed_dir,
+                                M.NAME,
+                                sub_dir
+                            )
                             a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
                             a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
 
                             a_pred_sub_map = a_pred_sub.mean(axis=0)
                             a_true_sub = a_true_sub
-                            # logger.info(f"a_pred_sub_map: {a_pred_sub_map.shape}")
-                            # logger.info(f"a_true_sub: {a_true_sub.shape}")
 
                             differences += (a_pred_sub_map[0, 1, 0] - a_pred_sub_map[0, 0, 0]).reshape(-1,).tolist()
 
@@ -117,14 +126,11 @@ def main():
                         a_true = np.array(a_true)
                         a_pred = np.array(a_pred)
 
-                        # curr_prob = 0
                         differences = np.array(differences)
-                        # logger.info(f"differences: {differences.shape}")
                         if n_subjects != 1:
                             curr_prob = stats.ttest_1samp(
                                 a=differences, popmean=0, alternative="less"
                             ).pvalue.item()
-                            # logger.info(f"curr_prob: {type(curr_prob)}")
                         else:
                             curr_prob = 1
 
@@ -148,7 +154,8 @@ def main():
     mae = mae.mean(axis=-2)
     mse = mse.mean(axis=-2)
     prob[..., 0] = prob[..., 0] > .95
-    prob[..., 1] = prob[..., 1] < .05
+    if prob.shape[-1] > 1:
+        prob[..., 1] = prob[..., 1] < .05
     prob = prob.mean(axis=-2)
     logger.info(f"MAE after reps dim removed: {mae.shape}")
     logger.info(f"MSE after reps dim removed: {mse.shape}")
@@ -178,13 +185,12 @@ def main():
         ysd = y.std(axis=-1)
         ax.errorbar(x=x, y=yme, yerr=ysd, marker="o", label=f"{model.NAME}", linestyle="--", ms=4)
         ax.set_xticks(x)
-        # ax.legend(loc="upper right")
 
     fig.align_xlabels()
     fig.align_ylabels()
-    dest = os.path.join(simulator.build_dir, "result_number_of_subjects.svg")
+    dest = os.path.join(simulator.build_dir, "number_of_subjects.svg")
     fig.savefig(dest, dpi=600)
-    dest = os.path.join(simulator.build_dir, "result_number_of_subjects.png")
+    dest = os.path.join(simulator.build_dir, "number_of_subjects.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
     return

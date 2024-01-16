@@ -11,41 +11,46 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from models import LearnPosterior, Simulator
+from learn_posterior import TOML_PATH
+from utils import setup_logging
 
 logger = logging.getLogger(__name__)
-FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
 
 TOTAL_SUBJECTS = 1000
 TOTAL_PULSES = 60
 MIN_VALID_SUBJECTS_PER_DRAW = 200
 
+A_RANDOM_MEAN, A_RANDOM_SCALE = -2.5, 1.5
+BUILD_DIR = f"/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_{A_RANDOM_MEAN}_a_random_scale_{A_RANDOM_SCALE}"
+
+POSTERIOR_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/learn_posterior/inference.pkl"
+
 
 def main():
-    a_random_mean, a_random_scale = -2.5, 1.5
-    toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
+    a_random_mean, a_random_scale = A_RANDOM_MEAN, A_RANDOM_SCALE
+    toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
-    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "simulate-data", f"a_random_mean_{a_random_mean}_a_random_scale_{a_random_scale}")
+    config.BUILD_DIR = BUILD_DIR
 
-    simulator = Simulator(config=config, a_random_mean=a_random_mean, a_random_scale=a_random_scale)
-    simulator._make_dir(simulator.build_dir)
-    dest = os.path.join(simulator.build_dir, "simulate_data.log")
-    logging.basicConfig(
-        format=FORMAT,
-        level=logging.INFO,
-        handlers=[
-            logging.FileHandler(dest, mode="w"),
-            logging.StreamHandler()
-        ],
-        force=True
+    simulator = Simulator(
+        config=config,
+        a_random_mean=a_random_mean,
+        a_random_scale=a_random_scale
     )
-    logger.info(f"Logging to {dest}")
 
-    """ Load learn posterior """
-    src = "/home/vishu/repos/hbmep-paper/reports/experiments/subjects/learn-posterior/inference.pkl"
+    simulator._make_dir(simulator.build_dir)
+    setup_logging(
+        dir=simulator.build_dir,
+        fname=os.path.basename(__file__)
+    )
+
+    """ Load learnt posterior """
+    src = POSTERIOR_PATH
     with open(src, "rb") as g:
-        _, _, posterior_samples_learnt = pickle.load(g)
+        _, _, posterior_samples = pickle.load(g)
 
-    for k, v in posterior_samples_learnt.items():
+    for k, v in posterior_samples.items():
         logger.info(f"{k}: {v.shape}")
 
     """ Create template dataframe for simulation """
@@ -54,11 +59,8 @@ def main():
         .merge(
             pd.DataFrame(np.arange(0, 2, 1), columns=[simulator.features[1]]),
             how="cross"
-        ) \
-        .merge(
-            pd.DataFrame([0, 90], columns=[simulator.intensity]),
-            how="cross"
         )
+    simulation_df[simulator.intensity] = 0
     simulation_df = simulator.make_prediction_dataset(
         df=simulation_df,
         min_intensity=0,
@@ -68,40 +70,30 @@ def main():
     logger.info(f"Simulation dataframe: {simulation_df.shape}")
 
     """ Simulate data """
-    priors = {
-        "global-priors": [
-            "b_scale_global_scale",
-            "v_scale_global_scale",
-            "L_scale_global_scale",
-            "ell_scale_global_scale",
-            "H_scale_global_scale",
-            "c_1_scale_global_scale",
-            "c_2_scale_global_scale"
-        ],
-        "hyper-priors": [
-            "b_scale",
-            "v_scale",
-            "L_scale",
-            "ell_scale",
-            "H_scale",
-            "c_1_scale",
-            "c_2_scale"
-        ],
-        "baseline-priors": [
-            "a_fixed_mean",
-            "a_fixed_scale"
-        ]
-    }
-    sites_to_use_for_simulation = priors["global-priors"]
-    sites_to_use_for_simulation += priors["hyper-priors"]
-    sites_to_use_for_simulation += priors["baseline-priors"]
-    logger.info(f"sites_to_use_for_simulation: {', '.join(sites_to_use_for_simulation)}")
-    posterior_samples_learnt = {
-        k: v for k, v in posterior_samples_learnt.items() if k in sites_to_use_for_simulation
+    present_sites = sorted(list(posterior_samples.keys()))
+    sites_to_exclude = [
+        "a_fixed", site.a, site.b, site.v,
+        site.L, site.ell, site.H,
+        site.c_1, site.c_2,
+        site.mu, site.beta, site.alpha,
+        site.obs
+    ]
+    sites_to_exclude = sorted(sites_to_exclude)
+    remaining_sites = set(present_sites) - set(sites_to_exclude)
+    remaining_sites = sorted(list(remaining_sites))
+    logger.info(f"Existing posterior sites: {present_sites}")
+    logger.info(f"Sites to exclude: {sites_to_exclude}")
+    logger.info(f"Remaining sites: {remaining_sites}")
+    posterior_samples = {
+        k: v for k, v in posterior_samples.items() \
+        if k in remaining_sites
     }
     logger.info(f"Simulating ...")
     simulation_ppd = \
-        simulator.predict(df=simulation_df, posterior_samples=posterior_samples_learnt)
+        simulator.predict(
+            df=simulation_df,
+            posterior_samples=posterior_samples
+        )
 
     """ Shuffle draws """
     logger.info(f"Shuffling draws ...")
@@ -121,24 +113,18 @@ def main():
     logger.info(f"b: {b.shape}")
     logger.info(f"H: {H.shape}")
 
-    filter = (a > 20) & (a < 70) & (b > .05) & (H > .1)
+    # filter = (a > 20) & (a < 70) & (b > .05) & (H > .1)
+    filter = (a > 0) & (a < 100)
     filter = filter.all(axis=(-1, -2))
     min_valid_subjects_per_draw = filter.sum(axis=-1).min()
     logger.info(f"Filter shape: {filter.shape}")
-    logger.info(f"Min valid subjects per draw: {min_valid_subjects_per_draw}")
+    logger.info(f"Min. valid subjects per draw: {min_valid_subjects_per_draw}")
     assert min_valid_subjects_per_draw >= MIN_VALID_SUBJECTS_PER_DRAW
 
+    """ Save filter """
     dest = os.path.join(simulator.build_dir, "filter.npy")
     np.save(dest, filter)
     logger.info(f"Saved filter to {dest}")
-
-    # filter = ((a > 0) & (a < 100)).all(axis=(-1, -2, -3))
-    # logger.info(f"Filter shape: {filter.shape}")
-    # logger.info(f"Valid draws: {filter.sum()}")
-    # simulation_ppd = \
-    #     {
-    #         k: v[filter, ...] for k, v in simulation_ppd.items()
-    #     }
 
     """ Save simulation dataframe and posterior predictive """
     dest = os.path.join(simulator.build_dir, "simulation_df.csv")

@@ -1,56 +1,25 @@
 import os
 import pickle
 import logging
-import multiprocessing
-from pathlib import Path
 
 import pandas as pd
-import jax
 import arviz as az
-import numpyro
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from models import LearnPosterior
-
-PLATFORM = "cpu"
-jax.config.update("jax_platforms", PLATFORM)
-numpyro.set_platform(PLATFORM)
-
-cpu_count = multiprocessing.cpu_count() - 2
-numpyro.set_host_device_count(cpu_count)
-numpyro.enable_x64()
-numpyro.enable_validation()
+from utils import setup_logging
 
 logger = logging.getLogger(__name__)
-FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Change paths as necessary
+TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
+DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/learn_posterior"
 
 
-def main():
-    toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/subjects.toml"
-    config = Config(toml_path=toml_path)
-    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "learn-posterior")
-
-    model = LearnPosterior(config=config)
-    model._make_dir(model.build_dir)
-    dest = os.path.join(model.build_dir, "log.log")
-    logging.basicConfig(
-        format=FORMAT,
-        level=logging.INFO,
-        handlers=[
-            logging.FileHandler(dest, mode="w"),
-            logging.StreamHandler()
-        ],
-        force=True
-    )
-    logger.info(f"Logging to {dest}")
-
-    src = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
-    df = pd.read_csv(src)
-    df[model.features[1]] = 0
-    df, encoder_dict = model.load(df=df)
-
+def run_inference(model, df, encoder_dict=None):
     mcmc, posterior_samples = model.run_inference(df=df)
 
     prediction_df = model.make_prediction_dataset(df=df)
@@ -74,6 +43,27 @@ def main():
     logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
     score = az.waic(numpyro_data, var_name=site.obs)
     logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
+    return
+
+
+def main():
+    toml_path = TOML_PATH
+    config = Config(toml_path=toml_path)
+    config.BUILD_DIR = BUILD_DIR
+
+    model = LearnPosterior(config=config)
+    model._make_dir(model.build_dir)
+    setup_logging(
+        dir=model.build_dir,
+        fname=os.path.basename(__file__)
+    )
+
+    src = DATA_PATH
+    df = pd.read_csv(src)
+    df[model.features[1]] = 0
+    df, encoder_dict = model.load(df=df)
+    run_inference(model=model, df=df, encoder_dict=encoder_dict)
+    return
 
 
 if __name__ == "__main__":
