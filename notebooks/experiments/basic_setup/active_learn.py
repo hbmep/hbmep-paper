@@ -24,6 +24,7 @@ from utils import run_inference
 from scipy.stats import gaussian_kde
 from scipy.integrate import nquad
 from joblib import Parallel, delayed
+from pathlib import Path
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -33,10 +34,8 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate path to inference.pkl from learn_posterior.py
-POSTERIOR_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/learn_posterior_2/inference.pkl"
-
-# Change this to indicate toml path
-TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
+POSTERIOR_PATH = Path("/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test1/learn_posterior/inference.pkl")
+TOML_PATH = POSTERIOR_PATH.parent / "basic_setup.toml"
 
 
 def integrand(*args):
@@ -49,7 +48,8 @@ def integrand(*args):
 def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x, config, opt_param):
     for ix_muscle in range(len(config.RESPONSE)):
         simulation_df_future.iloc[-1, simulation_df_future.columns.get_loc(config.RESPONSE[ix_muscle])] = cand_y_at_x[0][ix_muscle]
-    model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(0, simulation_df_future,
+    config.BUILD_DIR = Path(config.BUILD_DIR) / f"ignore"
+    model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(config, simulation_df_future,
                                                                do_save=False, make_figures=False)
     entropy = calculate_entropy(posterior_samples_fut, config, opt_param)
     return entropy
@@ -76,10 +76,10 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
     return np.mean(entropy)
 
 
-def fit_new_model(ix, df, do_save=True, make_figures=True):
-    toml_path = TOML_PATH
-    config = Config(toml_path=toml_path)
-    config.BUILD_DIR = os.path.join(config.BUILD_DIR, f"learn_posterior_{ix}")
+def fit_new_model(config, df, do_save=True, make_figures=True):
+    # toml_path = TOML_PATH
+    # config = Config(toml_path=toml_path)
+    # config.BUILD_DIR = os.path.join(config.BUILD_DIR, f"learn_posterior_{ix}")
 
     model = RectifiedLogistic(config=config)
     model._make_dir(model.build_dir)
@@ -112,12 +112,18 @@ def fit_new_model(ix, df, do_save=True, make_figures=True):
 
 
 def main():
-    random_seed_start = 200
-    ix_gen_seed = 49
-    opt_param = ['a', 'H']  # ['a', 'H']
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
-    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "simulate_data")
+    root_dir = Path(config.BUILD_DIR)
+    config.BUILD_DIR = root_dir / 'simulate_data'
+
+    config.MCMC_PARAMS['num_chains'] = 1
+    config.MCMC_PARAMS['num_warmup'] = 500
+    config.MCMC_PARAMS['num_samples'] = 1000
+    random_seed_start = 50
+    ix_gen_seed = 10
+    ix_participant = 100
+    opt_param = ['a']  # ['a', 'H']
 
     simulator = RectifiedLogistic(config=config)
     simulator._make_dir(simulator.build_dir)
@@ -162,11 +168,8 @@ def main():
             how="cross"
         )
     simulation_df = simulator.make_prediction_dataset(
-        df=simulation_df,
-        min_intensity=0,
-        max_intensity=0,
-        num=TOTAL_PULSES
-    )
+        df=simulation_df, min_intensity=0, max_intensity=0, num=TOTAL_PULSES)
+
     logger.info(
         f"Simulation (new participants) dataframe: {simulation_df.shape}"
     )
@@ -194,78 +197,86 @@ def main():
         posterior_samples[k] = simulation_ppd[k]
 
     for k in posterior_samples.keys():
-        posterior_samples[k] = posterior_samples[k][-5:-4, ...]
+        posterior_samples[k] = posterior_samples[k][ix_participant:ix_participant+1, ...]
 
     range_min, range_max = 0, 100
 
-    try_al = True
-    if try_al:
-        np.random.seed(ix_gen_seed)
+    # SANITY CHECK
+    # simulation_df_test = simulator.make_prediction_dataset(
+    #     df=simulation_df, min_intensity=0, max_intensity=100, num=500)
+    # simulation_ppd = \
+    #     simulator.predict(df=simulation_df_test, posterior_samples=posterior_samples, random_seed=random_seed_start + 0)
+    # plt.plot(simulation_df_test.loc[:, 'TMSInt'], simulation_ppd['obs'][0, :, 0])
+    # plt.plot(simulation_df_test.loc[:, 'TMSInt'], simulation_ppd['obs'][0, :, 1])
+    # plt.show()
 
-        # Initial guess
-        intensities = [range_min]
-        responses = []
-        N_max = 30
+    np.random.seed(ix_gen_seed)
 
-        for ix in range(N_max):
-            # Simulate response
-            simulation_df.loc[0, 'TMSInt'] = intensities[-1]
-            simulation_ppd = \
-                simulator.predict(df=simulation_df, posterior_samples=posterior_samples, random_seed=random_seed_start + ix)
-            mep_size = simulation_ppd['obs'][0][0]
-            response = mep_size
-            responses.append(response)
+    # Initial guess
+    intensities = [range_min]
+    responses = []
+    N_max = 30
 
-            simulation_df_happened = {**{config.RESPONSE[ix]: np.array(responses)[:, ix] for ix in range(len(config.RESPONSE))}, **{'TMSInt': intensities}}
-            simulation_df_happened = pd.DataFrame(simulation_df_happened)
-            simulation_df_happened['participant___participant_condition'] = 0
-            simulation_df_happened['participant'] = '0'
-            simulation_df_happened['participant_condition'] = 'Uninjured'
-            # Choose next intensity
-            model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(ix, simulation_df_happened)
-            entropy_base = calculate_entropy(posterior_samples_hap, config, opt_param)
+    for ix in range(N_max):
+        # Simulate response
+        simulation_df.loc[0, 'TMSInt'] = intensities[-1]
+        simulation_ppd = \
+            simulator.predict(df=simulation_df, posterior_samples=posterior_samples, random_seed=random_seed_start + ix)
+        mep_size = simulation_ppd['obs'][0][0]
+        response = mep_size
+        responses.append(response)
 
-            if ix < 1:
-                next_intensity = range_max
-            else:
-                list_candidate_intensities = range(range_min, range_max)
-                vec_entropy = np.full(len(list_candidate_intensities), np.nan)
-                ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
-                for ix_future in range(ix_start, len(list_candidate_intensities), 2):
-                    N_obs = 15  # this is what has to be very large
-                    candidate_int = list_candidate_intensities[ix_future]
-                    print(f'Testing intensity: {candidate_int}')
-                    simulation_df_future = pd.DataFrame({'TMSInt': [candidate_int]})
-                    simulation_df_future['participant___participant_condition'] = 0
-                    simulation_df_future['participant'] = '0'
-                    simulation_df_future['participant_condition'] = 'Uninjured'
-                    # TODO: turn off mixture here if it is in the model
-                    posterior_predictive = model.predict(df=simulation_df_future,
-                                                         posterior_samples=posterior_samples_hap)
-                    ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N_obs)
+        simulation_df_happened = {**{config.RESPONSE[ix]: np.array(responses)[:, ix] for ix in range(len(config.RESPONSE))}, **{'TMSInt': intensities}}
+        simulation_df_happened = pd.DataFrame(simulation_df_happened)
+        simulation_df_happened['participant___participant_condition'] = 0
+        simulation_df_happened['participant'] = '0'
+        simulation_df_happened['participant_condition'] = 'Uninjured'
+        # Choose next intensity
+        config.BUILD_DIR = root_dir / f"learn_posterior_rt{ix}"
+        model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(config, simulation_df_happened)
+        entropy_base = calculate_entropy(posterior_samples_hap, config, opt_param)
 
-                    candidate_y_at_this_x = posterior_predictive['obs'][ix_from_chain]
+        if ix < 1:
+            next_intensity = range_max
+        else:
+            list_candidate_intensities = range(range_min, range_max)
+            vec_entropy = np.full(len(list_candidate_intensities), np.nan)
+            ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
+            for ix_future in range(ix_start, len(list_candidate_intensities), 2):
+                N_obs = 15  # this is what has to be very large
+                candidate_int = list_candidate_intensities[ix_future]
+                print(f'Testing intensity: {candidate_int}')
+                simulation_df_future = pd.DataFrame({'TMSInt': [candidate_int]})
+                simulation_df_future['participant___participant_condition'] = 0
+                simulation_df_future['participant'] = '0'
+                simulation_df_future['participant_condition'] = 'Uninjured'
+                # TODO: turn off mixture here if it is in the model
+                posterior_predictive = model.predict(df=simulation_df_future,
+                                                     posterior_samples=posterior_samples_hap)
+                ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N_obs)
 
-                    simulation_df_future = simulation_df_happened.copy()
-                    new_values = {**{config.RESPONSE[ix]: 0 for ix in range(len(config.RESPONSE))}, **{'TMSInt': candidate_int}}
-                    new_row = simulation_df_future.iloc[-1].copy()
-                    new_row.update(new_values)
-                    new_row = pd.DataFrame([new_row])
-                    simulation_df_future = pd.concat([simulation_df_future, new_row], ignore_index=True)
+                candidate_y_at_this_x = posterior_predictive['obs'][ix_from_chain]
 
-                    with Parallel(n_jobs=-1) as parallel:
-                        entropy_list = parallel(
-                            delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample], config, opt_param)
-                            for ix_sample in range(N_obs)
-                        )
+                simulation_df_future = simulation_df_happened.copy()
+                new_values = {**{config.RESPONSE[ix]: 0 for ix in range(len(config.RESPONSE))}, **{'TMSInt': candidate_int}}
+                new_row = simulation_df_future.iloc[-1].copy()
+                new_row.update(new_values)
+                new_row = pd.DataFrame([new_row])
+                simulation_df_future = pd.concat([simulation_df_future, new_row], ignore_index=True)
 
-                    vec_entropy[ix_future] = np.mean(entropy_list)
-                ix_min_entropy = np.nanargmin(vec_entropy - entropy_base)
-                next_intensity = list_candidate_intensities[ix_min_entropy]
+                with Parallel(n_jobs=-1) as parallel:
+                    entropy_list = parallel(
+                        delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample], config, opt_param)
+                        for ix_sample in range(N_obs)
+                    )
 
-            intensities.append(next_intensity)
+                vec_entropy[ix_future] = np.mean(entropy_list)
+            ix_min_entropy = np.nanargmin(vec_entropy - entropy_base)
+            next_intensity = list_candidate_intensities[ix_min_entropy]
 
-        intensity_final = intensities.pop()
+        intensities.append(next_intensity)
+
+    intensity_final = intensities.pop()
 
     return
 

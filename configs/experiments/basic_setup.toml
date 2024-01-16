@@ -1,17 +1,17 @@
 [paths]
 csv = ""
-build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test5"
+build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test1"
 
 [vars]
 features = [["participant", "participant_condition"]]
 intensity = "TMSInt"
 # response = ['PKPK_Triceps', 'PKPK_Biceps', 'PKPK_APB', 'PKPK_ADM']
-response = ['PKPK_Biceps', 'PKPK_APB']
+response = ['PKPK_ECR', 'PKPK_FCR']
 
 [mcmc]
-chains = 1  # !
-warmup = 500
-samples = 1000
+chains = 8  # !
+warmup = 2000
+samples = 2000
 
 [model]
 link = "custom"

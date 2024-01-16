@@ -21,7 +21,7 @@ DATA_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/data/proc_2023-11-28
 def main():
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
-    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "learn_posterior_2")
+    config.BUILD_DIR = os.path.join(config.BUILD_DIR, "learn_posterior")
 
     # Increase burn-in / samples
     # config.MCMC_PARAMS["num_warmup"] = 2000
