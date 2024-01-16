@@ -38,55 +38,39 @@ POSTERIOR_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/learn_pos
 # Change this to indicate toml path
 TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
 
-def cumulative_gaussian(x, mu, sigma):
-    return 0.5 * (1 + erf((x - mu) / (sigma * np.sqrt(2))))
-
 
 def integrand(x, y, kde):
     pdf_val = kde.evaluate([x, y])[0]
     return -pdf_val * np.log(pdf_val) if pdf_val > 0 else 0
 
 
-def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x, config):
+def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x, config, opt_param):
     for ix_muscle in range(len(config.RESPONSE)):
         simulation_df_future.iloc[-1, simulation_df_future.columns.get_loc(config.RESPONSE[ix_muscle])] = cand_y_at_x[0][ix_muscle]
     model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(0, simulation_df_future,
                                                                do_save=False, make_figures=False)
-    entropy = calculate_entropy(posterior_samples_fut, config)
+    entropy = calculate_entropy(posterior_samples_fut, config, opt_param)
     return entropy
 
 
-def calculate_entropy(posterior_samples_fut, config):
+def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
     entropy = []
     for ix_muscle in range(len(config.RESPONSE)):
+        posterior_samples = []
+        bounds = []
+        for ix_opt_param in range(len(opt_param)):
+            str_param = opt_param[ix_opt_param]
+            posterior_samples_ = posterior_samples_fut[str_param][:, 0, ix_muscle]
+            posterior_samples.append(posterior_samples_)
+            bounds_ = (np.min(posterior_samples_) * 0.9, np.max(posterior_samples_) * 1.1)
+            bounds.append(bounds_)
 
-        posterior_samples_a = posterior_samples_fut['a'][:, 0, ix_muscle]
-        posterior_samples_b = posterior_samples_fut['H'][:, 0, ix_muscle]
-
-        joint_samples = np.column_stack((posterior_samples_a, posterior_samples_b))
+        joint_samples = np.column_stack(posterior_samples)
         kde = gaussian_kde(joint_samples.T)
-
-        # the fact that the bw is not set is pretty dodgy I think for an entropy calc.
-        # could introduce a lot of bias/error
-        bounds_a = (np.min(posterior_samples_a) * 0.9, np.max(posterior_samples_a) * 1.1)
-        bounds_b = (np.min(posterior_samples_b) * 0.9, np.max(posterior_samples_b) * 1.1)
-
-        entropy_muscle, _ = nquad(integrand, [bounds_a, bounds_b], args=(kde,))
+        entropy_muscle, _ = nquad(integrand, bounds, args=(kde,))
         entropy.append(entropy_muscle)
+
     return np.mean(entropy)
-
-
-def negative_log_likelihood(params, intensities, responses):
-    mu, sigma = params
-    responses = np.array(responses)  # Convert responses to a numpy array
-    probabilities = cumulative_gaussian(intensities, mu, sigma)
-    # Ensuring probabilities are within a range to avoid log(0)
-    probabilities = np.clip(probabilities, 1e-10, 1 - 1e-10)
-    return -np.sum(responses * np.log(probabilities) + (1 - responses) * np.log(1 - probabilities))
-
-
-def choose_next_intensity(mu, sigma, range_min, range_max):
-    return np.clip(mu + np.random.randn() * sigma, range_min, range_max)
 
 
 def fit_new_model(ix, df, do_save=True, make_figures=True):
@@ -125,7 +109,9 @@ def fit_new_model(ix, df, do_save=True, make_figures=True):
 
 
 def main():
-    random_seed_start = 100
+    random_seed_start = 200
+    ix_gen_seed = 49
+    opt_param = ['a']  # ['a', 'H']
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
     config.BUILD_DIR = os.path.join(config.BUILD_DIR, "simulate_data")
@@ -207,7 +193,6 @@ def main():
     for k in posterior_samples.keys():
         posterior_samples[k] = posterior_samples[k][-5:-4, ...]
 
-    ix_gen_seed = 48
     range_min, range_max = 0, 100
 
     try_al = True
@@ -235,7 +220,7 @@ def main():
             simulation_df_happened['participant_condition'] = 'Uninjured'
             # Choose next intensity
             model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(ix, simulation_df_happened)
-            entropy_base = calculate_entropy(posterior_samples_hap, config)
+            entropy_base = calculate_entropy(posterior_samples_hap, config, opt_param)
 
             if ix < 1:
                 next_intensity = range_max
@@ -267,7 +252,7 @@ def main():
 
                     with Parallel(n_jobs=-1) as parallel:
                         entropy_list = parallel(
-                            delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample], config)
+                            delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample], config, opt_param)
                             for ix_sample in range(N_obs)
                         )
 
