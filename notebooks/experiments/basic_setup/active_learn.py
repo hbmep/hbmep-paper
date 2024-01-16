@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate path to inference.pkl from learn_posterior.py
-POSTERIOR_PATH = Path("/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test1/learn_posterior/inference.pkl")
+POSTERIOR_PATH = Path("/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test2/learn_posterior/inference.pkl")
 TOML_PATH = POSTERIOR_PATH.parent / "basic_setup.toml"
 
 
@@ -122,7 +122,7 @@ def main():
     config.MCMC_PARAMS['num_samples'] = 1000
     random_seed_start = 50
     ix_gen_seed = 10
-    ix_participant = 100
+    ix_participant = 62
     opt_param = ['a']  # ['a', 'H']
 
     simulator = RectifiedLogistic(config=config)
@@ -196,8 +196,9 @@ def main():
     for k in vec_:
         posterior_samples[k] = simulation_ppd[k]
 
+    posterior_samples_individual = posterior_samples.copy()
     for k in posterior_samples.keys():
-        posterior_samples[k] = posterior_samples[k][ix_participant:ix_participant+1, ...]
+        posterior_samples_individual[k] = posterior_samples[k][ix_participant:ix_participant+1, ...]
 
     range_min, range_max = 0, 100
 
@@ -221,7 +222,7 @@ def main():
         # Simulate response
         simulation_df.loc[0, 'TMSInt'] = intensities[-1]
         simulation_ppd = \
-            simulator.predict(df=simulation_df, posterior_samples=posterior_samples, random_seed=random_seed_start + ix)
+            simulator.predict(df=simulation_df, posterior_samples=posterior_samples_individual, random_seed=random_seed_start + ix)
         mep_size = simulation_ppd['obs'][0][0]
         response = mep_size
         responses.append(response)
