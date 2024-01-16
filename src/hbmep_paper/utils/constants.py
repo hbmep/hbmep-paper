@@ -6,7 +6,3 @@ AUC_MAP = \
             "RTriceps":'auc15', "RECR":'auc16', "RFCR":'auc17', "RAPB":'auc18', "RADM":'auc19',
             "RTA":'auc20', "REDB":'auc21', "RAH":'auc22'
         }
-
-HBM = "hierarchical_bayesian"
-NHBM = "non_hierarchical_bayesian"
-MLE = "maximum_likelihood"

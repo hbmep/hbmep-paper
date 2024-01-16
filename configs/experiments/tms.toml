@@ -1,6 +1,6 @@
 [paths]
 csv = ""
-build_dir = "/home/vishu/repos/hbmep-paper/reports/experiments/tms"
+build_dir = ""
 
 [vars]
 features = ["participant", "intervention"]
