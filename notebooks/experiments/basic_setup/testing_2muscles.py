@@ -39,8 +39,10 @@ POSTERIOR_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/learn_pos
 TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
 
 
-def integrand(x, y, kde):
-    pdf_val = kde.evaluate([x, y])[0]
+def integrand(*args):
+    kde = args[-1]
+    points = args[:-1]
+    pdf_val = kde.evaluate(points)[0]
     return -pdf_val * np.log(pdf_val) if pdf_val > 0 else 0
 
 
@@ -54,6 +56,7 @@ def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x, config, opt_param):
 
 
 def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
+    # this is actually quite slow as well...
     entropy = []
     for ix_muscle in range(len(config.RESPONSE)):
         posterior_samples = []
@@ -67,7 +70,7 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
 
         joint_samples = np.column_stack(posterior_samples)
         kde = gaussian_kde(joint_samples.T)
-        entropy_muscle, _ = nquad(integrand, bounds, args=(kde,))
+        entropy_muscle, _ = nquad(integrand, bounds, args=(kde, ))
         entropy.append(entropy_muscle)
 
     return np.mean(entropy)
@@ -111,7 +114,7 @@ def fit_new_model(ix, df, do_save=True, make_figures=True):
 def main():
     random_seed_start = 200
     ix_gen_seed = 49
-    opt_param = ['a']  # ['a', 'H']
+    opt_param = ['a', 'H']  # ['a', 'H']
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
     config.BUILD_DIR = os.path.join(config.BUILD_DIR, "simulate_data")
