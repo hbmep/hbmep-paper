@@ -202,6 +202,16 @@ def main():
 
     posterior_samples_individual['a'][0][0][0] = posterior_samples_individual['a'][0][0][0] + 4
     posterior_samples_individual['a'][0][0][1] = posterior_samples_individual['a'][0][0][1] - 4
+
+    """ Save individual participant info"""
+    d_participant = root_dir / 'participant'
+    if not os.path.exists(d_participant):
+        os.makedirs(d_participant)
+    dest = os.path.join(d_participant, "inference.pkl")
+    with open(dest, "wb") as f:
+        pickle.dump((model, mcmc, posterior_samples_individual), f)
+    logger.info(dest)
+
     range_min, range_max = 0, 100
 
     # SANITY CHECK
