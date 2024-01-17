@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate path to inference.pkl from learn_posterior.py
-POSTERIOR_PATH = Path("/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test2/learn_posterior/inference.pkl")
+POSTERIOR_PATH = Path("/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test3/learn_posterior/inference.pkl")
 TOML_PATH = POSTERIOR_PATH.parent / "basic_setup.toml"
 
 
@@ -200,6 +200,8 @@ def main():
     for k in posterior_samples.keys():
         posterior_samples_individual[k] = posterior_samples[k][ix_participant:ix_participant+1, ...]
 
+    posterior_samples_individual['a'][0][0][0] = posterior_samples_individual['a'][0][0][0] + 4
+    posterior_samples_individual['a'][0][0][1] = posterior_samples_individual['a'][0][0][1] - 4
     range_min, range_max = 0, 100
 
     # SANITY CHECK
