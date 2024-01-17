@@ -35,8 +35,7 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate path to inference.pkl from learn_posterior.py
-POSTERIOR_PATH = Path("/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test3/learn_posterior/inference.pkl")
-TOML_PATH = POSTERIOR_PATH.parent / "basic_setup.toml"
+TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
 
 
 def integrand(*args):
@@ -144,7 +143,7 @@ def main():
     logger.info(f"Logging to {dest}")
 
     """ Load learnt posterior """
-    src = POSTERIOR_PATH
+    src = root_dir / "learn_posterior" / "inference.pkl"
     with open(src, "rb") as g:
         model, mcmc, posterior_samples = pickle.load(g)
 
