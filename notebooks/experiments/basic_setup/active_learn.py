@@ -45,9 +45,15 @@ def integrand(*args):
     return -pdf_val * np.log(pdf_val) if pdf_val > 0 else 0
 
 
-def fit_lookahead_wrapper(simulation_df_future, cand_y_at_x, config, opt_param):
+def fit_lookahead_wrapper(simulation_df_future, candidate_int, cand_y_at_x, config, opt_param):
+    new_values = {**{config.RESPONSE[ix]: 0 for ix in range(len(config.RESPONSE))}, **{'TMSInt': candidate_int[0]}}
+    new_row = simulation_df_future.iloc[-1].copy()
+    new_row.update(new_values)
+    new_row = pd.DataFrame([new_row])
+    simulation_df_future = pd.concat([simulation_df_future, new_row], ignore_index=True)
+
     for ix_muscle in range(len(config.RESPONSE)):
-        simulation_df_future.iloc[-1, simulation_df_future.columns.get_loc(config.RESPONSE[ix_muscle])] = cand_y_at_x[0][ix_muscle]
+        simulation_df_future.iloc[-1, simulation_df_future.columns.get_loc(config.RESPONSE[ix_muscle])] = cand_y_at_x[ix_muscle]
     config.BUILD_DIR = Path(config.BUILD_DIR) / f"ignore"
     model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(config, simulation_df_future,
                                                                do_save=False, make_figures=False)
@@ -261,42 +267,36 @@ def main():
             next_intensity = range_max
         else:
             list_candidate_intensities = range(range_min, range_max)
-            vec_entropy = np.full(len(list_candidate_intensities), np.nan)
             ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
             vec_candidate_x = range(ix_start, len(list_candidate_intensities), 2)
-            for ix_future in vec_candidate_x:
-                N_obs = 15  # make sure is odd
-                candidate_int = list_candidate_intensities[ix_future]
-                print(f'Testing intensity: {candidate_int}')
-                simulation_df_future = pd.DataFrame({'TMSInt': [candidate_int]})
-                simulation_df_future['participant___participant_condition'] = 0
-                simulation_df_future['participant'] = '0'
-                simulation_df_future['participant_condition'] = 'Uninjured'
-                # TODO: turn off mixture here if it is in the model
-                posterior_predictive = model.predict(df=simulation_df_future,
-                                                     posterior_samples=posterior_samples_hap)
+            vec_candidate_int = np.array(vec_candidate_x)
 
-                # ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N_obs)
-                # candidate_y_at_this_x = posterior_predictive['obs'][ix_from_chain]
-                pct_of_chain = np.linspace(0, 100, N_obs + 2)[1:-1]
-                # probably not quite the right shape etc.
-                candidate_y_at_this_x = np.percentile(posterior_predictive['obs'], pct_of_chain, axis = 0)
-                # TODO: also, flatten the future loop then stick everyhing in the with parallel simultaneously
+            N_obs = 7  # make sure is odd
+            simulation_df_future = pd.DataFrame({'TMSInt': vec_candidate_int})
+            simulation_df_future['participant___participant_condition'] = 0
+            simulation_df_future['participant'] = '0'
+            simulation_df_future['participant_condition'] = 'Uninjured'
+            # TODO: turn off mixture here if it is in the model
+            posterior_predictive = model.predict(df=simulation_df_future,
+                                                 posterior_samples=posterior_samples_hap)
 
-                simulation_df_future = simulation_df_happened.copy()
-                new_values = {**{config.RESPONSE[ix]: 0 for ix in range(len(config.RESPONSE))}, **{'TMSInt': candidate_int}}
-                new_row = simulation_df_future.iloc[-1].copy()
-                new_row.update(new_values)
-                new_row = pd.DataFrame([new_row])
-                simulation_df_future = pd.concat([simulation_df_future, new_row], ignore_index=True)
+            pct_of_chain = np.linspace(0, 100, N_obs + 2)[1:-1]
+            candidate_y_at_this_int = np.percentile(posterior_predictive['obs'], pct_of_chain, axis=0)
+            vec_candidate_int_flattened = np.tile(vec_candidate_int[None, :, None], [N_obs, 1, 1]).reshape(-1, 1)
+            candidate_y_at_this_int_flattened = candidate_y_at_this_int.reshape(-1, 2)
 
-                with Parallel(n_jobs=-1) as parallel:
-                    entropy_list = parallel(
-                        delayed(fit_lookahead_wrapper)(simulation_df_future, candidate_y_at_this_x[ix_sample], config, opt_param)
-                        for ix_sample in range(N_obs)
-                    )
+            simulation_df_future = simulation_df_happened.copy()  # just an empty template
+            with Parallel(n_jobs=-1) as parallel:
+                entropy_list_flattened = parallel(
+                    delayed(fit_lookahead_wrapper)(simulation_df_future,
+                                                   vec_candidate_int_flattened[ix_sample],
+                                                   candidate_y_at_this_int_flattened[ix_sample],
+                                                   config, opt_param)
+                    for ix_sample in range(vec_candidate_int_flattened.shape[0])
+                )
+            entropy_list = np.array(entropy_list_flattened).reshape(candidate_y_at_this_int.shape[:-1])
+            vec_entropy = entropy_list.mean(axis=0)
 
-                vec_entropy[ix_future] = np.mean(entropy_list)
             ix_min_entropy = np.nanargmin(vec_entropy - entropy_base)
             next_intensity = list_candidate_intensities[ix_min_entropy]
 
