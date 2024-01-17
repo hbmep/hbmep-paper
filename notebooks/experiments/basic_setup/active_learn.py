@@ -5,6 +5,7 @@ import logging
 
 import pandas as pd
 import numpy as np
+import jax
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -121,10 +122,10 @@ def main():
     config.MCMC_PARAMS['num_warmup'] = 500
     config.MCMC_PARAMS['num_samples'] = 1000
     seed = dict()
-    seed['random_seed_start'] = 50
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
     opt_param = ['a']  # ['a', 'H']
+    N_max = 30
 
     simulator = RectifiedLogistic(config=config)
     simulator._make_dir(simulator.build_dir)
@@ -146,6 +147,9 @@ def main():
     src = POSTERIOR_PATH
     with open(src, "rb") as g:
         model, mcmc, posterior_samples = pickle.load(g)
+
+    rng_key = model.rng_key
+    seed['predict'] = list(jax.random.split(rng_key, num=N_max))
 
     logger.info(
         f"Logging all sites learnt posterior with their shapes ..."
@@ -232,13 +236,12 @@ def main():
     # Initial guess
     intensities = [range_min]
     responses = []
-    N_max = 30
 
     for ix in range(N_max):
         # Simulate response
         simulation_df.loc[0, 'TMSInt'] = intensities[-1]
         simulation_ppd = \
-            simulator.predict(df=simulation_df, posterior_samples=posterior_samples_individual, random_seed=seed['random_seed_start'] + ix)
+            simulator.predict(df=simulation_df, posterior_samples=posterior_samples_individual, rng_key=seed['predict'][ix])
         mep_size = simulation_ppd['obs'][0][0]
         response = mep_size
         responses.append(response)
