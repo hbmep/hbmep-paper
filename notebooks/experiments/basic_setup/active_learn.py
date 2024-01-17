@@ -190,6 +190,7 @@ def main():
     }
 
     simulation_df.loc[0, 'TMSInt'] = 0
+    # return_sites = ['']
     simulation_ppd = \
         simulator.predict(df=simulation_df, posterior_samples=posterior_samples)
 
@@ -197,6 +198,7 @@ def main():
     vec_ = [item for item in vec_ if item != site.obs]
     vec_ = [item for item in vec_ if item != site.mu]
     vec_ = [item for item in vec_ if item != site.beta]
+    # simulation_ppd only has sites not present in posterior samples, so add them back in
     for k in vec_:
         posterior_samples[k] = simulation_ppd[k]
 
@@ -261,8 +263,9 @@ def main():
             list_candidate_intensities = range(range_min, range_max)
             vec_entropy = np.full(len(list_candidate_intensities), np.nan)
             ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
-            for ix_future in range(ix_start, len(list_candidate_intensities), 2):
-                N_obs = 15  # this is what has to be very large
+            vec_candidate_x = range(ix_start, len(list_candidate_intensities), 2)
+            for ix_future in vec_candidate_x:
+                N_obs = 15  # make sure is odd
                 candidate_int = list_candidate_intensities[ix_future]
                 print(f'Testing intensity: {candidate_int}')
                 simulation_df_future = pd.DataFrame({'TMSInt': [candidate_int]})
@@ -272,9 +275,13 @@ def main():
                 # TODO: turn off mixture here if it is in the model
                 posterior_predictive = model.predict(df=simulation_df_future,
                                                      posterior_samples=posterior_samples_hap)
-                ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N_obs)
 
-                candidate_y_at_this_x = posterior_predictive['obs'][ix_from_chain]
+                # ix_from_chain = np.random.choice(range(posterior_predictive['obs'].shape[0]), N_obs)
+                # candidate_y_at_this_x = posterior_predictive['obs'][ix_from_chain]
+                pct_of_chain = np.linspace(0, 100, N_obs + 2)[1:-1]
+                # probably not quite the right shape etc.
+                candidate_y_at_this_x = np.percentile(posterior_predictive['obs'], pct_of_chain, axis = 0)
+                # TODO: also, flatten the future loop then stick everyhing in the with parallel simultaneously
 
                 simulation_df_future = simulation_df_happened.copy()
                 new_values = {**{config.RESPONSE[ix]: 0 for ix in range(len(config.RESPONSE))}, **{'TMSInt': candidate_int}}
