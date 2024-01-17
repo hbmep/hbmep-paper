@@ -120,9 +120,10 @@ def main():
     config.MCMC_PARAMS['num_chains'] = 1
     config.MCMC_PARAMS['num_warmup'] = 500
     config.MCMC_PARAMS['num_samples'] = 1000
-    random_seed_start = 50
-    ix_gen_seed = 10
-    ix_participant = 62
+    seed = dict()
+    seed['random_seed_start'] = 50
+    seed['ix_gen_seed'] = 10
+    seed['ix_participant'] = 62
     opt_param = ['a']  # ['a', 'H']
 
     simulator = RectifiedLogistic(config=config)
@@ -198,7 +199,7 @@ def main():
 
     posterior_samples_individual = posterior_samples.copy()
     for k in posterior_samples.keys():
-        posterior_samples_individual[k] = posterior_samples[k][ix_participant:ix_participant+1, ...]
+        posterior_samples_individual[k] = posterior_samples[k][seed['ix_participant']:seed['ix_participant']+1, ...]
 
     posterior_samples_individual['a'][0][0][0] = posterior_samples_individual['a'][0][0][0] + 4
     posterior_samples_individual['a'][0][0][1] = posterior_samples_individual['a'][0][0][1] - 4
@@ -207,10 +208,13 @@ def main():
     d_participant = root_dir / 'participant'
     if not os.path.exists(d_participant):
         os.makedirs(d_participant)
-    dest = os.path.join(d_participant, "inference.pkl")
-    with open(dest, "wb") as f:
-        pickle.dump((model, mcmc, posterior_samples_individual), f)
-    logger.info(dest)
+    dest = d_participant / "inference.pkl"
+    if dest.exists():
+        with open(dest, "rb") as g:
+            model, mcmc, posterior_samples_individual, seed = pickle.load(g)
+    else:
+        with open(dest, "wb") as f:
+            pickle.dump((model, mcmc, posterior_samples_individual, seed), f)
 
     range_min, range_max = 0, 100
 
@@ -223,7 +227,7 @@ def main():
     # plt.plot(simulation_df_test.loc[:, 'TMSInt'], simulation_ppd['obs'][0, :, 1])
     # plt.show()
 
-    np.random.seed(ix_gen_seed)
+    np.random.seed(seed['ix_gen_seed'])
 
     # Initial guess
     intensities = [range_min]
@@ -234,7 +238,7 @@ def main():
         # Simulate response
         simulation_df.loc[0, 'TMSInt'] = intensities[-1]
         simulation_ppd = \
-            simulator.predict(df=simulation_df, posterior_samples=posterior_samples_individual, random_seed=random_seed_start + ix)
+            simulator.predict(df=simulation_df, posterior_samples=posterior_samples_individual, random_seed=seed['random_seed_start'] + ix)
         mep_size = simulation_ppd['obs'][0][0]
         response = mep_size
         responses.append(response)
