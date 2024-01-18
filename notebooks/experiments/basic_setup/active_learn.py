@@ -37,6 +37,9 @@ FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 # Change this to indicate path to inference.pkl from learn_posterior.py
 TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
 
+import numpy as np
+from scipy.stats import gaussian_kde
+
 
 def integrand(*args):
     kde = args[-1]
@@ -79,7 +82,7 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
         entropy_muscle, _ = nquad(integrand, bounds, args=(kde, ))
         entropy.append(entropy_muscle)
 
-    return np.mean(entropy)
+    return entropy
 
 
 def fit_new_model(config, df, do_save=True, make_figures=True):
@@ -267,11 +270,10 @@ def main():
             next_intensity = range_max
         else:
             list_candidate_intensities = range(range_min, range_max)
-            ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
-            vec_candidate_x = range(ix_start, len(list_candidate_intensities), 2)
-            vec_candidate_int = np.array(vec_candidate_x)
+            # ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
+            vec_candidate_int = np.array(list_candidate_intensities)
 
-            N_obs = 7  # make sure is odd
+            N_obs = 7  # make sure is odd... larger is better...
             simulation_df_future = pd.DataFrame({'TMSInt': vec_candidate_int})
             simulation_df_future['participant___participant_condition'] = 0
             simulation_df_future['participant'] = '0'
@@ -279,9 +281,18 @@ def main():
             # TODO: turn off mixture here if it is in the model
             posterior_predictive = model.predict(df=simulation_df_future,
                                                  posterior_samples=posterior_samples_hap)
+            n_muscles = posterior_predictive['obs'].shape[-1]
 
-            pct_of_chain = np.linspace(0, 100, N_obs + 2)[1:-1]
-            candidate_y_at_this_int = np.percentile(posterior_predictive['obs'], pct_of_chain, axis=0)
+            # pct_of_chain = np.linspace(0, 100, N_obs + 2)[1:-1]
+            # candidate_y_at_this_int = np.percentile(posterior_predictive['obs'], pct_of_chain, axis=0)
+            candidate_y_at_this_int = np.zeros((N_obs, len(vec_candidate_int), n_muscles))
+            for ix_intensity in range(len(vec_candidate_int)):
+                for ix_muscle in range(n_muscles):
+                    samples = posterior_predictive['obs'][:, ix_intensity, ix_muscle]
+                    # don't use min samples, to max because then you really need a very large N_obs
+                    y_grid = np.linspace(np.percentile(samples, 2.5), np.percentile(samples, 97.5), N_obs)
+                    candidate_y_at_this_int[:, ix_intensity, ix_muscle] = y_grid
+
             vec_candidate_int_flattened = np.tile(vec_candidate_int[None, :, None], [N_obs, 1, 1]).reshape(-1, 1)
             candidate_y_at_this_int_flattened = candidate_y_at_this_int.reshape(-1, 2)
 
@@ -294,11 +305,32 @@ def main():
                                                    config, opt_param)
                     for ix_sample in range(vec_candidate_int_flattened.shape[0])
                 )
-            entropy_list = np.array(entropy_list_flattened).reshape(candidate_y_at_this_int.shape[:-1])
-            vec_entropy = entropy_list.mean(axis=0)
+            op_shape = list(candidate_y_at_this_int.shape[:-1])
+            op_shape.append(n_muscles)
+            entropy_list = np.array(entropy_list_flattened).reshape(op_shape)
+            # Estimate the expected entropy E(H(x)) = SUM(H(y|x)p(y|x))dy
+            mat_entropy = np.full((len(vec_candidate_int), n_muscles), np.nan)
+            for ix_intensity in range(len(vec_candidate_int)):
+                for ix_muscle in range(n_muscles):
+                    H_y = entropy_list[:, ix_intensity, ix_muscle]
+                    y_grid = candidate_y_at_this_int[:, ix_intensity, ix_muscle]
+                    samples = posterior_predictive['obs'][:, ix_intensity, ix_muscle]
+                    kde = gaussian_kde(samples, bw_method='silverman')
+                    p_y = kde(y_grid)
+                    dy = np.median(np.diff(y_grid))
+                    H_exp = np.sum(H_y * p_y) * dy
+                    mat_entropy[ix_intensity, ix_muscle] = H_exp
 
-            ix_min_entropy = np.nanargmin(vec_entropy - entropy_base)
+            mat_entropy_diff = mat_entropy - entropy_base
+            # collapse over muscles
+            vec_entropy_diff = mat_entropy_diff.mean(axis=-1)
+
+            ix_min_entropy = np.nanargmin(vec_entropy_diff)
             next_intensity = list_candidate_intensities[ix_min_entropy]
+
+            # save some stuff for later debugging
+            with open(config.BUILD_DIR / 'entropy.pkl', "wb") as f:
+                pickle.dump((mat_entropy, entropy_base, next_intensity, vec_candidate_int, N_obs), f)
 
         intensities.append(next_intensity)
 
