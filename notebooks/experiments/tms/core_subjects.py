@@ -14,68 +14,71 @@ from hbmep.utils import timing
 
 from models import Simulator, HBModel, NHBModel
 from learn_posterior import TOML_PATH
-from utils import setup_logging
+from hbmep_paper.utils import setup_logging
+from utils import fix_draws_and_seeds, fix_nested_pulses
+from constants import (N_DRAWS, N_SEEDS, TOTAL_PULSES)
 
 logger = logging.getLogger(__name__)
 
+SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate/a_random_mean_-3.0_a_random_scale_1.5"
+SIMULATION_DF_PATH = os.path.join(SIMULATION_DIR, "simulation_df.csv")
+SIMULATION_PARAMS_PATH = os.path.join(SIMULATION_DIR, "simulation_params.pkl")
+SIMULATION_PPD_PATH = os.path.join(SIMULATION_DIR, "simulation_ppd_0.pkl")
+MASK_PATH = os.path.join(SIMULATION_DIR, "mask.npy")
+
 EXPERIMENT_NAME = "number_of_subjects"
-N_DRAWS = 50
-N_REPEATS = 50
-
-SIMULATION_DF_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/simulation_df.csv"
-SIMULATION_PPD_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/simulation_ppd.pkl"
-FILTER_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/filter.npy"
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/experiments/"
-
-
-def fix_rng(rng_key, max_draws, max_seeds):
-    keys = jax.random.split(rng_key, num=2)
-    draws_space = \
-        jax.random.choice(
-            key=keys[0],
-            a=np.arange(0, max_draws, 1),
-            shape=(N_DRAWS,),
-            replace=False
-        ) \
-        .tolist()
-    logger.info(f"draws: {draws_space}")
-    seeds_for_generating_subjects = \
-        jax.random.choice(
-            key=keys[1],
-            a=np.arange(0, max_seeds, 1),
-            shape=(N_REPEATS,),
-            replace=False
-        ) \
-        .tolist()
-    logger.info(f"seeds: {seeds_for_generating_subjects}")
-    return draws_space, seeds_for_generating_subjects
+N_PULSES = 56
+N_REPS = 1
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate/a_random_mean_-3.0_a_random_scale_1.5/experiments/"
 
 
 @timing
 def main():
-    """ Load simulated data """
-    src = SIMULATION_PPD_PATH
-    with open(src, "rb") as g:
-        simulator, simulation_ppd = pickle.load(g)
-
-    ppd_obs = simulation_ppd[site.obs]
-    ppd_a = simulation_ppd[site.a]
-
+    """ Load simulated dataframe """
     src = SIMULATION_DF_PATH
     simulation_df = pd.read_csv(src)
 
-    src = FILTER_PATH
-    filter = np.load(src)
+    """ Load simulation params """
+    src = SIMULATION_PARAMS_PATH
+    with open(src, "rb") as g:
+        simulator, simulation_params = pickle.load(g)
 
-    """ Fix rng """
+    simulator._make_dir(BUILD_DIR)
+    setup_logging(
+        dir=BUILD_DIR,
+        fname=os.path.basename(__file__)
+    )
+
+    """ Load simulation ppd """
+    src = SIMULATION_PPD_PATH
+    with open(src, "rb") as g:
+        simulation_ppd, = pickle.load(g)
+
+    """ Load mask """
+    src = MASK_PATH
+    mask = np.load(src)
+
+    """ Fix draws and seeds """
     rng_key = simulator.rng_key
-    max_draws = ppd_a.shape[0]
-    max_seeds = N_REPEATS * 100
-    draws_space, seeds_for_generating_subjects = fix_rng(
+    max_draws = simulation_params[site.a].shape[0]
+    max_seeds = N_SEEDS * 100
+    draws_space, seeds_for_generating_subjects = fix_draws_and_seeds(
         rng_key, max_draws, max_seeds
     )
-    n_subjects_space = [1, 2, 4, 8, 16]
+
+    """ Fix pulses """
+    pulses_map = fix_nested_pulses(simulator, simulation_df)
+
+    """ Experiment space """
+    n_reps = 1
+    n_pulses = N_PULSES
+    pulses = pulses_map[n_pulses]
+
+    n_subjects_space = [1, 4, 8, 16]
     n_jobs = -1
+
+    ppd_a = simulation_params[site.a]
+    ppd_obs = simulation_ppd[site.obs]
 
 
     """ Define experiment """
@@ -93,7 +96,7 @@ def main():
 
         """ Load data """
         valid_subjects = \
-            np.arange(0, ppd_a.shape[1], 1)[filter[draw, ...]]
+            np.arange(0, ppd_a.shape[1], 1)[mask[draw, ...]]
         subjects = \
             jax.random.choice(
                 key=jax.random.PRNGKey(seed),
@@ -107,7 +110,11 @@ def main():
             ind = simulation_df[simulator.features[0]].isin(subjects)
             df = simulation_df[ind].reset_index(drop=True).copy()
             df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
             ind = df[simulator.response[0]] > 0
+            df = df[ind].reset_index(drop=True).copy()
+
+            ind = df[simulator.intensity].isin(pulses)
             df = df[ind].reset_index(drop=True).copy()
 
             """ Build model """
@@ -171,7 +178,11 @@ def main():
                 ind = simulation_df[simulator.features[0]].isin([subject])
                 df = simulation_df[ind].reset_index(drop=True).copy()
                 df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
                 ind = df[simulator.response[0]] > 0
+                df = df[ind].reset_index(drop=True).copy()
+
+                ind = df[simulator.intensity].isin(pulses)
                 df = df[ind].reset_index(drop=True).copy()
 
                 """ Build model """
@@ -233,7 +244,7 @@ def main():
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(
-                1, 60, n_subjects, draw, seed, M
+                n_reps, n_pulses, n_subjects, draw, seed, M
             ) \
             for draw in draws_space \
             for n_subjects in n_subjects_space \

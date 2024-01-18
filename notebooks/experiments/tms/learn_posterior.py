@@ -9,13 +9,11 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from models import LearnPosterior
-from utils import setup_logging
+from hbmep_paper.utils import setup_logging
+from constants import (TOML_PATH, DATA_PATH)
 
 logger = logging.getLogger(__name__)
 
-# Change paths as necessary
-TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
-DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/learn_posterior"
 
 
