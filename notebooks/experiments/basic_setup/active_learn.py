@@ -132,8 +132,10 @@ def main():
     seed = dict()
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
-    opt_param = ['a']  # ['a', 'H']
+    opt_param = ['a', 'H']  # ['a', 'H']
     N_max = 30
+    N_obs = 15  # this is how many enropy calcs to do per every y drawn from x... larger is better
+    assert N_obs % 2 != 0, "Better if N_obs is odd."
 
     simulator = RectifiedLogistic(config=config)
     simulator._make_dir(simulator.build_dir)
@@ -273,7 +275,6 @@ def main():
             # ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
             vec_candidate_int = np.array(list_candidate_intensities)
 
-            N_obs = 7  # make sure is odd... larger is better...
             simulation_df_future = pd.DataFrame({'TMSInt': vec_candidate_int})
             simulation_df_future['participant___participant_condition'] = 0
             simulation_df_future['participant'] = '0'
@@ -290,6 +291,8 @@ def main():
                 for ix_muscle in range(n_muscles):
                     samples = posterior_predictive['obs'][:, ix_intensity, ix_muscle]
                     # don't use min samples, to max because then you really need a very large N_obs
+                    # perhaps the way this linspace is handled could be improved...
+                    # or you could use percentile spacing, then correct for it in the integration (but was not obvious)
                     y_grid = np.linspace(np.percentile(samples, 2.5), np.percentile(samples, 97.5), N_obs)
                     candidate_y_at_this_int[:, ix_intensity, ix_muscle] = y_grid
 
