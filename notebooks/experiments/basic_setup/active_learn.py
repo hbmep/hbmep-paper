@@ -24,6 +24,7 @@ from scipy.stats import gaussian_kde
 from scipy.integrate import nquad
 from joblib import Parallel, delayed
 from pathlib import Path
+from copy import deepcopy
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -118,7 +119,7 @@ def main():
     config = Config(toml_path=toml_path)
     root_dir = Path(config.BUILD_DIR)
     config.BUILD_DIR = root_dir / 'simulate_data'
-    config_fast = config.copy()
+    config_fast = deepcopy(config)
     config_fast.MCMC_PARAMS['num_chains'] = 1
     config_fast.MCMC_PARAMS['num_warmup'] = 500
     config_fast.MCMC_PARAMS['num_samples'] = 1000
