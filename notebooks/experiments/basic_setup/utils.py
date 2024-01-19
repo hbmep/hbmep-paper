@@ -26,7 +26,7 @@ def run_inference(config: Config, model: BaseModel, df: pd.DataFrame, do_save=Tr
         """ Save """
         dest = os.path.join(model.build_dir, "inference.pkl")
         with open(dest, "wb") as f:
-            pickle.dump((model, mcmc, posterior_samples), f)
+            pickle.dump((model, mcmc, posterior_samples, df), f)
         logger.info(dest)
 
         dest = os.path.join(model.build_dir, "inference.nc")

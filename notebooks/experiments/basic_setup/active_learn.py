@@ -52,6 +52,7 @@ def fit_lookahead_wrapper(simulation_df_future, candidate_int, cand_y_at_x, conf
     config.BUILD_DIR = Path(config.BUILD_DIR) / f"ignore"
     model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(config, simulation_df_future,
                                                                do_save=False, make_figures=False)
+
     entropy = calculate_entropy(posterior_samples_fut, config, opt_param)
     return entropy
 
@@ -117,14 +118,14 @@ def main():
     config = Config(toml_path=toml_path)
     root_dir = Path(config.BUILD_DIR)
     config.BUILD_DIR = root_dir / 'simulate_data'
-
-    config.MCMC_PARAMS['num_chains'] = 1
-    config.MCMC_PARAMS['num_warmup'] = 500
-    config.MCMC_PARAMS['num_samples'] = 1000
+    config_fast = config.copy()
+    config_fast.MCMC_PARAMS['num_chains'] = 1
+    config_fast.MCMC_PARAMS['num_warmup'] = 500
+    config_fast.MCMC_PARAMS['num_samples'] = 1000
     seed = dict()
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
-    opt_param = ['a', 'H']  # ['a', 'H']
+    opt_param = ['a']  # ['a', 'H']
     N_max = 30
     N_obs = 15  # this is how many enropy calcs to do per every y drawn from x... larger is better
     assert N_obs % 2 != 0, "Better if N_obs is odd."
@@ -148,7 +149,8 @@ def main():
     """ Load learnt posterior """
     src = root_dir / "learn_posterior" / "inference.pkl"
     with open(src, "rb") as g:
-        model, mcmc, posterior_samples = pickle.load(g)
+        model, mcmc, posterior_samples, df = pickle.load(g)
+    df_data = df.copy()
 
     rng_key = model.rng_key
     seed['predict'] = list(jax.random.split(rng_key, num=N_max))
@@ -168,17 +170,17 @@ def main():
     TOTAL_PULSES = 1
     TOTAL_SUBJECTS = 1
     # Create template dataframe for simulation
-    simulation_df = \
+    df = \
         pd.DataFrame(np.arange(0, TOTAL_SUBJECTS, 1), columns=[simulator.features[0]]) \
         .merge(
             pd.DataFrame([0, 90], columns=[simulator.intensity]),
             how="cross"
         )
-    simulation_df = simulator.make_prediction_dataset(
-        df=simulation_df, min_intensity=0, max_intensity=0, num=TOTAL_PULSES)
+    df = simulator.make_prediction_dataset(
+        df=df, min_intensity=0, max_intensity=0, num=TOTAL_PULSES)
 
     logger.info(
-        f"Simulation (new participants) dataframe: {simulation_df.shape}"
+        f"Simulation (new participants) dataframe: {df.shape}"
     )
 
     sites_to_exclude = {
@@ -192,16 +194,24 @@ def main():
         k: v for k, v in posterior_samples.items() if k not in sites_to_exclude
     }
 
-    simulation_df.loc[0, 'TMSInt'] = 0
+    df.loc[0, 'TMSInt'] = 0
     # return_sites = ['']
     simulation_ppd = \
-        simulator.predict(df=simulation_df, posterior_samples=posterior_samples)
+        simulator.predict(df=df, posterior_samples=posterior_samples)
+
+    # if 'gradient' in simulation_ppd.keys():
+    #     simulation_ppd['max_grad'] = np.zeros(simulation_ppd[site.H].shape)
+    #     for ix_p in range(len(participants)):
+    #         for ix_muscle in range(n_muscles):
+    #             for ix_cond in range(len(conditions)):
+    #                 Y = pp[ix_p][ix_cond]['gradient'][:, :, ix_muscle]  # not sure why this index is flipped...
+    #                 _posterior_samples['max_grad'][:, ix_cond, ix_p, ix_muscle] = np.max(Y, axis=1)
 
     vec_ = list(simulation_ppd.keys())
     vec_ = [item for item in vec_ if item != site.obs]
     vec_ = [item for item in vec_ if item != site.mu]
     vec_ = [item for item in vec_ if item != site.beta]
-    vec_ = [item for item in vec_ if item != site.gradient]
+    vec_ = [item for item in vec_ if item != 'gradient']
     # simulation_ppd only has sites not present in posterior samples, so add them back in
     for k in vec_:
         posterior_samples[k] = simulation_ppd[k]
@@ -220,16 +230,15 @@ def main():
     dest = d_participant / "inference.pkl"
     if dest.exists():
         with open(dest, "rb") as g:
-            model, mcmc, posterior_samples_individual, seed = pickle.load(g)
+            model, mcmc, posterior_samples_individual, df, seed = pickle.load(g)
     else:
         with open(dest, "wb") as f:
-            pickle.dump((model, mcmc, posterior_samples_individual, seed), f)
-
+            pickle.dump((model, mcmc, posterior_samples_individual, df, seed), f)
     range_min, range_max = 0, 100
 
     # SANITY CHECK
     # simulation_df_test = simulator.make_prediction_dataset(
-    #     df=simulation_df, min_intensity=0, max_intensity=100, num=500)
+    #     df=df, min_intensity=0, max_intensity=100, num=500)
     # simulation_ppd = \
     #     simulator.predict(df=simulation_df_test, posterior_samples=posterior_samples, random_seed=random_seed_start + 0)
     # plt.plot(simulation_df_test.loc[:, 'TMSInt'], simulation_ppd['obs'][0, :, 0])
@@ -244,9 +253,9 @@ def main():
 
     for ix in range(N_max):
         # Simulate response
-        simulation_df.loc[0, 'TMSInt'] = intensities[-1]
+        df.loc[0, 'TMSInt'] = intensities[-1]
         simulation_ppd = \
-            simulator.predict(df=simulation_df, posterior_samples=posterior_samples_individual, rng_key=seed['predict'][ix])
+            simulator.predict(df=df, posterior_samples=posterior_samples_individual, rng_key=seed['predict'][ix])
         mep_size = simulation_ppd['obs'][0][0]
         response = mep_size
         responses.append(response)
@@ -256,6 +265,7 @@ def main():
         simulation_df_happened['participant___participant_condition'] = 0
         simulation_df_happened['participant'] = '0'
         simulation_df_happened['participant_condition'] = 'Uninjured'
+        simulation_df_happened = simulation_df_happened.astype({"TMSInt": 'float64'})
         # Choose next intensity
         config.BUILD_DIR = root_dir / f"learn_posterior_rt{ix}"
         model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(config, simulation_df_happened)
@@ -272,6 +282,7 @@ def main():
             simulation_df_future['participant___participant_condition'] = 0
             simulation_df_future['participant'] = '0'
             simulation_df_future['participant_condition'] = 'Uninjured'
+            simulation_df_future = simulation_df_future.astype({"TMSInt": 'float64'})
             # TODO: turn off mixture here if it is in the model
             posterior_predictive = model.predict(df=simulation_df_future,
                                                  posterior_samples=posterior_samples_hap)
@@ -298,7 +309,7 @@ def main():
                     delayed(fit_lookahead_wrapper)(simulation_df_future,
                                                    vec_candidate_int_flattened[ix_sample],
                                                    candidate_y_at_this_int_flattened[ix_sample],
-                                                   config, opt_param)
+                                                   config_fast, opt_param)
                     for ix_sample in range(vec_candidate_int_flattened.shape[0])
                 )
             op_shape = list(candidate_y_at_this_int.shape[:-1])
