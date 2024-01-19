@@ -70,6 +70,20 @@ class RectifiedLogistic(BaseModel):
                         H=H[feature0]
                     )
                 )
+
+                gradient = numpyro.deterministic(
+                    "gradient",
+                    F.prime(F.rectified_logistic,
+                    intensity,
+                    a[feature0,],
+                    b[feature0],
+                    v[feature0],
+                    L[feature0],
+                    ell[feature0],
+                    H[feature0]
+                    )
+                )
+                
                 beta = numpyro.deterministic(
                     site.beta,
                     c_1[feature0] + jnp.true_divide(c_2[feature0], mu)

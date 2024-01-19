@@ -209,6 +209,7 @@ def main():
     vec_ = [item for item in vec_ if item != site.obs]
     vec_ = [item for item in vec_ if item != site.mu]
     vec_ = [item for item in vec_ if item != site.beta]
+    vec_ = [item for item in vec_ if item != site.gradient]
     # simulation_ppd only has sites not present in posterior samples, so add them back in
     for k in vec_:
         posterior_samples[k] = simulation_ppd[k]
