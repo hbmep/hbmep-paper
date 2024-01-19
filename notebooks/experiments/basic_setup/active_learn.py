@@ -50,11 +50,12 @@ def fit_lookahead_wrapper(simulation_df_future, candidate_int, cand_y_at_x, conf
 
     for ix_muscle in range(len(config.RESPONSE)):
         simulation_df_future.iloc[-1, simulation_df_future.columns.get_loc(config.RESPONSE[ix_muscle])] = cand_y_at_x[ix_muscle]
-    config.BUILD_DIR = Path(config.BUILD_DIR) / f"ignore"
-    model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(config, simulation_df_future,
+    config_local = deepcopy(config)
+    config_local.BUILD_DIR = Path(config.BUILD_DIR) / f"ignore"
+    model_fut, mcmc_fut, posterior_samples_fut = fit_new_model(config_local, simulation_df_future,
                                                                do_save=False, make_figures=False)
 
-    entropy = calculate_entropy(posterior_samples_fut, config, opt_param)
+    entropy = calculate_entropy(posterior_samples_fut, config_local, opt_param)
     return entropy
 
 
@@ -128,7 +129,7 @@ def main():
     seed['ix_participant'] = 62
     opt_param = ['a']  # ['a', 'H']
     N_max = 30
-    N_obs = 15  # this is how many enropy calcs to do per every y drawn from x... larger is better
+    N_obs = 3  # this is how many enropy calcs to do per every y drawn from x... larger is better
     assert N_obs % 2 != 0, "Better if N_obs is odd."
 
     simulator = RectifiedLogistic(config=config)
@@ -235,7 +236,7 @@ def main():
     else:
         with open(dest, "wb") as f:
             pickle.dump((model, mcmc, posterior_samples_individual, df, seed), f)
-    range_min, range_max = 0, 100
+    range_min, range_max = 50, 54
 
     # SANITY CHECK
     # simulation_df_test = simulator.make_prediction_dataset(
