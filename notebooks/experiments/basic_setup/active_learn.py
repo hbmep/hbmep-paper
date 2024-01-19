@@ -10,15 +10,13 @@ import jax
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
-from models import RectifiedLogistic
-from learn_posterior import TOML_PATH, DATA_PATH
-
 from matplotlib import pyplot as plt
 import seaborn as sns
 from scipy.optimize import minimize
 from scipy.stats import norm
 from scipy.special import erf
 
+from learn_posterior import TOML_PATH
 from models import RectifiedLogistic
 from utils import run_inference
 
@@ -33,12 +31,6 @@ pd.set_option('display.width', 1000)
 
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-
-# Change this to indicate path to inference.pkl from learn_posterior.py
-TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
-
-import numpy as np
-from scipy.stats import gaussian_kde
 
 
 def integrand(*args):
