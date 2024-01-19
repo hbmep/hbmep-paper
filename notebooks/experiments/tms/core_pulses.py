@@ -15,116 +15,73 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from models import Simulator, HBModel, NHBModel
+from hbmep_paper.utils import setup_logging
+from utils import fix_draws_and_seeds, fix_nested_pulses
+from constants import TOML_PATH, N_DRAWS, N_SEEDS
 
 logger = logging.getLogger(__name__)
-FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-dest = "/home/vishu/logs/pulses-experiment.log"
-logging.basicConfig(
-    format=FORMAT,
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler(dest, mode="w"),
-        logging.StreamHandler()
-    ],
-    force=True
-)
 
-EXPERIMENT_NAME = "exp_number_of_pulses"
-N_DRAWS = 50
-N_REPEATS = 50
+SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate/a_random_mean_-3.0_a_random_scale_1.5"
+SIMULATION_DF_PATH = os.path.join(SIMULATION_DIR, "simulation_df.csv")
+SIMULATION_PARAMS_PATH = os.path.join(SIMULATION_DIR, "simulation_params.pkl")
+SIMULATION_PPD_PATH = os.path.join(SIMULATION_DIR, "simulation_ppd_0.pkl")
+MASK_PATH = os.path.join(SIMULATION_DIR, "mask.npy")
+
+EXPERIMENT_NAME = "number_of_pulses"
 N_SUBJECTS = 8
-
-
-def fix_rng(rng_key, max_draws, max_seeds):
-    keys = jax.random.split(rng_key, num=2)
-    draws_space = \
-        jax.random.choice(
-            key=keys[0],
-            a=np.arange(0, max_draws, 1),
-            shape=(N_DRAWS,),
-            replace=False
-        ) \
-        .tolist()
-    logger.info(f"draws: {draws_space}")
-    seeds_for_generating_subjects = \
-        jax.random.choice(
-            key=keys[1],
-            a=np.arange(0, max_seeds, 1),
-            shape=(N_REPEATS,),
-            replace=False
-        ) \
-        .tolist()
-    logger.info(f"seeds: {seeds_for_generating_subjects}")
-    return draws_space, seeds_for_generating_subjects
+N_REPS = 1
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate/a_random_mean_-3.0_a_random_scale_1.5/experiments/"
 
 
 @timing
 def main():
-    """ Load simulated data """
-    dir ="/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate-data/a_random_mean_-2.5_a_random_scale_1.5"
-    src = os.path.join(dir, "simulation_ppd.pkl")
-    with open(src, "rb") as g:
-        simulator, simulation_ppd = pickle.load(g)
-
-    ppd_obs = simulation_ppd[site.obs]
-    ppd_a = simulation_ppd[site.a]
-
-    src = os.path.join(dir, "simulation_df.csv")
+    """ Load simulated dataframe """
+    src = SIMULATION_DF_PATH
     simulation_df = pd.read_csv(src)
 
-    src = os.path.join(dir, "filter.npy")
-    filter = np.load(src)
+    """ Load simulation params """
+    src = SIMULATION_PARAMS_PATH
+    with open(src, "rb") as g:
+        simulator, simulation_params = pickle.load(g)
 
-    """ Fix rng """
+    simulator._make_dir(BUILD_DIR)
+    setup_logging(
+        dir=BUILD_DIR,
+        fname=os.path.basename(__file__)
+    )
+
+    """ Load simulation ppd """
+    src = SIMULATION_PPD_PATH
+    with open(src, "rb") as g:
+        simulation_ppd, = pickle.load(g)
+
+    """ Load mask """
+    src = MASK_PATH
+    mask = np.load(src)
+
+    """ Fix draws and seeds """
     rng_key = simulator.rng_key
-    max_draws = ppd_a.shape[0]
-    max_seeds = N_REPEATS * 100
-    draws_space, seeds_for_generating_subjects = fix_rng(
+    max_draws = simulation_params[site.a].shape[0]
+    max_seeds = N_SEEDS * 100
+    draws_space, seeds_for_generating_subjects = fix_draws_and_seeds(
         rng_key, max_draws, max_seeds
     )
-    n_pulses_space = [20, 30, 40, 50, 60]
+
+    """ Fix pulses """
+    pulses_map = fix_nested_pulses(simulator, simulation_df)
+
+    """ Experiment space """
+    n_reps = N_REPS
+    n_subjects = N_SUBJECTS
+
+    n_pulses_space = [24, 32, 40, 48]
     n_jobs = -1
 
-    """ Make nested subsets for n_pulses """
-    STARTING_PULSES = simulation_df[simulator.intensity].unique()
-    STARTING_PULSES = np.sort(STARTING_PULSES)
-    TOTAL_PULSES = STARTING_PULSES.shape[0]
-    assert TOTAL_PULSES == 60    # From number of subjects experiment
-    assert TOTAL_PULSES == n_pulses_space[-1]
-
-    MAP_N_PULSES_TO_STARTING_PULSES_INDEX = {
-        TOTAL_PULSES: np.arange(0, TOTAL_PULSES, 1).astype(int).tolist()
-    }
-    logger.info(
-        f"MAP_N_PULSES_TO_STARTING_PULSES_INDEX: \
-        {MAP_N_PULSES_TO_STARTING_PULSES_INDEX}"
-    )
-
-    for i in range(len(n_pulses_space) - 2, -1, -1):
-        n_pulses = n_pulses_space[i]
-        logger.info(f"n_pulses: {n_pulses}")
-        subsample_from = \
-            MAP_N_PULSES_TO_STARTING_PULSES_INDEX[
-                n_pulses_space[i + 1]
-            ]
-        ind = \
-            np.round(np.linspace(0, len(subsample_from) - 1, n_pulses)) \
-            .astype(int)
-        MAP_N_PULSES_TO_STARTING_PULSES_INDEX[n_pulses] = \
-            np.array(subsample_from)[ind]
-
-    for i in range(len(n_pulses_space) - 1, -1, -1):
-        n_pulses = n_pulses_space[i]
-        pulses_ind = MAP_N_PULSES_TO_STARTING_PULSES_INDEX[n_pulses]
-        logger.info(f"n_pulses: {n_pulses}\n{pulses_ind}\n\n")
-        assert len(pulses_ind) == n_pulses
-        if n_pulses != TOTAL_PULSES:
-            assert \
-            set(MAP_N_PULSES_TO_STARTING_PULSES_INDEX[n_pulses]) \
-            <= set(MAP_N_PULSES_TO_STARTING_PULSES_INDEX[n_pulses_space[i + 1]])
+    ppd_a = simulation_params[site.a]
+    ppd_obs = simulation_ppd[site.obs]
 
     # """ Visualize nested pulses set """
-    # nrows, ncols = 1, 2
+    # nrows, ncols = 1, 1
     # fig, axes = plt.subplots(
     #     nrows=nrows,
     #     ncols=ncols,
@@ -132,18 +89,10 @@ def main():
     #     squeeze=False,
     #     constrained_layout=True
     # )
-    # colors = plt.cm.rainbow(np.linspace(0, 1, len(n_pulses_space)))
-    # for i, n_pulses in enumerate(n_pulses_space):
-    #     pulses_ind = MAP_N_PULSES_TO_STARTING_PULSES_INDEX[n_pulses]
-    #     pulses = STARTING_PULSES[pulses_ind]
+    # colors = plt.cm.rainbow(np.linspace(0, 1, len(list(pulses_map.keys()))))
+    # for i, n_pulses in enumerate(list(pulses_map.keys())):
+    #     pulses = pulses_map[n_pulses]
     #     ax = axes[0, 0]
-    #     sns.scatterplot(
-    #         x=[n_pulses] * n_pulses,
-    #         y=pulses_ind,
-    #         color=colors[i],
-    #         ax=ax
-    #     )
-    #     ax = axes[0, 1]
     #     sns.scatterplot(
     #         x=[n_pulses] * n_pulses,
     #         y=pulses,
@@ -154,63 +103,68 @@ def main():
     # fig.savefig(dest)
     # logger.info(f"Saved to {dest}")
 
+
     """ Define experiment """
     def run_experiment(
+        n_reps,
         n_pulses,
+        n_subjects,
         draw,
         seed,
         M
     ):
         """ Artefacts directory """
-        n_pulses_dir, draw_dir, seed_dir = \
-            f"n{n_pulses}", f"d{draw}", f"s{seed}"
+        n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
+        draw_dir, seed_dir = f"d{draw}", f"s{seed}"
 
         """ Load data """
         valid_subjects = \
-            np.arange(0, ppd_a.shape[1], 1)[filter[draw, ...]]
+            np.arange(0, ppd_a.shape[1], 1)[mask[draw, ...]]
         subjects = \
             jax.random.choice(
                 key=jax.random.PRNGKey(seed),
                 a=valid_subjects,
-                shape=(N_SUBJECTS,),
+                shape=(n_subjects,),
                 replace=False
             ) \
             .tolist()
+
+        pulses = pulses_map[n_pulses]
 
         if M.NAME in ["hbm"]:
             ind = simulation_df[simulator.features[0]].isin(subjects)
             df = simulation_df[ind].reset_index(drop=True).copy()
             df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
             ind = df[simulator.response[0]] > 0
             df = df[ind].reset_index(drop=True).copy()
 
             """ Filter pulses"""
-            pulses_ind = MAP_N_PULSES_TO_STARTING_PULSES_INDEX[n_pulses]
-            pulses = STARTING_PULSES[pulses_ind].tolist()
             ind = df[simulator.intensity].isin(pulses)
             df = df[ind].reset_index(drop=True).copy()
-            # assert df[simulator.intensity].unique().shape[0] == n_pulses
+            assert df[simulator.intensity].unique().shape[0] == n_pulses
 
             """ Build model """
-            toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
+            toml_path = TOML_PATH
             config = Config(toml_path=toml_path)
-            config.BUILD_DIR = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_pulses_dir, seed_dir, M.NAME)
+            config.BUILD_DIR = os.path.join(
+                BUILD_DIR,
+                EXPERIMENT_NAME,
+                draw_dir,
+                n_subjects_dir,
+                n_reps_dir,
+                n_pulses_dir,
+                seed_dir,
+                M.NAME
+            )
+            model = M(config=config)
 
             # Set up logging
-            logger = logging.getLogger(__name__)
-            dest = os.path.join(config.BUILD_DIR, "log.log")
-            simulator._make_dir(config.BUILD_DIR)
-            logging.basicConfig(
-                format=FORMAT,
-                level=logging.INFO,
-                handlers=[
-                    logging.FileHandler(dest, mode="w"),
-                    logging.StreamHandler()
-                ],
-                force=True
+            model._make_dir(model.build_dir)
+            setup_logging(
+                dir=model.build_dir,
+                fname="logs"
             )
-
-            model = M(config=config)
 
             """ Run inference """
             df, encoder_dict = model.load(df=df)
@@ -247,44 +201,42 @@ def main():
         # otherwise, there are convergence issues when the number of subjects is large
         elif M.NAME in ["nhbm"]:
             for subject in subjects:
-                sub_dir = f"p{subject}"
+                sub_dir = f"subject{subject}"
                 ind = simulation_df[simulator.features[0]].isin([subject])
                 df = simulation_df[ind].reset_index(drop=True).copy()
                 df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
                 ind = df[simulator.response[0]] > 0
                 num_num_positive = ind.shape[0] - ind.sum()
                 df = df[ind].reset_index(drop=True).copy()
 
                 """ Filter pulses"""
-                pulses_ind = MAP_N_PULSES_TO_STARTING_PULSES_INDEX[n_pulses]
-                pulses = STARTING_PULSES[pulses_ind].tolist()
                 ind = df[simulator.intensity].isin(pulses)
                 df = df[ind].reset_index(drop=True).copy()
-                # assert df[simulator.intensity].unique().shape[0] == n_pulses
-                # print(f"df shape: {df.shape[0]}")
-                # print(f"2 * n_pulse: {2 * n_pulses}\n\n")
-                # assert np.abs(df.shape[0] - 2 * n_pulses) < 6
+                assert np.abs(df.shape[0] - 2 * n_pulses) < 6
 
                 """ Build model """
-                toml_path = "/home/vishu/repos/hbmep-paper/configs/experiments/tms.toml"
+                toml_path = TOML_PATH
                 config = Config(toml_path=toml_path)
-                config.BUILD_DIR = os.path.join(simulator.build_dir, EXPERIMENT_NAME, draw_dir, n_pulses_dir, seed_dir, M.NAME, sub_dir)
+                config.BUILD_DIR = os.path.join(
+                    BUILD_DIR,
+                    EXPERIMENT_NAME,
+                    draw_dir,
+                    n_subjects_dir,
+                    n_reps_dir,
+                    n_pulses_dir,
+                    seed_dir,
+                    M.NAME,
+                    sub_dir
+                )
+                model = M(config=config)
 
                 # Set up logging
-                logger = logging.getLogger(__name__)
-                dest = os.path.join(config.BUILD_DIR, "log.log")
-                simulator._make_dir(config.BUILD_DIR)
-                logging.basicConfig(
-                    format=FORMAT,
-                    level=logging.INFO,
-                    handlers=[
-                        logging.FileHandler(dest, mode="w"),
-                        logging.StreamHandler()
-                    ],
-                    force=True
+                model._make_dir(model.build_dir)
+                setup_logging(
+                    dir=model.build_dir,
+                    fname="logs"
                 )
-
-                model = M(config=config)
 
                 """ Run inference """
                 df, encoder_dict = model.load(df=df)
@@ -313,23 +265,12 @@ def main():
         return
 
 
-    draws_space = draws_space[18:]
-    # n_pulses_space = [20, 40]
-    n_pulses_space = [20, 30, 40, 50]
-    # seeds_for_generating_subjects = seeds_for_generating_subjects[:10]
-
-    # Run for Hierarchical Bayesian Model
     models = [HBModel, NHBModel]
-    # models = [HBModel]
-    # models = [NHBModel]
-
-    # # Run for Non-Hierarchical Bayesian Model
-    # models = [NHBModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(
-                n_pulses, draw, seed, M
+                n_reps, n_pulses, n_subjects, draw, seed, M
             ) \
             for draw in draws_space \
             for n_pulses in n_pulses_space \
@@ -339,5 +280,5 @@ def main():
 
 
 if __name__ == "__main__":
-    logger.info(f"Logging to {dest}")
+
     main()

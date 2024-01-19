@@ -10,49 +10,50 @@ import jax
 from hbmep.model.utils import Site as site
 
 from models import Simulator, HBModel, NHBModel
-from simulate_data import TOTAL_SUBJECTS
-from core_subjects import fix_rng
-from core_subjects import EXPERIMENT_NAME, N_DRAWS, N_REPEATS
-from utils import setup_logging
+from core_subjects import EXPERIMENT_NAME, N_PULSES, N_REPS
+from utils import fix_draws_and_seeds
+from constants import TOTAL_SUBJECTS, N_DRAWS, N_SEEDS
+from hbmep_paper.utils import setup_logging
 
 plt.rcParams['svg.fonttype'] = 'none'
 logger = logging.getLogger(__name__)
 
-SIMULATION_PPD_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/simulation_ppd.pkl"
-FILTER_PATH = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/filter.npy"
-EXPERIMENTS_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/a_random_mean_-2.5_a_random_scale_1.5/experiments/"
+SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate/a_random_mean_-3.0_a_random_scale_1.5"
+SIMULATION_PARAMS_PATH = os.path.join(SIMULATION_DIR, "simulation_params.pkl")
+MASK_PATH = os.path.join(SIMULATION_DIR, "mask.npy")
+EXPERIMENTS_DIR = os.path.join(SIMULATION_DIR, "experiments")
 
 
 def main():
     """ Load simulated data """
-    src = SIMULATION_PPD_PATH
+    src = SIMULATION_PARAMS_PATH
     with open(src, "rb") as g:
-        simulator, simulation_ppd = pickle.load(g)
+        simulator, simulation_params = pickle.load(g)
 
     setup_logging(
         dir=simulator.build_dir,
         fname=os.path.basename(__file__)
     )
 
-    ppd_a = simulation_ppd[site.a]
+    ppd_a = simulation_params[site.a]
 
-    src = FILTER_PATH
-    filter = np.load(src)
+    src = MASK_PATH
+    mask = np.load(src)
 
     """ Fix rng """
     rng_key = simulator.rng_key
     max_draws = ppd_a.shape[0]
-    max_seeds = N_REPEATS * 100
-    draws_space, seeds_for_generating_subjects = fix_rng(
+    max_seeds = N_SEEDS * 100
+    draws_space, seeds_for_generating_subjects = fix_draws_and_seeds(
         rng_key, max_draws, max_seeds
     )
     n_subjects_space = [1, 4, 8, 16]
 
-    # draws_space = draws_space[:44]
+    draws_space = draws_space[:19]
     # models = [HBModel, NHBModel]
     models = [HBModel]
 
-    n_reps, n_pulses = 1, 60
+    n_reps, n_pulses = N_REPS, N_PULSES
 
     """ Results """
     mae = []
@@ -88,7 +89,7 @@ def main():
                     elif M.NAME in ["nhbm"]:
                         n_subjects_dir = f"n{n_subjects_space[-1]}"
                         valid_subjects = \
-                            np.arange(0, ppd_a.shape[1], 1)[filter[draw, ...]]
+                            np.arange(0, ppd_a.shape[1], 1)[mask[draw, ...]]
                         subjects = \
                             jax.random.choice(
                                 key=jax.random.PRNGKey(seed),
