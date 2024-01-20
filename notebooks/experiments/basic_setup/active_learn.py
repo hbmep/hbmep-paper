@@ -127,9 +127,10 @@ def main():
     seed = dict()
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
-    opt_param = ['a']  # ['a', 'H']
+    opt_param = ['a', 'H']  # ['a', 'H']
     N_max = 30
-    N_obs = 3  # this is how many enropy calcs to do per every y drawn from x... larger is better
+    N_obs = 15  # this is how many enropy calcs to do per every y drawn from x... larger is better
+    range_min, range_max = 0, 100
     assert N_obs % 2 != 0, "Better if N_obs is odd."
 
     simulator = RectifiedLogistic(config=config)
@@ -236,7 +237,6 @@ def main():
     else:
         with open(dest, "wb") as f:
             pickle.dump((model, mcmc, posterior_samples_individual, df, seed), f)
-    range_min, range_max = 50, 54
 
     # SANITY CHECK
     # simulation_df_test = simulator.make_prediction_dataset(

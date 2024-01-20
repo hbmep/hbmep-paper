@@ -24,6 +24,7 @@ from scipy.stats import gaussian_kde
 from scipy.integrate import nquad
 from joblib import Parallel, delayed
 from pathlib import Path
+import matplotlib.gridspec as gridspec
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -37,7 +38,7 @@ def main():
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
     root_dir = Path(config.BUILD_DIR)
-    root_dir = Path('/media/hdd2/mcintosh/OneDrive/Other/Desktop/test12')  # TEMP
+    # root_dir = Path('/media/hdd2/mcintosh/OneDrive/Other/Desktop/test12')  # TEMP
 
     config.MCMC_PARAMS['num_chains'] = 1
     config.MCMC_PARAMS['num_warmup'] = 500
@@ -67,6 +68,7 @@ def main():
     #     mat_entropy, entropy_base, next_intensity, vec_candidate_int, N_obs = pickle.load(g)
     participants = ['MEH']
     xlim = [0, 100]
+    ylim = [-0.1, 4]
     # Simulate TOTAL_SUBJECTS subjects
     TOTAL_PULSES = 100
     TOTAL_SUBJECTS = len(participants)
@@ -95,9 +97,21 @@ def main():
     # conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
     # participants = list(encoder_dict[model.features[1]].inverse_transform(np.unique(df[model.features[1]])))
 
-    fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
+    # fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
+    fig = plt.figure(figsize=(10, 4))  # You can adjust the size as needed
+    gs = gridspec.GridSpec(3, 8, figure=fig)
+
+    # Define the subplots
+    ix = 0
+    ax_rc = [fig.add_subplot(gs[0:2, 0 + ix:3 + ix])]
+    ax_H = [fig.add_subplot(gs[0:2, 3 + ix])]
+    ax_a = [fig.add_subplot(gs[2, 0 + ix:3 + ix])]
+    ix = 4
+    ax_rc.append(fig.add_subplot(gs[0:2, 0 + ix:3 + ix]))
+    ax_H.append(fig.add_subplot(gs[0:2, 3 + ix]))
+    ax_a.append(fig.add_subplot(gs[2, 0 + ix:3 + ix]))
     for ix_muscle in range(n_muscles):
-        ax = axs[ix_muscle]
+        ax = ax_rc[ix_muscle]
         x = df_custom[model.intensity].values
         Y = pp[site.mu][:, :, ix_muscle]
         y = np.mean(Y, 0)
@@ -118,22 +132,21 @@ def main():
         #     ax.legend()
         # if ix_p == 0:
         #     ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
-        if ix_muscle == 0:
-            ax.set_ylabel('AUC (uVs)')
-            ax.set_xlabel(model.intensity + ' Intensity (%/mA)')
+        # if ix_muscle == 0:
+        ax.set_ylabel('AUC (µVs)')
+        ax.set_xlabel(model.intensity + ' Intensity (%MSO)')
         ax.set_xlim(xlim)
-
-    fig.savefig(Path(model.build_dir) / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
-    # plt.show()
-    # fig.savefig(Path(model.build_dir) / "REC_MT_cond_norm.svg", format='svg')
-    plt.close()
+        ax.set_ylim(ylim)
 
     list_params = [site.a, site.H]
     for ix_params in range(len(list_params)):
         str_p = list_params[ix_params]
-        fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
+        # fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
         for ix_muscle in range(n_muscles):
-            ax = axs[ix_muscle]
+            if str_p == 'a':
+                ax = ax_a[ix_muscle]
+            elif str_p == 'H':
+                ax = ax_H[ix_muscle]
             x = df[model.intensity].values
             Y = posterior_samples[str_p][:, 0, ix_muscle]
             case_isfinite = np.isfinite(Y)
@@ -143,26 +156,37 @@ def main():
                 x_grid = np.linspace(0, 100, 1000)
                 density = np.zeros(np.shape(x_grid))
             else:
-                kde = gaussian_kde(Y)
+                kde = gaussian_kde(Y, bw_method='silverman')
                 x_grid = np.linspace(min(Y) * 0.9, max(Y) * 1.1, 1000)
                 density = kde(x_grid)
 
-            ax.plot(x_grid, density, color=colors[ix_muscle], label=ix_muscle)
+            if str_p == 'a':
+                ax.plot(x_grid, density, color=colors[ix_muscle], label=ix_muscle)
+                ax.set_xlim(xlim)
+                ax.set_ylabel('Density')
+                ax.set_xlabel('Threshold')
+            elif str_p == 'H':
+                # rotated
+                ax.plot(density, x_grid, color=colors[ix_muscle], label=ix_muscle)
+                ax.set_ylim(ylim)
+                ax.set_xlabel('Density')
+
             # sns.histplot(Y, ax=ax)
             # if ix_p == 0 and ix_muscle == 0:
             #     ax.legend()
             # if ix_p == 0:
             #     ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
-            if ix_muscle == 0:
-                ax.set_xlabel(str_p)
+            # if ix_muscle == 0:
+            #     ax.set_xlabel(str_p)
             # ax.set_xlim([0, 200])
-            ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
-            ax.grid(which='minor', color=np.ones((1, 3)) * 0.5, linestyle='--')
+            # ax.grid(which='major', color=np.ones((1, 3)) * 0.5, linestyle='--')
+            # ax.grid(which='minor', color=np.ones((1, 3)) * 0.5, linestyle='--')
 
-        # plt.show()
-        # fig.savefig(Path(model.build_dir) / f"param_{str_p}.svg", format='svg')
-        fig.savefig(Path(model.build_dir) / f"param_{str_p}.{fig_format}", format=fig_format, dpi=fig_dpi)
-        plt.close()
+    plt.tight_layout()
+    fig.savefig(Path(model.build_dir) / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
+    plt.show()
+    # fig.savefig(Path(model.build_dir) / "REC_MT_cond_norm.svg", format='svg')
+    plt.close()
 
 if __name__ == "__main__":
     main()
