@@ -95,7 +95,7 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
             str_param = opt_param[ix_opt_param]
             posterior_samples_ = posterior_samples_fut[str_param][:, 0, ix_muscle]
             posterior_samples.append(posterior_samples_)
-            bounds_ = (np.min(posterior_samples_) * 0.9, np.max(posterior_samples_) * 1.1)
+            bounds_ = (np.min(posterior_samples_) * 0.5, np.max(posterior_samples_) * 1.5)
             bounds.append(bounds_)
 
         joint_samples = np.column_stack(posterior_samples)
@@ -105,15 +105,16 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
             entropy.append(entropy_muscle)
         except Exception as e:
             print("An error occurred:", e)
-            print('Info about joint_samples.T:')
-            output_info_about_variable(joint_samples.T)
-            print('Sum axis=1:')
-            print(np.sum(joint_samples.T, axis=1))
-            print(joint_samples.T)
-            print('Info about bounds:')
-            output_info_about_variable(bounds)
-            print(bounds)
+            # print('Info about joint_samples.T:')
+            # output_info_about_variable(joint_samples.T)
+            # print('Sum axis=1:')
+            # print(np.sum(joint_samples.T, axis=1))
+            # print(joint_samples.T)
+            # print('Info about bounds:')
+            # output_info_about_variable(bounds)
+            # print(bounds)
             # if this is rare maybe just set entropy_muscle to np.nan? and carry on?
+            entropy.append(np.nan)
             raise
 
     return entropy
