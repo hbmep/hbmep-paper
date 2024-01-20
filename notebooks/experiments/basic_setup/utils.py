@@ -17,10 +17,13 @@ def run_inference(config: Config, model: BaseModel, df: pd.DataFrame, do_save=Tr
     mcmc, posterior_samples = model.run_inference(df=df)
 
     if make_figures:
-        prediction_df = model.make_prediction_dataset(df=df)
-        posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
-        model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
-        model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+        try:
+            prediction_df = model.make_prediction_dataset(df=df)
+            posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+            model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+            model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
+        except:
+            print('Failed to make posterior predictive figures. Moving on...')
 
     if do_save:
         """ Save """
