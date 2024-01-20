@@ -25,6 +25,32 @@ from scipy.integrate import nquad
 from joblib import Parallel, delayed
 from pathlib import Path
 from copy import deepcopy
+import sys
+import inspect
+
+
+def output_info_about_variable(X):
+    # just for some serious debugging...
+    print("Type:", type(X))
+    print("Value:", X)
+    print("String Representation:", str(X))
+    print("Repr Representation:", repr(X))
+    print("Attributes and Methods:", dir(X))
+    print("Documentation String:", X.__doc__)
+    print("Size (in bytes):", sys.getsizeof(X))
+
+    if hasattr(X, '__len__'):
+        print("Length:", len(X))
+
+    if hasattr(X, 'shape'):
+        print("Shape:", X.shape)
+
+    if hasattr(X, 'dtypes'):
+        print("Data Types:", X.dtypes)
+
+    if inspect.isfunction(X) or inspect.isclass(X):
+        print("Signature:", inspect.signature(X))
+
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -73,9 +99,22 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
             bounds.append(bounds_)
 
         joint_samples = np.column_stack(posterior_samples)
-        kde = gaussian_kde(joint_samples.T)
-        entropy_muscle, _ = nquad(integrand, bounds, args=(kde, ))
-        entropy.append(entropy_muscle)
+        try:
+            kde = gaussian_kde(joint_samples.T)
+            entropy_muscle, _ = nquad(integrand, bounds, args=(kde,))
+            entropy.append(entropy_muscle)
+        except Exception as e:
+            print("An error occurred:", e)
+            print('Info about joint_samples.T:')
+            output_info_about_variable(joint_samples.T)
+            print('Sum axis=1:')
+            print(np.sum(joint_samples.T, axis=1))
+            print(joint_samples.T)
+            print('Info about bounds:')
+            output_info_about_variable(bounds)
+            print(bounds)
+            # if this is rare maybe just set entropy_muscle to np.nan? and carry on?
+            raise
 
     return entropy
 
@@ -321,6 +360,10 @@ def main():
             # Estimate the expected entropy E(H(x)) = SUM(H(y|x)p(y|x))dy
             mat_entropy = np.full((len(vec_candidate_int), n_muscles), np.nan)
             for ix_intensity in range(len(vec_candidate_int)):
+                if np.any(np.isnan(entropy_list[:, ix_intensity, :])):
+                    # think this is rare... but should keep an eye on this.
+                    print(f'We have a NAN entropy at intenisty {ix_intensity}. Not considering it.')
+                    continue
                 for ix_muscle in range(n_muscles):
                     H_y = entropy_list[:, ix_intensity, ix_muscle]
                     y_grid = candidate_y_at_this_int[:, ix_intensity, ix_muscle]
