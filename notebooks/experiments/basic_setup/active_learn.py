@@ -269,8 +269,8 @@ def main():
         simulation_df_happened['participant_condition'] = 'Uninjured'
         simulation_df_happened = simulation_df_happened.astype({"TMSInt": 'float64'})
         # Choose next intensity
-        config.BUILD_DIR = root_dir / f"learn_posterior_rt{ix}"
-        config_fast.BUILD_DIR = root_dir / f"learn_posterior_rt{ix}"
+        config.BUILD_DIR = root_dir / f"learn_posterior_rt{ix:03}"
+        config_fast.BUILD_DIR = root_dir / f"learn_posterior_rt{ix:03}"
         model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(config, simulation_df_happened)
         entropy_base = calculate_entropy(posterior_samples_hap, config, opt_param)
 

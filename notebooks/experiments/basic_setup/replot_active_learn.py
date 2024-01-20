@@ -167,12 +167,14 @@ def main():
                 if str_p == 'a':
                     ax.plot(x_grid, density, color=colors[ix_muscle], label=ix_muscle)
                     ax.set_xlim(xlim)
+                    ax.set_ylim([0, 1.0])
                     ax.set_ylabel('Density')
                     ax.set_xlabel('Threshold')
                 elif str_p == 'H':
                     # rotated
                     ax.plot(density, x_grid, color=colors[ix_muscle], label=ix_muscle)
                     ax.set_ylim(ylim)
+                    ax.set_xlim([0, 1.0])
                     ax.set_xlabel('Density')
 
                 # sns.histplot(Y, ax=ax)
