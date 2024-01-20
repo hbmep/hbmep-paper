@@ -189,10 +189,12 @@ def main():
                 # ax.grid(which='minor', color=np.ones((1, 3)) * 0.5, linestyle='--')
 
         plt.tight_layout()
-        fig.savefig(Path(model.build_dir) / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
+        fig.savefig(config.BUILD_DIR / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
         # plt.show()
         # fig.savefig(Path(model.build_dir) / "REC_MT_cond_norm.svg", format='svg')
         plt.close()
+    print('Figures made.')
+
 
 def write_video():
     # Directory containing subdirectories
