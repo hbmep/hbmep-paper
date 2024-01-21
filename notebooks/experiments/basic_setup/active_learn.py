@@ -100,7 +100,7 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
 
         joint_samples = np.column_stack(posterior_samples)
         try:
-            kde = gaussian_kde(joint_samples.T)
+            kde = gaussian_kde(joint_samples.T, bw_method='silverman')
             entropy_muscle, _ = nquad(integrand, bounds, args=(kde,))
             entropy.append(entropy_muscle)
         except Exception as e:
@@ -115,7 +115,7 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
             # print(bounds)
             # if this is rare maybe just set entropy_muscle to np.nan? and carry on?
             entropy.append(np.nan)
-            raise
+            # raise
 
     return entropy
 
