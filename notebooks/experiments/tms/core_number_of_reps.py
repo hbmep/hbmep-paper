@@ -5,7 +5,6 @@ import logging
 
 import pandas as pd
 import numpy as np
-import jax
 from joblib import Parallel, delayed
 
 from hbmep.config import Config
@@ -13,7 +12,7 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel, MaximumLikelihoodModel, NonHierarchicalBayesianModel, MaximumLikelihoodModelRecLog
+from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel
 from utils import generate_nested_pulses
 from constants import (TOML_PATH, REP)
 
@@ -23,9 +22,8 @@ SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate
 SIMULATION_DF_PATH = os.path.join(SIMULATION_DIR, "simulation_df.csv")
 SIMULATION_PPD_PATH = os.path.join(SIMULATION_DIR, "simulation_ppd.pkl")
 
-EXPERIMENT_NAME = "number_of_subjects"
-N_PULSES = 48
-N_REPS = 1
+EXPERIMENT_NAME = "number_of_reps"
+N_SUBJECTS = 8
 
 
 @timing
@@ -56,7 +54,8 @@ def main():
     pulses_map = generate_nested_pulses(simulator, simulation_df)
 
     # Experiment space
-    n_subjects_space = [1, 4, 8, 16]
+    n_pulses_space = [32, 40, 48, 56, 64]
+    n_reps_space = [1, 4, 8]
     n_jobs = -1
 
 
@@ -74,10 +73,11 @@ def main():
 
         # Load data
         if M.NAME in ["hbm"]:
+            pulses = pulses_map[n_pulses][::n_reps]
             ind = \
                 (simulation_df[simulator.features[0]] < n_subjects) & \
                 (simulation_df[REP] < n_reps) & \
-                (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+                (simulation_df[simulator.intensity].isin(pulses))
             df = simulation_df[ind].reset_index(drop=True).copy()
             df[simulator.response[0]] = ppd_obs[draw, ind, 0]
 
@@ -130,14 +130,15 @@ def main():
 
         # Non-hierarchical Bayesian model needs to be run separately on individual subjects
         # otherwise, there are convergence issues when the number of subjects is large
-        elif M.NAME in ["nhbm", "mle", "mle_rec_log"]:
+        elif M.NAME in ["nhbm"]:
             for subject in range(n_subjects):
                 sub_dir = f"subject{subject}"
 
+                pulses = pulses_map[n_pulses][::n_reps]
                 ind = \
                     (simulation_df[simulator.features[0]] == subject) & \
                     (simulation_df[REP] < n_reps) & \
-                    (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+                    (simulation_df[simulator.intensity].isin(pulses))
                 df = simulation_df[ind].reset_index(drop=True).copy()
                 df[simulator.response[0]] = ppd_obs[draw, ind, 0]
 
@@ -192,26 +193,16 @@ def main():
 
 
     draws_space = np.arange(ppd_obs.shape[0])
-
-    # # Run for Hierarchical Bayesian Model
-    # models = [HierarchicalBayesianModel]
-
-    # Run for Non-hierarchical Bayesian Model
-    # n_subjects_space = [16]
-    # models = [NonHierarchicalBayesianModel]
-
-    # Run for Non-hierarchical Bayesian Model
-    n_subjects_space = [16]
-    # models = [MaximumLikelihoodModel]
-    models = [MaximumLikelihoodModelRecLog]
+    models = [HierarchicalBayesianModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(
-                N_REPS, N_PULSES, n_subjects, draw, M
+                n_reps, n_pulses, N_SUBJECTS, draw, M
             ) \
             for draw in draws_space \
-            for n_subjects in n_subjects_space \
+            for n_reps in n_reps_space \
+            for n_pulses in n_pulses_space \
             for M in models
         )
 
