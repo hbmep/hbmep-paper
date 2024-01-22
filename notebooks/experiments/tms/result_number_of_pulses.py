@@ -22,7 +22,7 @@ def main():
     n_reps = N_REPS
     n_subjects = N_SUBJECTS
     n_pulses_space = [32, 40, 48, 56, 64]
-    draws_space = range(60)
+    draws_space = range(270)
     models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
 
     """ Results """

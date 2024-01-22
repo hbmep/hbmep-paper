@@ -58,6 +58,7 @@ def main():
     n_pulses_space = [32, 40, 48, 56, 64]
     n_jobs = -1
 
+
     # Define experiment
     def run_experiment(
         n_reps,
