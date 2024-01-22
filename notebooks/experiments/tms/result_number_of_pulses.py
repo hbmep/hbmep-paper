@@ -11,7 +11,7 @@ from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
 from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel
-from core_subjects import (N_REPS, N_PULSES, EXPERIMENT_NAME)
+from core_number_of_pulses import (N_REPS, N_SUBJECTS, EXPERIMENT_NAME)
 
 logger = logging.getLogger(__name__)
 SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data"
@@ -20,16 +20,15 @@ EXPERIMENT_DIR = os.path.join(SIMULATION_DIR, EXPERIMENT_NAME)
 
 def main():
     n_reps = N_REPS
-    n_pulses = N_PULSES
-    n_subjects_space = [1, 4, 8, 16]
-    draws_space = range(680, 5000)
-    # models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
-    models = [HierarchicalBayesianModel]
+    n_subjects = N_SUBJECTS
+    n_pulses_space = [32, 40, 48, 56, 64]
+    draws_space = range(60)
+    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
 
     """ Results """
     mae = []
     mse = []
-    for n_subjects in n_subjects_space:
+    for n_pulses in n_pulses_space:
         for draw in draws_space:
             for M in models:
                 n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
@@ -51,10 +50,10 @@ def main():
                     a_true = a_true.reshape(-1,)
 
                 elif M.NAME in ["nhbm"]:
-                    n_subjects_dir = f"n{n_subjects_space[-1]}"
-                    a_true, a_pred, differences = [], [], []
+                    n_subjects_dir = f"n{N_SUBJECTS}"
+                    a_true, a_pred = [], []
 
-                    for subject in range(n_subjects_space[-1]):
+                    for subject in range(N_SUBJECTS):
                         sub_dir = f"subject{subject}"
                         dir = os.path.join(
                             EXPERIMENT_DIR,
@@ -71,8 +70,6 @@ def main():
                         a_pred_sub_map = a_pred_sub.mean(axis=0)
                         a_true_sub = a_true_sub
 
-                        differences += (a_pred_sub_map[0, 1, 0] - a_pred_sub_map[0, 0, 0]).reshape(-1,).tolist()
-
                         a_true += a_pred_sub_map.reshape(-1,).tolist()
                         a_pred += a_true_sub.reshape(-1,).tolist()
 
@@ -87,23 +84,18 @@ def main():
                 mae.append(curr_mae)
                 mse.append(curr_mse)
 
-    mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
-    mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
+    mae = np.array(mae).reshape(len(n_pulses_space), len(draws_space), len(models))
+    mse = np.array(mse).reshape(len(n_pulses_space), len(draws_space), len(models))
 
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
-
-    # mae = mae.mean(axis=-2)
-    # mse = mse.mean(axis=-2)
-    # logger.info(f"MAE after reps dim removed: {mae.shape}")
-    # logger.info(f"MSE after reps dim removed: {mse.shape}")
 
     nrows, ncols = 1, 1
     fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 5, nrows * 3), squeeze=False, constrained_layout=True)
 
     ax = axes[0, 0]
     for model_ind, model in enumerate(models):
-        x = n_subjects_space
+        x = n_pulses_space
         y = mae[..., model_ind]
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
