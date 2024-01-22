@@ -3,8 +3,6 @@ import gc
 import pickle
 import logging
 
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 import numpy as np
 import jax
@@ -15,19 +13,22 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from models import Simulator, HBModel, NHBModel
+from learn_posterior import TOML_PATH
 from hbmep_paper.utils import setup_logging
 from utils import fix_draws_and_seeds, fix_nested_pulses
-from constants import TOML_PATH, N_DRAWS, N_SEEDS
+from constants import (N_DRAWS, N_SEEDS, TOTAL_PULSES)
 
 logger = logging.getLogger(__name__)
 
 SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate/a_random_mean_-3.0_a_random_scale_1.5"
 SIMULATION_DF_PATH = os.path.join(SIMULATION_DIR, "simulation_df.csv")
 SIMULATION_PARAMS_PATH = os.path.join(SIMULATION_DIR, "simulation_params.pkl")
+SIMULATION_PPD_PATH = os.path.join(SIMULATION_DIR, "simulation_ppd_0.pkl")
 MASK_PATH = os.path.join(SIMULATION_DIR, "mask.npy")
 
-EXPERIMENT_NAME = "number_of_reps"
-N_SUBJECTS = 8
+EXPERIMENT_NAME = "number_of_subjects"
+N_PULSES = 56
+N_REPS = 1
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate/a_random_mean_-3.0_a_random_scale_1.5/experiments/"
 
 
@@ -48,10 +49,10 @@ def main():
         fname=os.path.basename(__file__)
     )
 
-    # """ Load simulation ppd """
-    # src = SIMULATION_PPD_PATH
-    # with open(src, "rb") as g:
-    #     simulation_ppd, = pickle.load(g)
+    """ Load simulation ppd """
+    src = SIMULATION_PPD_PATH
+    with open(src, "rb") as g:
+        simulation_ppd, = pickle.load(g)
 
     """ Load mask """
     src = MASK_PATH
@@ -69,36 +70,15 @@ def main():
     pulses_map = fix_nested_pulses(simulator, simulation_df)
 
     """ Experiment space """
-    n_subjects = N_SUBJECTS
+    n_reps = N_REPS
+    n_pulses = N_PULSES
+    pulses = pulses_map[n_pulses]
 
-    n_pulses_space = [24, 32, 40, 48]
-    n_reps_space = [1, 2, 4, 8]
+    n_subjects_space = [1, 4, 8, 16]
     n_jobs = -1
 
     ppd_a = simulation_params[site.a]
-
-    # """ Visualize nested pulses set """
-    # nrows, ncols = 1, 1
-    # fig, axes = plt.subplots(
-    #     nrows=nrows,
-    #     ncols=ncols,
-    #     figsize=(ncols * 5, nrows * 3),
-    #     squeeze=False,
-    #     constrained_layout=True
-    # )
-    # colors = plt.cm.rainbow(np.linspace(0, 1, len(list(pulses_map.keys()))))
-    # for i, n_pulses in enumerate(list(pulses_map.keys())):
-    #     pulses = pulses_map[n_pulses]
-    #     ax = axes[0, 0]
-    #     sns.scatterplot(
-    #         x=[n_pulses] * n_pulses,
-    #         y=pulses,
-    #         color=colors[i],
-    #         ax=ax
-    #     )
-    # dest = os.path.join(simulator.build_dir, "nested_pulses.png")
-    # fig.savefig(dest)
-    # logger.info(f"Saved to {dest}")
+    ppd_obs = simulation_ppd[site.obs]
 
 
     """ Define experiment """
@@ -126,38 +106,16 @@ def main():
             ) \
             .tolist()
 
-        pulses = pulses_map[n_pulses]
-        pulses = np.array(pulses)[::n_reps]
-        pulses = list(pulses)
-
         if M.NAME in ["hbm"]:
             ind = simulation_df[simulator.features[0]].isin(subjects)
             df = simulation_df[ind].reset_index(drop=True).copy()
-            df = \
-                pd.concat([df] * n_reps, ignore_index=True) \
-                .reset_index(drop=True) \
-                .copy()
-
-            ppd_obs = []
-            for r in range(n_reps):
-                src = os.path.join(SIMULATION_DIR, f"simulation_ppd_{r}.pkl")
-                with open(src, "rb") as g:
-                    curr_obs, = pickle.load(g)
-                curr_obs = curr_obs[site.obs]
-                curr_obs = curr_obs[draw, ind, 0]
-                ppd_obs += list(curr_obs)
-
-            df[simulator.response[0]] = np.array(ppd_obs)
-            curr_obs = None
-            ppd_obs = None
+            df[simulator.response[0]] = ppd_obs[draw, ind, 0]
 
             ind = df[simulator.response[0]] > 0
             df = df[ind].reset_index(drop=True).copy()
 
-            """ Filter pulses"""
             ind = df[simulator.intensity].isin(pulses)
             df = df[ind].reset_index(drop=True).copy()
-            # assert df[simulator.intensity].unique().shape[0] == n_pulses
 
             """ Build model """
             toml_path = TOML_PATH
@@ -219,32 +177,13 @@ def main():
                 sub_dir = f"subject{subject}"
                 ind = simulation_df[simulator.features[0]].isin([subject])
                 df = simulation_df[ind].reset_index(drop=True).copy()
-                df = \
-                    pd.concat([df] * n_reps, ignore_index=True) \
-                    .reset_index(drop=True) \
-                    .copy()
-
-                ppd_obs = []
-                for r in range(n_reps):
-                    src = os.path.join(SIMULATION_DIR, f"simulation_ppd_{r}.pkl")
-                    with open(src, "rb") as g:
-                        curr_obs, = pickle.load(g)
-                    curr_obs = curr_obs[site.obs]
-                    curr_obs = curr_obs[draw, ind, 0]
-                    ppd_obs += list(curr_obs)
-
-                df[simulator.response[0]] = np.array(ppd_obs)
-                curr_obs = None
-                ppd_obs = None
+                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
 
                 ind = df[simulator.response[0]] > 0
-                num_num_positive = ind.shape[0] - ind.sum()
                 df = df[ind].reset_index(drop=True).copy()
 
-                """ Filter pulses"""
                 ind = df[simulator.intensity].isin(pulses)
                 df = df[ind].reset_index(drop=True).copy()
-                # assert np.abs(df.shape[0] - 2 * n_pulses) < 6
 
                 """ Build model """
                 toml_path = TOML_PATH
@@ -291,12 +230,17 @@ def main():
                 del config, df, prediction_df, encoder_dict, _
                 del model, posterior_samples, posterior_predictive
                 del results, a_true, a_pred, a_random_mean, a_random_scale
-            gc.collect()
-
+                gc.collect()
         return
 
 
-    models = [HBModel, NHBModel]
+    # """ Run for Hierarchical Bayesian Model """
+    # models = [HBModel]
+
+    """ Run for Non-hierarchical Bayesian Model"""
+    draws_space = draws_space[:20]
+    n_subjects_space = [16]
+    models = [NHBModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
@@ -304,13 +248,11 @@ def main():
                 n_reps, n_pulses, n_subjects, draw, seed, M
             ) \
             for draw in draws_space \
-            for n_reps in n_reps_space \
-            for n_pulses in n_pulses_space \
+            for n_subjects in n_subjects_space \
             for seed in seeds_for_generating_subjects \
             for M in models
         )
 
 
 if __name__ == "__main__":
-
     main()

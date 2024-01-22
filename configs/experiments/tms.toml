@@ -3,7 +3,7 @@ csv = ""
 build_dir = ""
 
 [vars]
-features = ["participant", "intervention"]
+features = ["participant"]
 intensity = "TMSInt"
 response = ['PKPK_APB']
 
