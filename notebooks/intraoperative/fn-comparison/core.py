@@ -18,18 +18,18 @@ from models import (
 
 logger = logging.getLogger(__name__)
 
-TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/rats/J_RCML_000.toml"
-DATA_PATH = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
-FEATURES = [["participant", "compound_position"]]
-# RESPONSE = ["LBiceps"]
-RESPONSE = ["LADM", "LBiceps", "LDeltoid", "LFCR", "LTriceps"]
-# BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison/LBiceps"
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison"
+TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/intraoperative/config.toml"
+DATA_PATH = "/home/vishu/data/hbmep-processed/human/intraoperative/data.csv"
+FEATURES = ["participant", "sc_laterality"]
+RESPONSE = ["Trapezius"]
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/intraoperative/fn-comparison/Trapezius"
 
 
 def run_inference(model):
     # Load data
     df = pd.read_csv(DATA_PATH)
+    ind = ~df[model.response].isna().values.any(axis=-1)
+    df = df[ind].reset_index(drop=True).copy()
     df, encoder_dict = model.load(df=df)
 
     # Run inference
