@@ -10,7 +10,7 @@ import jax
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel, MaximumLikelihoodModelRecLog
+from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
 from core_number_of_subjects import (N_REPS, N_PULSES, EXPERIMENT_NAME)
 
 logger = logging.getLogger(__name__)
@@ -22,9 +22,9 @@ def main():
     n_reps = N_REPS
     n_pulses = N_PULSES
     n_subjects_space = [1, 4, 8, 16]
-    draws_space = range(500)
+    draws_space = range(5000)
     # models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
-    models = [HierarchicalBayesianModel, MaximumLikelihoodModelRecLog]
+    models = [HierarchicalBayesianModel, MaximumLikelihoodModel]
     # models = [HierarchicalBayesianModel]
 
     """ Results """
@@ -51,7 +51,7 @@ def main():
                     a_pred = a_pred.mean(axis=0).reshape(-1,)
                     a_true = a_true.reshape(-1,)
 
-                elif M.NAME in ["nhbm", "mle", "mle_rec_log"]:
+                elif M.NAME in ["nhbm", "mle"]:
                     n_subjects_dir = f"n{n_subjects_space[-1]}"
                     a_true, a_pred = [], []
 

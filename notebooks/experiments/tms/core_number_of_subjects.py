@@ -13,7 +13,7 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel, MaximumLikelihoodModel, NonHierarchicalBayesianModel, MaximumLikelihoodModelRecLog
+from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
 from utils import generate_nested_pulses
 from constants import (TOML_PATH, REP)
 
@@ -130,7 +130,7 @@ def main():
 
         # Non-hierarchical Bayesian model needs to be run separately on individual subjects
         # otherwise, there are convergence issues when the number of subjects is large
-        elif M.NAME in ["nhbm", "mle", "mle_rec_log"]:
+        elif M.NAME in ["nhbm", "mle"]:
             for subject in range(n_subjects):
                 sub_dir = f"subject{subject}"
 
