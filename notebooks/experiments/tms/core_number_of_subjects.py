@@ -203,7 +203,7 @@ def main():
     # Run for Non-hierarchical Bayesian Model
     n_subjects_space = [16]
     # models = [MaximumLikelihoodModel]
-    models = [MaximumLikelihoodModelRecLog]
+    models = [MaximumLikelihoodModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
