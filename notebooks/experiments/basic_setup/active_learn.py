@@ -204,13 +204,20 @@ def main():
     choose_interp = True
     make_figures_per_sample = False  # True eventually crashes some X-sessions
     N_max = 50
+    N_reps = 1  # if N_max = 50, then good choices are 1, 2, 5, 10
     N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
     range_min, range_max = 0, 100
     assert N_obs % 2 != 0, "Better if N_obs is odd."
     if choose_interp:
-        vec_intensity_lin = create_max_diff_sequence(min_range=range_min, max_range=range_max, N=N_max + 1)
+        vec_intensity_lin = create_max_diff_sequence(min_range=range_min, max_range=range_max, N=int(np.ceil(N_max/N_reps) + 1))
+        if N_reps > 1:
+            if not (N_max / N_reps) % 1 == 0:
+                print(f'N_max / N_reps is not an integer: {N_max / N_reps}. Better if it is.')
+            vec_intensity_lin = np.tile(np.array(vec_intensity_lin), (N_reps, 1)).transpose().flatten()
+            vec_intensity_lin = list(vec_intensity_lin[:N_max])
         intensities = [vec_intensity_lin[0]]
     else:
+        assert N_reps == 1, "N_reps has to be = 1 if active learning."
         vec_intensity_lin = []
         intensities = [range_min]
 
