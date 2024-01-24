@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/intraoperative/config.toml"
 DATA_PATH = "/home/vishu/data/hbmep-processed/human/intraoperative/data.csv"
 FEATURES = ["participant", "sc_laterality"]
-RESPONSE = ["Trapezius"]
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/intraoperative/fn-comparison/Trapezius"
+RESPONSE = ["Triceps", "APB", "ADM"]
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/intraoperative/fn-comparison"
 
 
 def run_inference(model):
