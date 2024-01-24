@@ -60,6 +60,39 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
+def create_max_diff_sequence(min_range=0, max_range=100, N=10):
+    # courtesey of chatgpt... make a vector where each new point is as far as possible from previous points
+    # Create a vector spaced by N
+    vector = np.linspace(min_range, max_range, N)
+
+    # Initialize the sequence with the first element
+    sequence = [vector[0]]
+
+    # Remove the first element from the vector
+    vector = np.delete(vector, 0)
+
+    # Function to find the next element with the maximum minimum distance
+    def find_max_min_distance_element(sequence, vector):
+        max_min_distance = -1
+        next_element = None
+
+        for element in vector:
+            min_distance = min([abs(element - x) for x in sequence])
+            if min_distance > max_min_distance:
+                max_min_distance = min_distance
+                next_element = element
+
+        return next_element
+
+    # Construct the sequence
+    while len(vector) > 0:
+        next_element = find_max_min_distance_element(sequence, vector)
+        sequence.append(next_element)
+        vector = np.delete(vector, np.where(vector == next_element))
+
+    return sequence
+
+
 def integrand(*args):
     kde = args[-1]
     points = args[:-1]
@@ -167,11 +200,19 @@ def main():
     seed = dict()
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
-    opt_param = ['a', 'H']  # ['a', 'H']
-    N_max = 30
-    N_obs = 15  # this is how many enropy calcs to do per every y drawn from x... larger is better
+    opt_param = ['a', 'H']
+    choose_interp = True
+    make_figures_per_sample = False  # True eventually crashes some X-sessions
+    N_max = 50
+    N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
     range_min, range_max = 0, 100
     assert N_obs % 2 != 0, "Better if N_obs is odd."
+    if choose_interp:
+        vec_intensity_lin = create_max_diff_sequence(min_range=range_min, max_range=range_max, N=N_max + 1)
+        intensities = [vec_intensity_lin[0]]
+    else:
+        vec_intensity_lin = []
+        intensities = [range_min]
 
     simulator = RectifiedLogistic(config=config)
     simulator._make_dir(simulator.build_dir)
@@ -290,7 +331,6 @@ def main():
     np.random.seed(seed['ix_gen_seed'])
 
     # Initial guess
-    intensities = [range_min]
     responses = []
 
     for ix in range(N_max):
@@ -311,10 +351,12 @@ def main():
         # Choose next intensity
         config.BUILD_DIR = root_dir / f"learn_posterior_rt{ix:03}"
         config_fast.BUILD_DIR = root_dir / f"learn_posterior_rt{ix:03}"
-        model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(config, simulation_df_happened)
+        model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(config, simulation_df_happened, make_figures=make_figures_per_sample)
         entropy_base = calculate_entropy(posterior_samples_hap, config, opt_param)
 
-        if ix < 1:
+        if choose_interp:
+            next_intensity = vec_intensity_lin[ix+1]
+        elif ix < 1:
             next_intensity = range_max
         else:
             list_candidate_intensities = range(range_min, range_max)
@@ -347,6 +389,7 @@ def main():
             candidate_y_at_this_int_flattened = candidate_y_at_this_int.reshape(-1, 2)
 
             simulation_df_future = simulation_df_happened.copy()  # just an empty template
+            # would be great to init the MCMC chains with the previous full fit (or fit of previous parallel op)
             with Parallel(n_jobs=-1) as parallel:
                 entropy_list_flattened = parallel(
                     delayed(fit_lookahead_wrapper)(simulation_df_future,

@@ -5,7 +5,9 @@ import logging
 
 import pandas as pd
 import numpy as np
+import re
 import jax
+from copy import deepcopy
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -46,20 +48,24 @@ def main():
     config.MCMC_PARAMS['num_chains'] = 1
     config.MCMC_PARAMS['num_warmup'] = 500
     config.MCMC_PARAMS['num_samples'] = 1000
-    seed = dict()
-    seed['ix_gen_seed'] = 10
-    seed['ix_participant'] = 62
-    opt_param = ['a', 'H']  # ['a', 'H']
-    N_max = 30
-    N_obs = 15  # this is how many enropy calcs to do per every y drawn from x... larger is better
-    assert N_obs % 2 != 0, "Better if N_obs is odd."
 
     fig_format = 'png'
     fig_dpi = 300
     fig_size = (1920/200, 1080/200)
+    subdirs = sorted([os.path.join(root_dir, o) for o in os.listdir(root_dir)
+                      if os.path.isdir(os.path.join(root_dir, o)) and 'learn_posterior_rt' in o])
 
-    for ix_plot in range(30):
-        config.BUILD_DIR = root_dir / f'learn_posterior_rt{ix_plot}'
+
+    with open(root_dir / 'participant/inference.pkl', "rb") as g:
+        _, _, posterior_samples_gt, _, _ = pickle.load(g)
+
+    for str_dir in subdirs:
+        match = re.search(r'\d+$', str_dir)
+        if match:
+            iter = int(match.group()) + 1
+        else:
+            iter = 0
+        config.BUILD_DIR = Path(str_dir)
         simulator = RectifiedLogistic(config=config)
         # simulator._make_dir(simulator.build_dir)
 
@@ -70,9 +76,10 @@ def main():
         # src = config.BUILD_DIR / "entropy.pkl"
         # with open(src, "rb") as g:
         #     mat_entropy, entropy_base, next_intensity, vec_candidate_int, N_obs = pickle.load(g)
+        vec_muscle = [str_muscle.replace('PKPK_', '') for str_muscle in model.response]
         participants = ['MEH']
         xlim = [0, 100]
-        ylim = [-0.1, 4]
+        ylim = [-0.1, 2.0]
         # Simulate TOTAL_SUBJECTS subjects
         TOTAL_PULSES = 100
         TOTAL_SUBJECTS = len(participants)
@@ -103,6 +110,7 @@ def main():
 
         # fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
         fig = plt.figure(figsize=fig_size)  # You can adjust the size as needed
+        plt.suptitle(f'Sample: {iter}')
         gs = gridspec.GridSpec(3, 8, figure=fig)
 
         # Define the subplots
@@ -116,6 +124,10 @@ def main():
         ax_a.append(fig.add_subplot(gs[2, 0 + ix:3 + ix]))
         for ix_muscle in range(n_muscles):
             ax = ax_rc[ix_muscle]
+            a_gt = posterior_samples_gt[site.a][0][0][ix_muscle]
+            H_gt = posterior_samples_gt[site.H][0][0][ix_muscle]
+            ax.plot(np.ones(2) * a_gt, ylim, '--', color=colors[ix_muscle])
+            ax.plot(xlim, np.ones(2) * H_gt, '--', color=colors[ix_muscle])
             x = df_custom[model.intensity].values
             Y = pp[site.mu][:, :, ix_muscle]
             y = np.mean(Y, 0)
@@ -141,6 +153,7 @@ def main():
             ax.set_xlabel(model.intensity + ' Intensity (%MSO)')
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
+            ax.set_title(vec_muscle[ix_muscle])
 
         list_params = [site.a, site.H]
         for ix_params in range(len(list_params)):
@@ -166,16 +179,22 @@ def main():
 
                 if str_p == 'a':
                     ax.plot(x_grid, density, color=colors[ix_muscle], label=ix_muscle)
+                    ylim_local = [0, 1.0]
                     ax.set_xlim(xlim)
-                    ax.set_ylim([0, 1.0])
+                    ax.set_ylim(ylim_local)
                     ax.set_ylabel('Density')
                     ax.set_xlabel('Threshold')
+                    a_gt = posterior_samples_gt[site.a][0][0][ix_muscle]
+                    ax.plot(np.ones(2) * a_gt, ylim_local, '--', color=colors[ix_muscle])
                 elif str_p == 'H':
                     # rotated
                     ax.plot(density, x_grid, color=colors[ix_muscle], label=ix_muscle)
+                    xlim_local = [0, 5.0]
                     ax.set_ylim(ylim)
-                    ax.set_xlim([0, 1.0])
+                    ax.set_xlim(xlim_local)
                     ax.set_xlabel('Density')
+                    H_gt = posterior_samples_gt[site.H][0][0][ix_muscle]
+                    ax.plot(xlim, np.ones(2) * H_gt, '--', color=colors[ix_muscle])
 
                 # sns.histplot(Y, ax=ax)
                 # if ix_p == 0 and ix_muscle == 0:
@@ -190,25 +209,33 @@ def main():
 
         plt.tight_layout()
         fig.savefig(config.BUILD_DIR / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
+        fig.savefig(config.BUILD_DIR / f"REC_MT_cond_norm.{'svg'}", format='svg')
         # plt.show()
         # fig.savefig(Path(model.build_dir) / "REC_MT_cond_norm.svg", format='svg')
         plt.close()
     print('Figures made.')
+    return root_dir
 
 
-def write_video():
+def write_video(root_dir=None):
     # Directory containing subdirectories
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
-    root_dir = Path(config.BUILD_DIR)
+    if root_dir is None:
+        root_dir = Path(config.BUILD_DIR)
 
     # Find and sort the subdirectories
     subdirs = sorted([os.path.join(root_dir, o) for o in os.listdir(root_dir)
                       if os.path.isdir(os.path.join(root_dir, o)) and 'learn_posterior_rt' in o])
 
+    # slow the start and end:
+    for ix in range(3):
+        subdirs.insert(0, subdirs[0])
+        subdirs.append(subdirs[-1])
+
     # Video properties
     frame_size = (1920, 1080)  # Example frame size, adjust to your images' size
-    fps = 1  # Frames per second
+    fps = 2  # Frames per second
     video_file = os.path.join(root_dir, 'output_video.avi')
 
     # Initialize video writer
@@ -233,5 +260,5 @@ def write_video():
 
 
 if __name__ == "__main__":
-    main()
-    write_video()
+    root_dir = main()
+    write_video(root_dir=root_dir)

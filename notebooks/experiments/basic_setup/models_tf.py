@@ -27,7 +27,7 @@ def rectified_logistic_tf(x, a, b, v, L, ell, H):
 def main():
     import matplotlib.pyplot as plt
     # Parameters for the function
-    a = 0.5
+    a = 25.5
     b = 1.0
     v = 2.0
     L = 0.0
