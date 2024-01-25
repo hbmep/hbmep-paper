@@ -10,7 +10,7 @@ import jax
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel
+from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
 from core_number_of_pulses import (N_REPS, N_SUBJECTS, EXPERIMENT_NAME)
 
 logger = logging.getLogger(__name__)
@@ -22,8 +22,8 @@ def main():
     n_reps = N_REPS
     n_subjects = N_SUBJECTS
     n_pulses_space = [32, 40, 48, 56, 64]
-    draws_space = range(270)
-    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
+    draws_space = range(250)
+    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel]
 
     """ Results """
     mae = []
@@ -49,7 +49,7 @@ def main():
                     a_pred = a_pred.mean(axis=0).reshape(-1,)
                     a_true = a_true.reshape(-1,)
 
-                elif M.NAME in ["nhbm"]:
+                elif M.NAME in ["nhbm", "mle"]:
                     n_subjects_dir = f"n{N_SUBJECTS}"
                     a_true, a_pred = [], []
 
@@ -102,6 +102,12 @@ def main():
         ax.errorbar(x=x, y=yme, yerr=ysem, marker="o", label=f"{model.NAME}", linestyle="--", ms=4)
         ax.set_xticks(x)
         ax.legend(loc="upper right")
+        ax.set_xlabel("# Pulses")
+        ax.set_ylabel("MAE")
+        ax.yaxis.set_major_locator(plt.MaxNLocator(3))
+        # ax.set_yticks([1.5, 3., 4.5])
+
+    ax.set_title("8 Subjects, 1 Rep, 250 Draws")
 
     fig.align_xlabels()
     fig.align_ylabels()

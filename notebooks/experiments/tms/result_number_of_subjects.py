@@ -22,10 +22,8 @@ def main():
     n_reps = N_REPS
     n_pulses = N_PULSES
     n_subjects_space = [1, 4, 8, 16]
-    draws_space = range(100)
-    # models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
-    models = [HierarchicalBayesianModel, MaximumLikelihoodModel]
-    # models = [HierarchicalBayesianModel]
+    draws_space = range(5000)
+    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel]
 
     """ Results """
     mae = []
@@ -104,6 +102,12 @@ def main():
         ax.errorbar(x=x, y=yme, yerr=ysem, marker="o", label=f"{model.NAME}", linestyle="--", ms=4)
         ax.set_xticks(x)
         ax.legend(loc="upper right")
+        ax.set_xlabel("# Subjects")
+        ax.set_ylabel("MAE")
+        ax.yaxis.set_major_locator(plt.MaxNLocator(3))
+        # ax.set_yticks([1.75, 2.75, 3.75])
+
+    ax.set_title("48 Pulses, 1 Rep, 5000 Draws")
 
     fig.align_xlabels()
     fig.align_ylabels()

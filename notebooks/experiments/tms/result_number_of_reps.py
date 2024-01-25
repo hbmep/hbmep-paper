@@ -22,7 +22,7 @@ def main():
     n_subjects = N_SUBJECTS
     n_pulses_space = [32, 40, 48, 56, 64]
     n_reps_space = [1, 4, 8]
-    draws_space = range(25)
+    draws_space = range(500)
     models = [HierarchicalBayesianModel]
 
     """ Results """
@@ -103,6 +103,12 @@ def main():
         ax.errorbar(x=x, y=yme, yerr=ysem, marker="o", label=f"reps: {n_reps}", linestyle="--", ms=4)
         ax.set_xticks(x)
         ax.legend(loc="upper right")
+        ax.set_xlabel("# Pulses")
+        ax.set_ylabel("MAE")
+        # ax.set_yticks([2., 4., 6.])
+        ax.yaxis.set_major_locator(plt.MaxNLocator(3))
+
+    ax.set_title("8 Subjects, 500 Draws")
 
     fig.align_xlabels()
     fig.align_ylabels()
