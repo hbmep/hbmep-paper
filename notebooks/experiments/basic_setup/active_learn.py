@@ -203,7 +203,7 @@ def main():
     opt_param = ['a', 'H']
     choose_interp = True
     make_figures_per_sample = False  # True eventually crashes some X-sessions
-    N_max = 50
+    N_max = 30
     N_reps = 5  # if N_max = 50, then good choices are 1, 2, 5, 10
     N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
     range_min, range_max = 0, 100

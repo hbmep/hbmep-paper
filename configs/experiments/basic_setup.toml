@@ -1,6 +1,6 @@
 [paths]
 csv = ""
-build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test19"
+build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test23_N30_linspace_reps05"
 
 [vars]
 features = [["participant", "participant_condition"]]
