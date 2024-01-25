@@ -1,4 +1,5 @@
 from jax import random
+from jax import jit
 import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
@@ -68,18 +69,14 @@ def return_samples(model, guide, params, x):
     return samples
 
 
-from jax import jit
-
-# Define a single update step
 @jit
 def svi_step(svi_state, x, y):
     svi_state, loss = svi.update(svi_state, x, y)
     return svi_state, loss
 
 
-
 np.random.seed(0)
-x, y = generate_data(np.linspace(0, 10, 20),2.0, 2.5)
+x, y = generate_data(np.linspace(0, 10, 200),2.0, 2.5)
 
 rng_key = random.PRNGKey(0)
 
@@ -87,26 +84,27 @@ optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
 guide = guide_manual
 # guide = numpyro.infer.autoguide.AutoNormal(model)
 svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-n_steps = 500
+n_steps = 1000
 in_loop = True
 if in_loop:
     svi_state = svi.init(rng_key, x, y)
+    svi_state, loss = svi_step(svi_state, x, y)  # single step for JIT
     start_time = time.time()
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, x, y)
     end_time = time.time()
-    samples_updated = return_samples(model, guide, svi.get_params(svi_state), x)
+    samples = return_samples(model, guide, svi.get_params(svi_state), x)
 
 else:
     start_time = time.time()
     svi_result = svi.run(random.PRNGKey(0), n_steps, x, y, progress_bar=False)
     end_time = time.time()
     samples = return_samples(model, guide, svi_result.params, x)
+    svi_state = svi_result.state
 
 print(f'SVI:{end_time - start_time}')
 
 nuts_kernel = NUTS(model)
-
 mcmc = MCMC(nuts_kernel, num_samples=1000, num_warmup=1000, num_chains=1, progress_bar=False)
 # Run the MCMC
 start_time = time.time()
@@ -124,7 +122,6 @@ plt.show()
 # Now give it a change in the relation and see how it updates
 x_, y_ = generate_data(np.linspace(4, 5, 3),2.5, 4.0)
 # svi_state = svi.init(rng_key, x, y)
-svi_state = svi_result.state
 new_optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
 svi.optim = new_optimizer  # I AM GUESSING HERE NOT SURE IF THIS DOES IT...
 
@@ -139,4 +136,4 @@ samples_updated = return_samples(model, guide, svi.get_params(svi_state), x_eval
 
 plt.plot(x, y, 'k')
 plt.plot(x_, y_, 'k', markersize=8)
-plt.show()
+# plt.show()
