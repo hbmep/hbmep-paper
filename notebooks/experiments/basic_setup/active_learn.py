@@ -61,7 +61,7 @@ FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
 def create_max_diff_sequence(min_range=0, max_range=100, N=10):
-    # courtesey of chatgpt... make a vector where each new point is as far as possible from previous points
+    # courtesey of GPT4... make a vector where each new point is as far as possible from previous points
     # Create a vector spaced by N
     vector = np.linspace(min_range, max_range, N)
 
@@ -204,7 +204,7 @@ def main():
     choose_interp = True
     make_figures_per_sample = False  # True eventually crashes some X-sessions
     N_max = 50
-    N_reps = 1  # if N_max = 50, then good choices are 1, 2, 5, 10
+    N_reps = 5  # if N_max = 50, then good choices are 1, 2, 5, 10
     N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
     range_min, range_max = 0, 100
     assert N_obs % 2 != 0, "Better if N_obs is odd."
@@ -342,9 +342,10 @@ def main():
 
     for ix in range(N_max):
         # Simulate response
+        seed_local = seed['predict'][ix]
         df.loc[0, 'TMSInt'] = intensities[-1]
         simulation_ppd = \
-            simulator.predict(df=df, posterior_samples=posterior_samples_individual, rng_key=seed['predict'][ix])
+            simulator.predict(df=df, posterior_samples=posterior_samples_individual, rng_key=seed_local)
         mep_size = simulation_ppd['obs'][0][0]
         response = mep_size
         responses.append(response)
@@ -359,13 +360,14 @@ def main():
         config.BUILD_DIR = root_dir / f"learn_posterior_rt{ix:03}"
         config_fast.BUILD_DIR = root_dir / f"learn_posterior_rt{ix:03}"
         model_hap, mcmc_hap, posterior_samples_hap = fit_new_model(config, simulation_df_happened, make_figures=make_figures_per_sample)
-        entropy_base = calculate_entropy(posterior_samples_hap, config, opt_param)
 
         if choose_interp:
             next_intensity = vec_intensity_lin[ix+1]
         elif ix < 1:
             next_intensity = range_max
         else:
+            entropy_base = calculate_entropy(posterior_samples_hap, config, opt_param)
+
             list_candidate_intensities = range(range_min, range_max)
             # ix_start = ix % 2  # This is just subsampling the x to make things a bit faster...
             vec_candidate_int = np.array(list_candidate_intensities)
@@ -433,8 +435,9 @@ def main():
             next_intensity = list_candidate_intensities[ix_min_entropy]
 
             # save some stuff for later debugging
-            with open(config.BUILD_DIR / 'entropy.pkl', "wb") as f:
-                pickle.dump((mat_entropy, entropy_base, next_intensity, vec_candidate_int, N_obs), f)
+            if not choose_interp:
+                with open(config.BUILD_DIR / 'entropy.pkl', "wb") as f:
+                    pickle.dump((mat_entropy, entropy_base, next_intensity, vec_candidate_int, N_obs), f)
 
         intensities.append(next_intensity)
 

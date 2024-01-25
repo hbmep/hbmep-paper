@@ -30,6 +30,9 @@ import matplotlib.gridspec as gridspec
 import cv2
 import os
 import glob
+plt.rcParams['svg.fonttype'] = 'none'
+# from matplotlib import rcParams
+plt.rcParams['font.family'] = 'sans-serif'
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -39,19 +42,18 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
-def main():
+def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), overwrite=False):
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
-    root_dir = Path(config.BUILD_DIR)
+    if root_dir is None:
+        root_dir = Path(config.BUILD_DIR)
     # root_dir = Path('/media/hdd2/mcintosh/OneDrive/Other/Desktop/test12')  # TEMP
 
     config.MCMC_PARAMS['num_chains'] = 1
     config.MCMC_PARAMS['num_warmup'] = 500
     config.MCMC_PARAMS['num_samples'] = 1000
 
-    fig_format = 'png'
     fig_dpi = 300
-    fig_size = (1920/200, 1080/200)
     subdirs = sorted([os.path.join(root_dir, o) for o in os.listdir(root_dir)
                       if os.path.isdir(os.path.join(root_dir, o)) and 'learn_posterior_rt' in o])
 
@@ -66,6 +68,9 @@ def main():
         else:
             iter = 0
         config.BUILD_DIR = Path(str_dir)
+        p = config.BUILD_DIR / f"REC_MT_cond_norm{es}.{fig_format}"
+        if p.exists() and not overwrite:
+            continue
         simulator = RectifiedLogistic(config=config)
         # simulator._make_dir(simulator.build_dir)
 
@@ -79,11 +84,10 @@ def main():
         vec_muscle = [str_muscle.replace('PKPK_', '') for str_muscle in model.response]
         participants = ['MEH']
         xlim = [0, 100]
-        ylim = [-0.1, 2.0]
+        ylim = [-0.1, 1.5]
         # Simulate TOTAL_SUBJECTS subjects
         TOTAL_PULSES = 100
         TOTAL_SUBJECTS = len(participants)
-        conditions = ['MEH']
 
         # Create template dataframe for simulation
         df_custom = \
@@ -139,10 +143,15 @@ def main():
             df_local = df.copy()
             x = df_local[model.intensity].values
             y = df_local[model.response[ix_muscle]].values
-            ax.plot(x, y,
+            ms = 6
+            ax.plot(x[:-1], y[:-1],
                     color=colors[ix_muscle], marker='o', markeredgecolor='w',
                     markerfacecolor=colors[ix_muscle], linestyle='None',
-                    markeredgewidth=1, markersize=4)
+                    markeredgewidth=1, markersize=ms)
+            ax.plot(x[-1], y[-1],
+                    color=colors[ix_muscle], marker='o', markeredgecolor='w',
+                    markerfacecolor=[1, 0, 0], linestyle='None',
+                    markeredgewidth=1, markersize=ms)
 
             # if ix_p == 0 and ix_muscle == 0:
             #     ax.legend()
@@ -189,7 +198,7 @@ def main():
                 elif str_p == 'H':
                     # rotated
                     ax.plot(density, x_grid, color=colors[ix_muscle], label=ix_muscle)
-                    xlim_local = [0, 5.0]
+                    xlim_local = [0, 10.0]
                     ax.set_ylim(ylim)
                     ax.set_xlim(xlim_local)
                     ax.set_xlabel('Density')
@@ -208,8 +217,7 @@ def main():
                 # ax.grid(which='minor', color=np.ones((1, 3)) * 0.5, linestyle='--')
 
         plt.tight_layout()
-        fig.savefig(config.BUILD_DIR / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
-        fig.savefig(config.BUILD_DIR / f"REC_MT_cond_norm.{'svg'}", format='svg')
+        fig.savefig(p, format=fig_format, dpi=fig_dpi)
         # plt.show()
         # fig.savefig(Path(model.build_dir) / "REC_MT_cond_norm.svg", format='svg')
         plt.close()
@@ -260,5 +268,12 @@ def write_video(root_dir=None):
 
 
 if __name__ == "__main__":
-    root_dir = main()
+
+    fig_format = 'svg'
+    overwrite = True
+    root_dir = None
+
+    # main(fig_size=(1920 / 400, 1080 / 400), es='_zoom', fig_format='svg', overwrite=overwrite)
+    main(root_dir=root_dir,fig_format='svg', overwrite=overwrite)
+    root_dir = main(root_dir=root_dir, fig_format='png', overwrite=overwrite)
     write_video(root_dir=root_dir)
