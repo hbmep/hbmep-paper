@@ -334,7 +334,7 @@ def main():
     # plt.plot(simulation_df_test.loc[:, 'TMSInt'], simulation_ppd['obs'][0, :, 0])
     # plt.plot(simulation_df_test.loc[:, 'TMSInt'], simulation_ppd['obs'][0, :, 1])
     # plt.show()
-
+    assert N_max == len(seed['predict']), "N_max issue"
     np.random.seed(seed['ix_gen_seed'])
 
     # Initial guess
