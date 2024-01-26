@@ -200,11 +200,11 @@ def main():
     seed = dict()
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
-    opt_param = ['a', 'H']
-    choose_interp = True
+    opt_param = [site.a] #  ['a', 'H']
+    choose_interp = False
     make_figures_per_sample = False  # True eventually crashes some X-sessions
     N_max = 30
-    N_reps = 5  # if N_max = 50, then good choices are 1, 2, 5, 10
+    N_reps = 1  # if N_max = 50, then good choices are 1, 2, 5, 10
     N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
     range_min, range_max = 0, 100
     assert N_obs % 2 != 0, "Better if N_obs is odd."
@@ -312,7 +312,8 @@ def main():
         posterior_samples_individual[k] = posterior_samples[k][seed['ix_participant']:seed['ix_participant']+1, ...]
 
     posterior_samples_individual['a'][0][0][0] = posterior_samples_individual['a'][0][0][0] + 4
-    posterior_samples_individual['a'][0][0][1] = posterior_samples_individual['a'][0][0][1] - 4
+    if posterior_samples_individual['a'].shape[-1] == 2:
+        posterior_samples_individual['a'][0][0][1] = posterior_samples_individual['a'][0][0][1] - 4
 
     """ Save individual participant info"""
     d_participant = root_dir / 'participant'

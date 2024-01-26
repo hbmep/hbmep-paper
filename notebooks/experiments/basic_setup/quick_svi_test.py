@@ -84,7 +84,7 @@ optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
 guide = guide_manual
 # guide = numpyro.infer.autoguide.AutoNormal(model)
 svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-n_steps = 1000
+n_steps = 400
 in_loop = True
 if in_loop:
     svi_state = svi.init(rng_key, x, y)
