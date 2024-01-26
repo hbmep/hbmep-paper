@@ -68,8 +68,8 @@ def svi_step(svi_state, x, y):
 
 
 np.random.seed(0)
-num_models = 1000
-x, y = generate_data(200, num_models, 2.0, 2.5)  # 200 data points, 100 independent regressions
+num_models = 2500
+x, y = generate_data(50, num_models, 2.0, 2.5)  # 200 data points, 100 independent regressions
 
 rng_key = random.PRNGKey(0)
 
@@ -77,7 +77,7 @@ optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
 # guide = guide_manual
 guide = numpyro.infer.autoguide.AutoNormal(model)
 svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-n_steps = 400
+n_steps = 1000
 svi_state = svi.init(rng_key, x, y)
 svi_state, loss = svi_step(svi_state, x, y)  # single step for JIT
 start_time = time.time()
@@ -89,7 +89,7 @@ samples = return_samples(model, guide, svi.get_params(svi_state), x)
 
 print(f'SVI:{end_time - start_time}')
 ix_model = int(num_models/2)
-ix_model = num_models - 1
+# ix_model = num_models - 1
 n = 3
 for i in range(n):
     plt.plot(x, samples['obs'][i, :, ix_model], 'ro')
