@@ -10,6 +10,7 @@ from hbmep.config import Config
 
 from hbmep_paper.utils import setup_logging
 from models import (
+    MixtureModel,
     RectifiedLogistic,
     Logistic5,
     Logistic4,
@@ -86,12 +87,12 @@ def main(Model):
 
 
 if __name__ == "__main__":
-    # # Run single model
-    # Model = RectifiedLogistic
-    # main(Model)
+    # Run single model
+    Model = MixtureModel
+    main(Model)
 
-    # Run multiple models in parallel
-    n_jobs = -1
-    models = [RectifiedLogistic, Logistic5, Logistic4, ReLU]
-    with Parallel(n_jobs=n_jobs) as parallel:
-        parallel(delayed(main)(Model) for Model in models)
+    # # Run multiple models in parallel
+    # n_jobs = -1
+    # models = [RectifiedLogistic, Logistic5, Logistic4, ReLU]
+    # with Parallel(n_jobs=n_jobs) as parallel:
+    #     parallel(delayed(main)(Model) for Model in models)
