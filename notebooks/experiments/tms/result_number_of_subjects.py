@@ -146,6 +146,7 @@ def main():
 
     dest = os.path.join(EXPERIMENT_DIR, "mae.npy")
     np.save(dest, mae)
+    logger.info(f"Saved to {dest}")
     return
 
 

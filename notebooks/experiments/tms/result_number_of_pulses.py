@@ -11,6 +11,7 @@ from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
 from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
+from constrained_opt.models import NelderMeadOptimization
 from core_number_of_pulses import (N_REPS, N_SUBJECTS, EXPERIMENT_NAME)
 
 logger = logging.getLogger(__name__)
@@ -22,9 +23,10 @@ def main():
     n_reps = N_REPS
     n_subjects = N_SUBJECTS
     n_pulses_space = [32, 40, 48, 56, 64]
-    draws_space = range(2000)
-    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel]
-    models = [MaximumLikelihoodModel]
+    draws_space = range(590)
+    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
+    # models = [NonHierarchicalBayesianModel]
+    # models = [MaximumLikelihoodModel]
 
     """ Results """
     mae = []
@@ -58,6 +60,34 @@ def main():
                         sub_dir = f"subject{subject}"
                         dir = os.path.join(
                             EXPERIMENT_DIR,
+                            draw_dir,
+                            n_subjects_dir,
+                            n_reps_dir,
+                            n_pulses_dir,
+                            M.NAME,
+                            sub_dir
+                        )
+                        a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
+                        a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
+
+                        a_pred_sub_map = a_pred_sub.mean(axis=0)
+                        a_true_sub = a_true_sub
+
+                        a_true += a_pred_sub_map.reshape(-1,).tolist()
+                        a_pred += a_true_sub.reshape(-1,).tolist()
+
+                    a_true = np.array(a_true)
+                    a_pred = np.array(a_pred)
+
+                elif M.NAME in ["nelder_mead"]:
+                    n_subjects_dir = f"n{N_SUBJECTS}"
+                    a_true, a_pred = [], []
+
+                    for subject in range(n_subjects):
+                        sub_dir = f"subject{subject}"
+                        dir = os.path.join(
+                            "/home/vishu/repos/hbmep-paper/reports/experiments/tms/constrained-opt",
+                            EXPERIMENT_NAME,
                             draw_dir,
                             n_subjects_dir,
                             n_reps_dir,
@@ -114,6 +144,11 @@ def main():
     fig.align_ylabels()
     dest = os.path.join(EXPERIMENT_DIR, "result.png")
     fig.savefig(dest, dpi=600)
+    logger.info(f"Saved to {dest}")
+
+
+    dest = os.path.join(EXPERIMENT_DIR, "mae.npy")
+    np.save(dest, mae)
     logger.info(f"Saved to {dest}")
     return
 

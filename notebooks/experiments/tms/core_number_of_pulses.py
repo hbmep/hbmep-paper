@@ -191,8 +191,8 @@ def main():
 
 
     draws_space = np.arange(ppd_obs.shape[0])
-    draws_space = draws_space[1540:2000]
-    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
+    draws_space = draws_space[297:300]
+    models = [NonHierarchicalBayesianModel]
     # models = [MaximumLikelihoodModel]
 
     with Parallel(n_jobs=n_jobs) as parallel:
