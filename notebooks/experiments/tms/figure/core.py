@@ -163,7 +163,7 @@ def main():
     axes[0, 0].sharey(axes[0, 1])
     ax.set_ylim(bottom=0., top=9.2)
     ax.set_yticks(range(0, 9, 2))
-    ax.set_xlabel("# Pulses", fontsize=axis_label_size)
+    ax.set_xlabel("Number of Pulses", fontsize=axis_label_size)
     ax.tick_params(labelleft=False)
     # ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, bbox_to_anchor=(0,0.03,1,1))
     # handles, labels = ax.get_legend_handles_labels()
@@ -175,7 +175,7 @@ def main():
     ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8)
     # ax.legend(fontsize=8, frameon=False, markerscale=.8, numpoints=3, handlelength=3, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8)
 
-    ax.set_xlabel("# Subjects", fontsize=axis_label_size)
+    ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($%$)$", fontsize=axis_label_size)
 
     fig.align_xlabels()
