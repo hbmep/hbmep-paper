@@ -30,6 +30,20 @@ models = ["HB", "nHB", "MLE", "Nelder Mead"]
 # colors = [(a / 255, b / 255, c / 255, alpha) for a, b, c, alpha in colors]
 colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.2, 1, 4))
 colors = colors[::-1]
+
+colors_1 = sns.light_palette("grey", as_cmap=True)(np.linspace(0.2, 1, 4))
+colors_2 = sns.dark_palette("grey", as_cmap=True)(np.linspace(0, 1, 20))
+# colors = colors_1[1:4].tolist() + [colors_2[-1]]
+# colors = colors[::-1]
+colors = [colors_2[0], colors_1[-1], colors_1[-2], colors_1[0]]
+colors = colors_2[::5]
+
+colors = plt.cm.gist_gray(np.linspace(0, .9, 20))[::5]
+colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 3))
+colors = ["k"] + colors[::-1].tolist()
+
+colors = plt.cm.gray(np.linspace(0, .8, 4))
+# colors = colors_2
 # colors = colors[:12]
 # colors = colors[::3]
 # colors = sns.color_palette("hls", 4).as_hex()
