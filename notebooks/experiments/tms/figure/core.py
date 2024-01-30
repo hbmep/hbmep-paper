@@ -25,12 +25,27 @@ models = ["HB", "nHB", "MLE", "Nelder Mead"]
 
 # palette = sns.light_palette("muted", as_cmap=True)
 # colors = palette(np.linspace(0, 1, len(models)))
-colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0, 1, 4))
-colors = sns.color_palette("hls", 4).as_hex()
+# alpha = 1
+# colors = [(128, 128, 128, alpha), (128, 128, 128, alpha), (128, 128, 128, alpha), (128, 128, 128, alpha)]
+# colors = [(a / 255, b / 255, c / 255, alpha) for a, b, c, alpha in colors]
+colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.2, 1, 4))
+colors = colors[::-1]
+# colors = colors[:12]
+# colors = colors[::3]
+# colors = sns.color_palette("hls", 4).as_hex()
+# colors = plt.cm.jet(np.linspace(0,1,4))
 fs = 10
 axis_label_size = 10
 
+lineplot_kwargs = {
+    "marker":"o", "linestyle":"dashed", "ms":3
+}
+lineplot_kwargs_inset = {
+    "marker":"o", "linestyle":"dashed", "ms":3
+}
+
 def main():
+    logger.info(f"number of colors: {len(colors)}")
     experiment_name = "number_of_subjects"
     src = os.path.join(MAT_DIR, experiment_name, "mae.npy")
     subjects_mae = np.load(src)
@@ -46,13 +61,6 @@ def main():
     pulses_mae = pulses_mae[:, :n_draws_pulses, :]
     logger.info(f"Subjects MAE: {subjects_mae.shape}")
     logger.info(f"Pulses MAE: {pulses_mae.shape}")
-
-    lineplot_kwargs = {
-        "marker":"o", "linestyle":"--", "ms":3
-    }
-    lineplot_kwargs_inset = {
-        "marker":"o", "linestyle":"--", "ms":3
-    }
 
     nrows, ncols = 1, 2
     fig, axes = plt.subplots(nrows, ncols, figsize=(8, 3), constrained_layout=True, squeeze=False)
@@ -165,6 +173,8 @@ def main():
     ax = axes[0, 0]
     if ax.get_legend() is not None: ax.get_legend().remove()
     ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8)
+    # ax.legend(fontsize=8, frameon=False, markerscale=.8, numpoints=3, handlelength=3, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8)
+
     ax.set_xlabel("# Subjects", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($%$)$", fontsize=axis_label_size)
 
