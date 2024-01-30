@@ -126,7 +126,7 @@ def main():
         return
 
 
-    draws_space = np.arange(ppd_obs.shape[0])
+    draws_space = np.arange(590, ppd_obs.shape[0])
     models = [NelderMeadOptimization]
 
     with Parallel(n_jobs=n_jobs) as parallel:

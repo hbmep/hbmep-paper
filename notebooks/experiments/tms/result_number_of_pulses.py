@@ -23,7 +23,7 @@ def main():
     n_reps = N_REPS
     n_subjects = N_SUBJECTS
     n_pulses_space = [32, 40, 48, 56, 64]
-    draws_space = range(590)
+    draws_space = range(1000)
     models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
     # models = [NonHierarchicalBayesianModel]
     # models = [MaximumLikelihoodModel]
