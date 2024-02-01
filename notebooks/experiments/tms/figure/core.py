@@ -17,39 +17,15 @@ MAT_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/"
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data"
 n_draws_subjects = 2000
 n_draws_pulses = 1000
-SEM_CONST = 2
+SEM_CONST = 1
 
 n_subjects_space = [1, 4, 8, 16]
 n_pulses_space = [32, 40, 48, 56, 64]
 models = ["Ours: hbMEP", "nHB", "MLE", "Optimization"]
-# palette = plt.cm.rainbow
 
-# palette = sns.light_palette("muted", as_cmap=True)
-# colors = palette(np.linspace(0, 1, len(models)))
-# alpha = 1
-# colors = [(128, 128, 128, alpha), (128, 128, 128, alpha), (128, 128, 128, alpha), (128, 128, 128, alpha)]
-# colors = [(a / 255, b / 255, c / 255, alpha) for a, b, c, alpha in colors]
-colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.2, 1, 4))
-colors = colors[::-1]
-
-colors_1 = sns.light_palette("grey", as_cmap=True)(np.linspace(0.2, 1, 4))
-colors_2 = sns.dark_palette("grey", as_cmap=True)(np.linspace(0, 1, 20))
-# colors = colors_1[1:4].tolist() + [colors_2[-1]]
-# colors = colors[::-1]
-colors = [colors_2[0], colors_1[-1], colors_1[-2], colors_1[0]]
-colors = colors_2[::5]
-
-colors = plt.cm.gist_gray(np.linspace(0, .9, 20))[::5]
 colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 3))
 colors = ["k"] + colors[::-1].tolist()
 
-# colors = plt.cm.gray(np.linspace(0, .8, 4))
-# colors = colors_2
-# colors = colors[:12]
-# colors = colors[::3]
-# colors = sns.color_palette("hls", 4).as_hex()
-# colors = plt.cm.jet(np.linspace(0,1,4))
-fs = 10
 axis_label_size = 10
 
 lineplot_kwargs = {
@@ -158,8 +134,6 @@ def main():
             # ins.set_yticks([1.5, 2.3])
             # ins.set_yticks([2.2, 1.6])
 
-    # ax.set_title(f"8 Subjects, {n_draws_pulses} Draws", fontsize=fs)
-
     for i in range(ncols):
         ax = axes[0, i]
         sides = ["top", "right"]
@@ -182,7 +156,6 @@ def main():
         ax.grid(axis="y", linestyle="--", alpha=.25)
         ax.set_ylabel("")
 
-
     ax = axes[0, 1]
     axes[0, 0].sharey(axes[0, 1])
     ax.set_ylim(bottom=0., top=9.2)
@@ -195,7 +168,7 @@ def main():
     ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8, reverse=True)
 
     ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
-    ax.set_ylabel("Mean Absolute Error $($%$)$", fontsize=axis_label_size)
+    ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
 
     fig.align_xlabels()
     fig.align_ylabels()

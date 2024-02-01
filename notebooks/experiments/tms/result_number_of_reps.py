@@ -22,7 +22,7 @@ def main():
     n_subjects = N_SUBJECTS
     n_pulses_space = [32, 40, 48, 56, 64]
     n_reps_space = [1, 4, 8]
-    draws_space = range(500)
+    draws_space = list(range(940))
     models = [HierarchicalBayesianModel]
 
     """ Results """
@@ -115,6 +115,11 @@ def main():
     dest = os.path.join(EXPERIMENT_DIR, "result.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
+
+    dest = os.path.join(EXPERIMENT_DIR, "mae.npy")
+    np.save(dest, mae)
+    logger.info(f"Saved to {dest}")
+
     return
 
 
