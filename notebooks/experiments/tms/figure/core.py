@@ -17,10 +17,11 @@ MAT_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data/"
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data"
 n_draws_subjects = 2000
 n_draws_pulses = 1000
+SEM_CONST = 2
 
 n_subjects_space = [1, 4, 8, 16]
 n_pulses_space = [32, 40, 48, 56, 64]
-models = ["HB", "nHB", "MLE", "Nelder Mead"]
+models = ["Ours: hbMEP", "nHB", "MLE", "Optimization"]
 # palette = plt.cm.rainbow
 
 # palette = sns.light_palette("muted", as_cmap=True)
@@ -42,7 +43,7 @@ colors = plt.cm.gist_gray(np.linspace(0, .9, 20))[::5]
 colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 3))
 colors = ["k"] + colors[::-1].tolist()
 
-colors = plt.cm.gray(np.linspace(0, .8, 4))
+# colors = plt.cm.gray(np.linspace(0, .8, 4))
 # colors = colors_2
 # colors = colors[:12]
 # colors = colors[::3]
@@ -57,6 +58,13 @@ lineplot_kwargs = {
 lineplot_kwargs_inset = {
     "marker":"o", "linestyle":"dashed", "ms":3
 }
+lineplot_kwargs = {
+    "marker":"o", "ms":3, "linewidth":1.5
+}
+lineplot_kwargs_inset = {
+    "marker":"o", "ms":3, "linewidth":1.5
+}
+
 
 def main():
     logger.info(f"number of colors: {len(colors)}")
@@ -86,6 +94,7 @@ def main():
         y = mae[..., model_ind]
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
+        ysem = ysem * SEM_CONST
         ax.errorbar(x=x, y=yme, yerr=ysem, label=f"{model}", **lineplot_kwargs, color=colors[model_ind])
         ax.set_xticks(x)
 
@@ -122,6 +131,7 @@ def main():
         y = mae[..., model_ind]
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
+        ysem = ysem * SEM_CONST
         ax.errorbar(x=x, y=yme, yerr=ysem, label=f"{model}", **lineplot_kwargs, color=colors[model_ind])
         ax.set_xticks(x)
 
@@ -179,15 +189,10 @@ def main():
     ax.set_yticks(range(0, 9, 2))
     ax.set_xlabel("Number of Pulses", fontsize=axis_label_size)
     ax.tick_params(labelleft=False)
-    # ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, bbox_to_anchor=(0,0.03,1,1))
-    # handles, labels = ax.get_legend_handles_labels()
-    # ax.legend(handles[::-1], labels[::-1], fontsize=6.8, loc="upper right", frameon=False)
-    # ax.legend(loc='upper center', bbox_to_anchor=(0, 1), fontsize=6.8, ncol=4)
 
     ax = axes[0, 0]
     if ax.get_legend() is not None: ax.get_legend().remove()
-    ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8)
-    # ax.legend(fontsize=8, frameon=False, markerscale=.8, numpoints=3, handlelength=3, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8)
+    ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8, reverse=True)
 
     ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($%$)$", fontsize=axis_label_size)
@@ -195,6 +200,10 @@ def main():
     fig.align_xlabels()
     fig.align_ylabels()
     fig.align_labels()
+
+    dest = os.path.join(BUILD_DIR, "combined_figure.svg")
+    fig.savefig(dest, dpi=600)
+
     dest = os.path.join(BUILD_DIR, "combined_figure.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
