@@ -1,12 +1,28 @@
+import os
+import shutil
+import pickle
+import logging
+
 import numpy as np
 import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
 
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+from jax import random
+from scipy.optimize import minimize
+from joblib import Parallel, delayed
+
 from hbmep.config import Config
-from hbmep.model import GammaModel
+from hbmep.model import BaseModel, GammaModel
 from hbmep.model import functional as F
 from hbmep.model.utils import Site as site
+from hbmep.utils import timing
+
+logger = logging.getLogger(__name__)
 
 
 class RectifiedLogistic(GammaModel):
@@ -99,3 +115,205 @@ class RectifiedLogistic(GammaModel):
                     dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )
+
+
+class NelderMeadOptimization(BaseModel):
+    NAME = "nelder_mead"
+
+    def __init__(self, config: Config):
+        super(NelderMeadOptimization, self).__init__(config=config)
+        self.solver = "Nelder-Mead"
+        self.fn = F.logistic4      # a, b, v, L, ell, H
+        self.params = [site.a, site.b, site.L, site.H]
+        self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-4, .1), (.5, 5)]
+        self.num_points = 1000
+        self.n_repeats = 5000
+        self.n_jobs = -1
+
+    def cost_function(self, x, y, *args):
+        y_pred = self.fn(x, *args)
+        return np.sum((y - y_pred) ** 2)
+
+    def optimize(self, x, y, param, dest):
+        res = minimize(
+            lambda coeffs: self.cost_function(x, y, *coeffs),
+            x0=param,
+            bounds=self.bounds,
+            method=self.solver
+        )
+        with open(dest, "wb") as f:
+            pickle.dump((res,), f)
+
+    @timing
+    def run_inference(self, df: pd.DataFrame):
+        # Intialize fresh directory for storing optimiztion results
+        self._make_dir(self.build_dir)
+        results_dir = os.path.join(self.build_dir, "optimize_results")
+        if os.path.exists(results_dir): shutil.rmtree(results_dir)
+        assert not os.path.exists(results_dir)
+        self._make_dir(results_dir)
+
+        x = df[self.intensity].values
+        rng_keys = random.split(self.rng_key, num=len(self.bounds))
+        rng_keys = list(rng_keys)
+        # rng_keys = np.array(rng_keys).reshape(len(self.bounds), self.n_response)
+
+        response_dir_prefix = "response"
+        minimize_result = []
+        for r, response in enumerate(self.response):
+            # Initialize response directory
+            response_dir = os.path.join(results_dir, f"{response_dir_prefix}{r}")
+            self._make_dir(response_dir)
+
+            # Grid space
+            grid = [np.linspace(lo, hi, self.num_points) for lo, hi in self.informed_bounds]
+            # grid = [
+            #     random.choice(key=rng_key, a=arr, shape=(self.n_repeats,), replace=True)
+            #     for arr, rng_key in zip(grid, rng_keys[:, r])
+            # ]
+            grid = [
+                random.choice(key=rng_key, a=arr, shape=(self.n_repeats,), replace=True)
+                for arr, rng_key in zip(grid, rng_keys)
+            ]
+            grid = [np.array(arr).tolist() for arr in grid]
+            grid = list(zip(*grid))
+
+            y = df[response].values
+
+            with Parallel(n_jobs=self.n_jobs) as parallel:
+                parallel(
+                    delayed(self.optimize)(x, y, param, os.path.join(response_dir, f"param{i}.pkl"))
+                    for i, param in enumerate(grid)
+                )
+
+            res = []
+            for i, _ in enumerate(grid):
+                src = os.path.join(response_dir, f"param{i}.pkl")
+                with open(src, "rb") as g:
+                    res.append(pickle.load(g)[0])
+
+            errors = [r.fun for r in res]
+            argmin = np.argmin(errors)
+            logger.info(f"Optimal params for response {response}:")
+            logger.info(res[argmin])
+            minimize_result.append(res[argmin])
+
+        return minimize_result
+
+    @timing
+    def render_recruitment_curves(self, df, prediction_df, minimize_result):
+        nrows, ncols = 1, self.n_response
+        fig, axes = plt.subplots(nrows, ncols, figsize=(self.subplot_cell_width * ncols, self.subplot_cell_height * nrows), squeeze=False, constrained_layout=True)
+        for r, response in enumerate(self.response):
+            ax = axes[0, r]
+            params = minimize_result[r].x
+            sns.scatterplot(x=df[self.intensity], y=df[response], ax=ax)
+            sns.lineplot(x=prediction_df[self.intensity], y=self.fn(prediction_df[self.intensity].values, *params), color=self.response_colors[r], ax=ax)
+
+        dest = os.path.join(self.build_dir, "recruitment_curves.png")
+        fig.savefig(dest)
+        logger.info(f"Saved to {dest}")
+        plt.close(fig)
+        return
+
+
+# class NelderMeadOptimization(BaseModel):
+#     NAME = "nelder_mead"
+
+#     def __init__(self, config: Config):
+#         super(NelderMeadOptimization, self).__init__(config=config)
+#         self.solver = "Nelder-Mead"
+#         self.fn = F.rectified_logistic      # a, b, v, L, ell, H
+#         self.params = [site.a, site.b, site.v, site.L, site.ell, site.H]
+#         self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+#         self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
+#         self.num_points = 1000
+#         self.n_repeats = 50
+#         self.n_jobs = -1
+
+#     def cost_function(self, x, y, *args):
+#         y_pred = self.fn(x, *args)
+#         return np.sum((y - y_pred) ** 2)
+
+#     def optimize(self, x, y, param, dest):
+#         res = minimize(
+#             lambda coeffs: self.cost_function(x, y, *coeffs),
+#             x0=param,
+#             bounds=self.bounds,
+#             method=self.solver
+#         )
+#         with open(dest, "wb") as f:
+#             pickle.dump((res,), f)
+
+#     @timing
+#     def run_inference(self, df: pd.DataFrame):
+#         # Intialize fresh directory for storing optimiztion results
+#         self._make_dir(self.build_dir)
+#         results_dir = os.path.join(self.build_dir, "optimize_results")
+#         if os.path.exists(results_dir): shutil.rmtree(results_dir)
+#         assert not os.path.exists(results_dir)
+#         self._make_dir(results_dir)
+
+#         x = df[self.intensity].values
+#         rng_keys = random.split(self.rng_key, num=len(self.bounds))
+#         rng_keys = list(rng_keys)
+#         # rng_keys = np.array(rng_keys).reshape(len(self.bounds), self.n_response)
+
+#         response_dir_prefix = "response"
+#         minimize_result = []
+#         for r, response in enumerate(self.response):
+#             # Initialize response directory
+#             response_dir = os.path.join(results_dir, f"{response_dir_prefix}{r}")
+#             self._make_dir(response_dir)
+
+#             # Grid space
+#             grid = [np.linspace(lo, hi, self.num_points) for lo, hi in self.informed_bounds]
+#             # grid = [
+#             #     random.choice(key=rng_key, a=arr, shape=(self.n_repeats,), replace=True)
+#             #     for arr, rng_key in zip(grid, rng_keys[:, r])
+#             # ]
+#             grid = [
+#                 random.choice(key=rng_key, a=arr, shape=(self.n_repeats,), replace=True)
+#                 for arr, rng_key in zip(grid, rng_keys)
+#             ]
+#             grid = [np.array(arr).tolist() for arr in grid]
+#             grid = list(zip(*grid))
+
+#             y = df[response].values
+
+#             with Parallel(n_jobs=self.n_jobs) as parallel:
+#                 parallel(
+#                     delayed(self.optimize)(x, y, param, os.path.join(response_dir, f"param{i}.pkl"))
+#                     for i, param in enumerate(grid)
+#                 )
+
+#             res = []
+#             for i, _ in enumerate(grid):
+#                 src = os.path.join(response_dir, f"param{i}.pkl")
+#                 with open(src, "rb") as g:
+#                     res.append(pickle.load(g)[0])
+
+#             errors = [r.fun for r in res]
+#             argmin = np.argmin(errors)
+#             logger.info(f"Optimal params for response {response}:")
+#             logger.info(res[argmin])
+#             minimize_result.append(res[argmin])
+
+#         return minimize_result
+
+#     @timing
+#     def render_recruitment_curves(self, df, prediction_df, minimize_result):
+#         nrows, ncols = 1, self.n_response
+#         fig, axes = plt.subplots(nrows, ncols, figsize=(self.subplot_cell_width * ncols, self.subplot_cell_height * nrows), squeeze=False, constrained_layout=True)
+#         for r, response in enumerate(self.response):
+#             ax = axes[0, r]
+#             params = minimize_result[r].x
+#             sns.scatterplot(x=df[self.intensity], y=df[response], ax=ax)
+#             sns.lineplot(x=prediction_df[self.intensity], y=self.fn(prediction_df[self.intensity].values, *params), color=self.response_colors[r], ax=ax)
+
+#         dest = os.path.join(self.build_dir, "recruitment_curves.png")
+#         fig.savefig(dest)
+#         logger.info(f"Saved to {dest}")
+#         plt.close(fig)
+#         return
