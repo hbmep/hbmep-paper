@@ -110,7 +110,7 @@ def main():
     ax = axes[0, 0]
     if ax.get_legend() is not None: ax.get_legend().remove()
     ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc=(.2, .5), ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8, reverse=True)
-    ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
+    ax.set_xlabel("Number of Pulses", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
 
     fig.align_xlabels()
