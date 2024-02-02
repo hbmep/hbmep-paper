@@ -70,6 +70,7 @@ def read_data(subdir):
 
     # Fix TMS stim_type
     ind = df["stim_type"] == "TMS"
+    if not ind.sum(): return None, None
     logger.debug(f"Fixing TMS stim_type: {ind.sum()}")
     df = df[ind].reset_index(drop=True).copy()
     mat = mat[ind, ...]

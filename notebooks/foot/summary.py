@@ -16,7 +16,7 @@ from hbmep.model.utils import Site as site
 from hbmep_paper.utils import setup_logging
 from models import RectifiedLogistic
 from utils import read_data
-from core import DATA_DIR, BUILD_DIR
+from iterative import DATA_DIR, BUILD_DIR
 from utils import MUSCLES
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,13 @@ NETCODE_FILE = "numpyro_data.nc"
 def main(visit, participant):
     dir = os.path.join(BUILD_DIR, visit, participant)
     src = os.path.join(dir, INFERENCE_FILE)
-    with open(src, "rb") as f:
-        model, mcmc, _ = pickle.load(f)
+    try:
+        with open(src, "rb") as f:
+
+            model, mcmc, _ = pickle.load(f)
+    except FileNotFoundError:
+        logger.warning(f"File not found: {src}")
+        return
 
     # Setup logging
     setup_logging(
@@ -44,6 +49,10 @@ def main(visit, participant):
     # Read data
     subdir = os.path.join(DATA_DIR, visit, participant)
     df, mat = read_data(subdir)
+    # Remove NaNs
+    ind =  df[model.response].isna().any(axis=1)
+    df = df[~ind].reset_index(drop=True).copy()
+    mat = mat[~ind, ...]
     df, encoder_dict = model.load(df)
 
     # Make summary dataframe
@@ -88,21 +97,30 @@ def main(visit, participant):
 
 
 if __name__ == "__main__":
-    subset = [
-        ("visit1", "SCS08"),
-        ("visit2", "SCA07")
-    ]
+    src = os.path.join(DATA_DIR, "*")
+    visits = glob.glob(src)
+    visits = [os.path.basename(v) for v in visits]
 
-    # Run a single job
-    visit, participant = subset[1]
-    main(visit, participant)
+    d = {}
+    for visit in visits:
+        src = os.path.join(DATA_DIR, visit, "*")
+        participants = glob.glob(src)
+        participants = [os.path.basename(p) for p in participants]
+        d[visit] = participants
 
-    # # Run multiple jobs
-    # n_jobs = -1
-    # with Parallel(n_jobs=n_jobs) as parallel:
-    #     parallel(
-    #         delayed(main)(
-    #             visit, participant
-    #         ) \
-    #         for visit, participant in subset
-    #     )
+    subset = [(visit, participant) for visit in visits for participant in d[visit]]
+    print(subset)
+
+    # # Run a single job
+    # visit, participant = subset[1]
+    # main(visit, participant)
+
+    # Run multiple jobs
+    n_jobs = -1
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(main)(
+                visit, participant
+            ) \
+            for visit, participant in subset
+        )

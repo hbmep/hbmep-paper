@@ -1,34 +1,36 @@
 import os
 import logging
 
+from scipy.io import loadmat
 import numpy as np
-import pandas as pd
+from joblib import Parallel, delayed
 
 from hbmep.config import Config
+from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
 from models import RectifiedLogistic
-from utils import save
+from utils import read_data, save
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = "/home/vishu/data/hbmep-processed/foot"
+DATA_DIR = "/home/vishu/data/raw/foot"
 TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/tms/config.toml"
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/foot/"
 
-FEATURES = [["participant", "visit"]]
+FEATURES = ["participant"]
 RESPONSE = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
 MEP_SIZE_WINDOW = [0.005, 0.005 + .085]
 
 
-def main(Model):
+def main(visit, participant):
     config = Config(TOML_PATH)
-    config.BUILD_DIR = os.path.join(BUILD_DIR, Model.NAME)
+    config.BUILD_DIR = os.path.join(BUILD_DIR, visit, participant)
     config.FEATURES = FEATURES
     config.RESPONSE = RESPONSE
     config.MEP_SIZE_TIME_RANGE = MEP_SIZE_WINDOW
-    model = RectifiedLogistic(config)
 
+    model = RectifiedLogistic(config)
     # Setup logging
     model._make_dir(model.build_dir)
     setup_logging(
@@ -37,21 +39,15 @@ def main(Model):
         # level=logging.DEBUG
     )
 
-    src = os.path.join(DATA_DIR, "data.csv")
-    df = pd.read_csv(src)
-    src = os.path.join(DATA_DIR, "mat.npy")
-    mat = np.load(src)
-
-    # Remove NaNs
-    ind =  df[model.response].isna().any(axis=1)
-    df = df[~ind].reset_index(drop=True).copy()
-    mat = mat[~ind, ...]
+    subdir = os.path.join(DATA_DIR, visit, participant)
+    df, mat = read_data(subdir)
 
     df, encoder_dict = model.load(df)
+    dest = os.path.join(model.build_dir, "mat.npy")
+    np.save(dest, mat)
     model.plot(df=df, encoder_dict=encoder_dict, mep_matrix=mat)
 
     mcmc, posterior_samples = model.run_inference(df=df)
-
     # Recruitement curves
     prediction_df = model.make_prediction_dataset(df=df)
     posterior_predictive = model.predict(
@@ -71,12 +67,40 @@ def main(Model):
         prediction_df=prediction_df,
         posterior_predictive=posterior_predictive
     )
-
     # Save posterior
     save(model, mcmc, posterior_samples)
     return
 
 
 if __name__ == "__main__":
-    Model = RectifiedLogistic
-    main(Model)
+    subset = [
+        ("visit1", "SCA01"),
+        ("visit1", "SCA02"),
+        ("visit1", "SCA04"),
+        ("visit1", "SCA05"),
+    ]
+    subset = [
+        ("visit1", "SCA06"),
+        ("visit1", "SCA09"),
+        ("visit1", "SCA10"),
+        ("visit1", "SCA11"),
+    ]
+    # subset = [
+    #     ("visit1", "SCA12"),
+    #     ("visit1", "SCA14"),
+    #     ("visit1", "SCA15"),
+    # ]
+
+    # # Run a single job
+    # visit, participant = subset[1]
+    # main(visit, participant)
+
+    # Run multiple jobs
+    n_jobs = -1
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(main)(
+                visit, participant
+            ) \
+            for visit, participant in subset
+        )
