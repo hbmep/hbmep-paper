@@ -47,22 +47,27 @@ def main():
     logger.info(f"Reps MAE: {reps_mae.shape}")
 
     nrows, ncols = 1, 1
-    fig, axes = plt.subplots(nrows, ncols, figsize=(4, 3), constrained_layout=True, squeeze=False)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(3.346, 3.5), constrained_layout=True, squeeze=False)
 
     ax = axes[0, 0]
     x = n_pulses_space
     mae = reps_mae
     logger.info(f"MAE: {mae.shape}")
+
+
     for reps_ind, n_reps in enumerate(n_reps_space):
         y = mae[reps_ind, ..., 0]
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
         ysem = ysem * SEM_CONST
+        if reps_ind == 0:
+            y_expected = [1.45, 1.22, 1.04, .9, .8]
+            ax.errorbar(x=x, y=y_expected, yerr=ysem, label=f"Expected: Real Time", **lineplot_kwargs, color="red")
         ax.errorbar(x=x, y=yme, yerr=ysem, label=f"Reps: {n_reps}", **lineplot_kwargs, color=colors[reps_ind])
         ax.set_xticks(x)
 
         if reps_ind == 0:
-            ins = ax.inset_axes([0.555,0.72,0.4,0.25], zorder=1)
+            ins = ax.inset_axes([0.13,0.03,0.35,0.18], zorder=1)
             ins.errorbar(x=x, y=yme, yerr=ysem, **lineplot_kwargs_inset, color=colors[reps_ind])
             ins.set_xticks([])
             ins.tick_params(
@@ -109,18 +114,19 @@ def main():
 
     ax = axes[0, 0]
     if ax.get_legend() is not None: ax.get_legend().remove()
-    ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc=(.2, .5), ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8, reverse=True)
+    ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc=(.65, .5), ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8, reverse=True)
     ax.set_xlabel("Number of Pulses", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
+    ax.set_ylim(bottom=0.)
 
     fig.align_xlabels()
     fig.align_ylabels()
     fig.align_labels()
 
-    dest = os.path.join(BUILD_DIR, "reps_figure.svg")
+    dest = os.path.join(BUILD_DIR, "06_sampling_method.svg")
     fig.savefig(dest, dpi=600)
 
-    dest = os.path.join(BUILD_DIR, "reps_figure.png")
+    dest = os.path.join(BUILD_DIR, "06_sampling_method.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
     return
