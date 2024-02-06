@@ -1,3 +1,4 @@
+from operator import le
 import os
 import pickle
 import logging
@@ -26,7 +27,7 @@ models = ["Ours: hbMEP", "nHB", "MLE", "Optimization"]
 colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 3))
 colors = ["k"] + colors[::-1].tolist()
 
-axis_label_size = 10
+axis_label_size = 8
 
 lineplot_kwargs = {
     "marker":"o", "linestyle":"dashed", "ms":3
@@ -35,11 +36,12 @@ lineplot_kwargs_inset = {
     "marker":"o", "linestyle":"dashed", "ms":3
 }
 lineplot_kwargs = {
-    "marker":"o", "ms":3, "linewidth":1.5
+    "marker":"o", "ms":2, "linewidth":1
 }
 lineplot_kwargs_inset = {
-    "marker":"o", "ms":3, "linewidth":1.5
+    "marker":"o", "ms":2, "linewidth":1
 }
+inset_rotation = 0
 
 
 def main():
@@ -61,7 +63,7 @@ def main():
     logger.info(f"Pulses MAE: {pulses_mae.shape}")
 
     nrows, ncols = 1, 2
-    fig, axes = plt.subplots(nrows, ncols, figsize=(8, 3), constrained_layout=True, squeeze=False)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(4.566, 2.5), constrained_layout=True, squeeze=False)
 
     ax = axes[0, 0]
     x = n_subjects_space
@@ -90,8 +92,8 @@ def main():
                 labelbottom=True,
                 labelright=False,
                 labeltop=False,
-                labelrotation=15,
-                labelsize=8
+                labelrotation=inset_rotation,
+                labelsize=6
             )
             ins.yaxis.set_major_locator(plt.MaxNLocator(2))
             ins.set_yticks([1.7, 2.1, 2.5])
@@ -126,8 +128,8 @@ def main():
                 labelbottom=True,
                 labelright=False,
                 labeltop=False,
-                labelrotation=15,
-                labelsize=8
+                labelrotation=inset_rotation,
+                labelsize=6
             )
             ins.yaxis.set_major_locator(plt.MaxNLocator(2))
             ins.set_yticks([1.5, 1.9, 2.3])
@@ -164,8 +166,22 @@ def main():
     ax.tick_params(labelleft=False)
 
     ax = axes[0, 0]
-    if ax.get_legend() is not None: ax.get_legend().remove()
-    ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc="upper left", ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8, reverse=True)
+    # if ax.get_legend() is not None: ax.get_legend().remove()
+    handles, labels = ax.get_legend_handles_labels()
+    legend_kwargs = {
+        "fontsize": 8,
+        "frameon": False,
+        "markerscale": .8,
+        "handlelength": 1.98,
+        "loc": (0.05, .97),
+        "ncols": 2,
+        "columnspacing": 0.8,
+        "reverse": True
+    }
+    axes[0, 0].legend(handles[2:], labels[2:], **legend_kwargs)
+    axes[0, 1].legend(handles[:2], labels[:2], **legend_kwargs)
+    # fig.legend(handles, labels, fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, ncols=4, loc=(0.1, .94), reverse=True, columnspacing=1.2)
+    # fig.legend(fontsize=7, frameon=False, markerscale=.8, handlelength=1.98, ncols=4, loc=(0, .7), columnspacing=0.8, reverse=True)
 
     ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)

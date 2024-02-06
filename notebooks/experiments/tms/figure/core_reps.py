@@ -25,7 +25,7 @@ n_reps_space = [1, 4, 8]
 colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 3))
 colors = ["k"] + colors[::-1].tolist()
 
-axis_label_size = 10
+axis_label_size = 8
 
 lineplot_kwargs = {
     "marker":"o", "ms":3, "linewidth":1.5
@@ -67,7 +67,7 @@ def main():
         ax.set_xticks(x)
 
         if reps_ind == 0:
-            ins = ax.inset_axes([0.13,0.03,0.35,0.18], zorder=1)
+            ins = ax.inset_axes([0.6,0.65,0.35,0.18], zorder=1)
             ins.errorbar(x=x, y=yme, yerr=ysem, **lineplot_kwargs_inset, color=colors[reps_ind])
             ins.set_xticks([])
             ins.tick_params(
@@ -81,7 +81,7 @@ def main():
                 labelbottom=True,
                 labelright=False,
                 labeltop=False,
-                labelrotation=15,
+                labelrotation=0,
                 labelsize=8
             )
             ins.yaxis.set_major_locator(plt.MaxNLocator(2))
@@ -114,7 +114,7 @@ def main():
 
     ax = axes[0, 0]
     if ax.get_legend() is not None: ax.get_legend().remove()
-    ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc=(.65, .5), ncols=1, bbox_to_anchor=(0.1, .5, .5, 0.5), columnspacing=0.8, reverse=True)
+    ax.legend(fontsize=8, frameon=False, markerscale=.8, handlelength=1.98, loc=(.16, .85), ncols=2, columnspacing=0.8, reverse=True)
     ax.set_xlabel("Number of Pulses", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
     ax.set_ylim(bottom=0.)
