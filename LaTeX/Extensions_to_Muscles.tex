@@ -37,7 +37,7 @@
         \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill,minimum size=1cm] (beta) {${\beta_i}^{p,m}$}; %
         \node[det,above=of obs,xshift=1.2cm,yshift=.2cm,fill,minimum size=1cm] (mu) {${\mu_i}^{p,m}$}; %
         \node[obs,above=of obs,xshift=-.8cm,yshift=1.5cm,fill,minimum size=1cm] (intensity) {${x_i}^{p,m}$};%
-        \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$\text{intensity }i: 1, 2 \ldots N_p$};
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$\text{intensity }i: 1, 2 \ldots n(p)$};
 
         % % PRIORS
         % a, b, v
@@ -53,7 +53,7 @@
         \node[latent,left=of g2,xshift=.9cm,fill,minimum size=.8cm] (g1) {${c_1}^{p,m}$};
 
         % Participants plate
-        \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$\text{participant }p : 1, 2 \ldots P$};
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$\text{participant }p : 1, 2 \ldots N_P$};
 
         % % HYPER-PRIORS
         \node[latent,above=of a,xshift=-.43cm,fill,minimum size=.8cm] (a_mean) {${\mu_a}^m$};
@@ -67,7 +67,7 @@
         \node[latent,above=of ell,fill,minimum size=.8cm] (ell_scale) {${\sigma_\ell}^m$};
 
         % Muscles plate
-        \plate[inner sep=.25cm, yshift=.2cm] {muscle_plate} {(a_mean)(a_scale)(b_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(g1_scale)(g2_scale)(plate_participant)} {$\text{muscle }m : 1, 2 \ldots M$};
+        \plate[inner sep=.25cm, yshift=.2cm] {muscle_plate} {(a_mean)(a_scale)(b_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(g1_scale)(g2_scale)(plate_participant)} {$\text{muscle }m : 1, 2 \ldots N_M$};
 
         % Edges from Hyper-priors to Priors
         \edge {g1_scale} {g1}

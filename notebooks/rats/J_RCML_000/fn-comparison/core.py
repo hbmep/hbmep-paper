@@ -22,10 +22,10 @@ logger = logging.getLogger(__name__)
 TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/rats/J_RCML_000.toml"
 DATA_PATH = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
 FEATURES = [["participant", "compound_position"]]
-RESPONSE = ["LBiceps"]
+RESPONSE = ["LADM", "LBiceps", "LTriceps"]
 # RESPONSE = ["LADM", "LBiceps", "LDeltoid", "LFCR", "LTriceps"]
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison/LBiceps"
-# BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison"
+# BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison/LBiceps"
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison"
 
 
 def run_inference(model):
@@ -60,7 +60,6 @@ def run_inference(model):
     dest = os.path.join(model.build_dir, "numpyro_data.nc")
     az.to_netcdf(numpyro_data, dest)
     logger.info(dest)
-
     return
 
 
@@ -88,7 +87,7 @@ def main(Model):
 
 if __name__ == "__main__":
     # Run single model
-    Model = MixtureModel
+    Model = ReLU
     main(Model)
 
     # # Run multiple models in parallel
