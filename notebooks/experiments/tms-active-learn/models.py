@@ -230,6 +230,7 @@ class ActiveReLU(GammaModel):
         obs = None,
         destination_path = None
     ):
+        logger.info(intensity[-1, 0, :])
         # intensity (n_data, n_response, n_regressions)
         # response (n_data, n_response, n_regressions)
         # intensity_pred (n_grid, n_response, n_regressions)
@@ -270,6 +271,11 @@ class ActiveReLU(GammaModel):
                     color=response_color,
                     ax=ax
                 )
+                ax.plot(
+                    intensity[:, response_ind, regression_ind][-1],
+                    response[:, response_ind,regression_ind][-1],
+                    'ro'
+                )
                 sns.lineplot(
                     x=intensity_pred[:, response_ind, regression_ind],
                     y=mu_map[:, response_ind, regression_ind],
@@ -291,6 +297,11 @@ class ActiveReLU(GammaModel):
                     color=response_color,
                     ax=ax
                 )
+                ax.plot(
+                    intensity[:, response_ind,
+                    regression_ind][-1],response[:, response_ind,regression_ind][-1],
+                    'ro'
+                )
                 sns.lineplot(
                     x=intensity_pred[:, response_ind, regression_ind],
                     y=obs_map[:, response_ind, regression_ind],
@@ -308,7 +319,7 @@ class ActiveReLU(GammaModel):
                 ax.sharey(axes[response_ind, j - 1])
                 j += 1
 
-                ax = axes[response_ind, 2]
+                ax = axes[regression_ind, j]
                 sns.kdeplot(
                     a[:, response_ind, regression_ind],
                     color="green",
@@ -330,7 +341,7 @@ class ActiveReLU(GammaModel):
                     linestyle="--"
                 )
                 j += 1
-            axes[regression_ind, 0].set_ylim(bottom=-.001)
+            axes[regression_ind, 0].set_ylim(bottom=-.2)
 
         fig.savefig(destination_path)
         logger.info(f"Saved to {destination_path}")
@@ -548,7 +559,7 @@ def run_inference(df, model):
         logger.info(f"{u}: {v.shape}")
     logger.info(f"time_taken: {time_taken}")
 
-    prediction_df = model.make_prediction_dataset(df=df, num=model.n_grid)
+    prediction_df = model.make_prediction_dataset(df=df, num=model.n_grid, min_intensity=0, max_intensity=99)
     posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
     for u, v in posterior_predictive.items():
         logger.info(f"{u}: {v.shape}")
@@ -573,29 +584,76 @@ def run_inference(df, model):
         destination_path=dest
     )
 
-    # logger.info(f"swapped: {np.swapaxes(intensity_pred, 0, -1).shape}")
-    # logger.info(f"tiled: {np.tile(intensity, (1, 1, model.n_grid)).shape}")
-    intensity_choices = np.append(
+    intensity_new = intensity_pred.reshape(-1,)
+    intensity_new = np.append(
         np.tile(intensity, (1, 1, model.n_grid)),
-        np.swapaxes(intensity_pred, 0, -1),
+        intensity_new[None, None, :],
         axis=0
     )
-    logger.info(f"intensity_choices: {intensity_choices.shape}")
-    intensity_new = np.tile(intensity_choices, (1, 1, obs.shape[0]))
-    logger.info(f"intensity_choices: {intensity_choices.shape}")
-    response_obs_new = np.append(
-        np.tile(response_obs, (1, 1, model.n_grid * obs.shape[0])),
-        obs.reshape(-1, *obs.shape[2:]).swapaxes(0, -1),
-        axis=0
-    )
+    intensity_new = intensity_new[None, ...]
+    intensity_new = np.tile(intensity_new, (obs.shape[0], 1, 1, 1))
     logger.info(f"intensity_new: {intensity_new.shape}")
+    # logger.info(intensity_new[-1, 0, :])
+
+    response_obs_new = response[None, ...]
+    response_obs_new = np.tile(response_obs_new, (obs.shape[0], 1, 1, model.n_grid))
+    response_obs_new = np.append(
+        response_obs_new,
+        np.swapaxes(obs, 1, -1),
+        axis=1
+    )
     logger.info(f"response_obs_new: {response_obs_new.shape}")
 
-    n_reg = 1000
-    posterior_samples, time_taken = model.run_svi(intensity_new[..., :n_reg], response_obs_new[..., :n_reg])
+    times = []
+    draw_ind = 0
+    x = intensity_new[draw_ind, ...]
+    y = response_obs_new[draw_ind, ...]
+    logger.info(f"x: {x.shape}, y: {y.shape}")
+
+    posterior_samples, time_taken = model.run_inference(x, y)
     for u, v in posterior_samples.items():
         logger.info(f"{u}: {v.shape}")
     logger.info(f"time_taken: {time_taken}")
+    return
+
+    posterior_samples, time_taken = model.run_svi(x, y)
+    for u, v in posterior_samples.items():
+        logger.info(f"{u}: {v.shape}")
+    logger.info(f"time_taken: {time_taken}")
+
+
+
+    prediction_df = model.make_prediction_dataset(df=df, num=model.n_grid, min_intensity=0, max_intensity=99)
+    posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+    for u, v in posterior_predictive.items():
+        logger.info(f"{u}: {v.shape}")
+
+    n_reg_to_plot = 10
+    a = posterior_samples[site.a]        # (n_samples, n_data, n_response, 1)
+    mu = posterior_predictive[site.mu]  # (n_samples, n_grid, n_response, 1)
+    obs = posterior_predictive[site.obs]    # (n_samples, n_data, n_response, 1)
+    intensity = x[..., ::n_reg_to_plot]
+    response = y[..., ::n_reg_to_plot]
+    # logger.info(intensity[-1, 0, :])
+
+    intensity_pred, = model._collect_regressor(df=prediction_df)
+    intensity_pred = np.tile(intensity_pred, (1, 1, n_reg_to_plot))
+    a = a[..., ::n_reg_to_plot]
+    mu = mu[..., ::n_reg_to_plot]
+    obs = obs[..., ::n_reg_to_plot]
+    logger.info(f"intensity: {intensity.shape}, response: {response.shape}")
+    logger.info(f"intensity_pred: {intensity_pred.shape}, a: {a.shape}")
+    logger.info(f"mu: {mu.shape}, obs: {obs.shape}")
+    dest = os.path.join(model.build_dir, f"draw_{draw_ind}.png")
+    model.render_recruitment_curves(
+        intensity=intensity,
+        response=response,
+        intensity_pred=intensity_pred,
+        a=a,
+        mu=mu,
+        obs=obs,
+        destination_path=dest
+    )
 
     # prediction_df = model.make_prediction_dataset(df=df, num=model.n_grid)
     # posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
@@ -617,7 +675,7 @@ def main():
     ind = \
         (simulation_df[simulator.features[0]] < n_subjects) & \
         (simulation_df[REP] < n_reps) & \
-        (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+        (simulation_df[simulator.intensity].isin(pulses_map[n_pulses][::10]))
 
     simulation_df = simulation_df[ind].reset_index(drop=True).copy()
     ppd_a = simulation_ppd[site.a][:, 0, :]
