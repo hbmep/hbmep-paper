@@ -201,38 +201,49 @@ class ActiveReLU(GammaModel):
     def __init__(self, config: Config):
         super(ActiveReLU, self).__init__(config=config)
         self.n_steps = 2000
-        self.n_grid = 10
+        self.n_grid = 100
 
     def _collect_regressor(self, df):
         intensity = df[self.intensity].to_numpy().reshape(-1,)
         intensity = intensity.reshape(-1, 1)
         intensity = np.tile(intensity, (1, self.n_response))
+        intensity = intensity[..., None]
         return intensity,
 
     def _collect_response(self, df):
         response = df[self.response].to_numpy()
+        response = response[..., None]
         return response,
 
     def render_recruitment_curves(
         self,
-        df,
-        encoder_dict = None,
-        posterior_samples = None,
-        prediction_df = None,
-        posterior_predictive = None,
+        intensity,
+        response,
+        intensity_pred,
+        a = None,
+        mu = None,
+        obs = None,
         destination_path = None
     ):
-        a = posterior_samples[site.a]
-        mu = posterior_predictive[site.mu]
-        obs = posterior_predictive[site.obs]
+        # intensity (n_data, n_response, n_regressions)
+        # response (n_data, n_response, n_regressions)
+        # intensity_pred (n_grid, n_response, n_regressions)
         a_map = a.mean(axis=0)
         mu_map = mu.mean(axis=0)
         obs_map = obs.mean(axis=0)
         a_hpdi = hpdi(a, prob=.95)
         mu_hpdi = hpdi(mu, prob=.95)
         obs_hpdi = hpdi(obs, prob=.95)
+        logger.info(f"intensity: {intensity.shape}, response: {response.shape}")
+        logger.info(f"intensity_pred: {intensity_pred.shape}, a: {a.shape}")
+        logger.info(f"mu: {mu.shape}, obs: {obs.shape}")
+        logger.info(f"a_map: {a_map.shape}, mu_map: {mu_map.shape}, obs_map: {obs_map.shape}")
+        logger.info(f"a_hpdi: {a_hpdi.shape}, mu_hpdi: {mu_hpdi.shape}, obs_hpdi: {obs_hpdi.shape}")
 
-        nrows, ncols = self.n_response, 3
+        n_regressions = obs.shape[-1]
+        n_response = obs.shape[-2]
+
+        nrows, ncols = n_regressions, 3 * n_response
         fig, axes = plt.subplots(
             nrows=nrows,
             ncols=ncols,
@@ -243,77 +254,79 @@ class ActiveReLU(GammaModel):
             constrained_layout=True,
             squeeze=False
         )
-        for response_ind, response in enumerate(self.response):
-            response_color = self.response_colors[response_ind]
-            ax = axes[response_ind, 0]
-            sns.scatterplot(
-                data=df,
-                x=self.intensity,
-                y=response,
-                color=response_color,
-                ax=ax
-            )
-            sns.lineplot(
-                data=prediction_df,
-                x=self.intensity,
-                y=mu_map[:, response_ind],
-                color=response_color,
-                ax=ax
-            )
-            sns.kdeplot(
-                a[:, response_ind],
-                color="green",
-                ax=ax
-            )
-            ax.sharex(axes[0, 0])
+        for regression_ind in range(n_regressions):
+            j = 0
+            for response_ind in range(n_response):
+                response_color = self.response_colors[response_ind]
+                ax = axes[regression_ind, j]
+                sns.scatterplot(
+                    x=intensity[:, response_ind, regression_ind],
+                    y=response[:, response_ind, regression_ind],
+                    color=response_color,
+                    ax=ax
+                )
+                sns.lineplot(
+                    x=intensity_pred[:, response_ind, regression_ind],
+                    y=mu_map[:, response_ind, regression_ind],
+                    color=response_color,
+                    ax=ax
+                )
+                sns.kdeplot(
+                    a[:, response_ind, regression_ind],
+                    color="green",
+                    ax=ax
+                )
+                ax.sharex(axes[0, 0])
+                j += 1
 
-            ax = axes[response_ind, 1]
-            sns.scatterplot(
-                data=df,
-                x=self.intensity,
-                y=response,
-                color=response_color,
-                ax=ax
-            )
-            sns.lineplot(
-                data=prediction_df,
-                x=self.intensity,
-                y=obs_map[:, response_ind],
-                color=response_color,
-                ax=ax
-            )
-            ax.fill_between(
-                prediction_df[self.intensity].values,
-                obs_hpdi[0, :, response_ind],
-                obs_hpdi[1, :, response_ind],
-                color="C0",
-                alpha=.4
-            )
-            ax.sharex(axes[0, 0])
-            ax.sharey(axes[response_ind, 0])
+                ax = axes[regression_ind, j]
+                sns.scatterplot(
+                    x=intensity[:, response_ind, regression_ind],
+                    y=response[:, response_ind, regression_ind],
+                    color=response_color,
+                    ax=ax
+                )
+                sns.lineplot(
+                    x=intensity_pred[:, response_ind, regression_ind],
+                    y=obs_map[:, response_ind, regression_ind],
+                    color=response_color,
+                    ax=ax
+                )
+                ax.fill_between(
+                    intensity_pred[:, response_ind, regression_ind],
+                    obs_hpdi[0, :, response_ind, regression_ind],
+                    obs_hpdi[1, :, response_ind, regression_ind],
+                    color="C0",
+                    alpha=.4
+                )
+                ax.sharex(axes[0, 0])
+                ax.sharey(axes[response_ind, j - 1])
+                j += 1
 
-            ax = axes[response_ind, 2]
-            sns.kdeplot(
-                a[:, response_ind],
-                color="green",
-                ax=ax
-            )
-            ax.axvline(
-                a_map[response_ind],
-                color="k",
-                linestyle="--"
-            )
-            ax.axvline(
-                a_hpdi[0, response_ind],
-                color="green",
-                linestyle="--"
-            )
-            ax.axvline(
-                a_hpdi[1, response_ind],
-                color="green",
-                linestyle="--"
-            )
-        axes[0, 0].set_ylim(bottom=-.001)
+                ax = axes[response_ind, 2]
+                sns.kdeplot(
+                    a[:, response_ind, regression_ind],
+                    color="green",
+                    ax=ax
+                )
+                ax.axvline(
+                    a_map[response_ind, regression_ind],
+                    color="k",
+                    linestyle="--"
+                )
+                ax.axvline(
+                    a_hpdi[0, response_ind, regression_ind],
+                    color="green",
+                    linestyle="--"
+                )
+                ax.axvline(
+                    a_hpdi[1, response_ind, regression_ind],
+                    color="green",
+                    linestyle="--"
+                )
+                j += 1
+            axes[regression_ind, 0].set_ylim(bottom=-.001)
+
         fig.savefig(destination_path)
         logger.info(f"Saved to {destination_path}")
         return
@@ -330,67 +343,128 @@ class ActiveReLU(GammaModel):
                 columns=[self.intensity]
             )
         )
-        logger.info(pred_df.head())
         return pred_df
 
+    # def _model(self, intensity, response_obs=None):
+    #     # intensity (n_data, n_response)
+    #     # response_obs (n_data, n_response)
+    #     n_data = intensity.shape[0]
+
+    #     with numpyro.plate(site.n_response, self.n_response):
+    #         """ Hyper-priors """
+    #         a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 20., low=0))
+    #         a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+
+    #         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+    #         L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+
+    #         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+    #         c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+
+    #         """ Priors """
+    #         a = numpyro.sample(
+    #             site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
+    #         )
+
+    #         b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
+    #         L = numpyro.sample(site.L, dist.HalfNormal(L_scale))
+
+    #         c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
+    #         c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
+
+    #     with numpyro.plate(site.n_response, self.n_response):
+    #         with numpyro.plate(site.n_data, n_data):
+    #             """ Model """
+    #             mu = numpyro.deterministic(
+    #                 site.mu,
+    #                 F.relu(
+    #                     x=intensity,
+    #                     a=a,
+    #                     b=b,
+    #                     L=L,
+    #                 )
+    #             )
+    #             beta = numpyro.deterministic(
+    #                 site.beta,
+    #                 self.rate(
+    #                     mu,
+    #                     c_1,
+    #                     c_2,
+    #                 )
+    #             )
+    #             alpha = numpyro.deterministic(
+    #                 site.alpha,
+    #                 self.concentration(mu, beta)
+    #             )
+
+    #             """ Observation """
+    #             numpyro.sample(
+    #                 site.obs,
+    #                 dist.Gamma(concentration=alpha, rate=beta),
+    #                 obs=response_obs
+    #             )
+
     def _model(self, intensity, response_obs=None):
-        # intensity (n_data, n_response)
-        # response_obs (n_data, n_response)
+        # intensity (n_data, n_response, n_regressions)
+        # response_obs (n_data, n_response, n_regressions)
         n_data = intensity.shape[0]
+        n_regressions = intensity.shape[-1]
 
-        with numpyro.plate(site.n_response, self.n_response):
-            """ Hyper-priors """
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 20., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+        with numpyro.plate("n_regressions", n_regressions):
+            with numpyro.plate(site.n_response, self.n_response):
+                """ Hyper-priors """
+                a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 20., low=0))
+                a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
 
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+                b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+                L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
 
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+                c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+                c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
 
-            """ Priors """
-            a = numpyro.sample(
-                site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
-            )
+                """ Priors """
+                a = numpyro.sample(
+                    site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
+                )
 
-            b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
-            L = numpyro.sample(site.L, dist.HalfNormal(L_scale))
+                b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
+                L = numpyro.sample(site.L, dist.HalfNormal(L_scale))
 
-            c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
-            c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
+                c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
+                c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
 
-        with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate(site.n_data, n_data):
-                """ Model """
-                mu = numpyro.deterministic(
-                    site.mu,
-                    F.relu(
-                        x=intensity,
-                        a=a,
-                        b=b,
-                        L=L,
+        with numpyro.plate("n_regressions", n_regressions):
+            with numpyro.plate(site.n_response, self.n_response):
+                with numpyro.plate(site.n_data, n_data):
+                    """ Model """
+                    mu = numpyro.deterministic(
+                        site.mu,
+                        F.relu(
+                            x=intensity,
+                            a=a,
+                            b=b,
+                            L=L,
+                        )
                     )
-                )
-                beta = numpyro.deterministic(
-                    site.beta,
-                    self.rate(
-                        mu,
-                        c_1,
-                        c_2,
+                    beta = numpyro.deterministic(
+                        site.beta,
+                        self.rate(
+                            mu,
+                            c_1,
+                            c_2,
+                        )
                     )
-                )
-                alpha = numpyro.deterministic(
-                    site.alpha,
-                    self.concentration(mu, beta)
-                )
+                    alpha = numpyro.deterministic(
+                        site.alpha,
+                        self.concentration(mu, beta)
+                    )
 
-                """ Observation """
-                numpyro.sample(
-                    site.obs,
-                    dist.Gamma(concentration=alpha, rate=beta),
-                    obs=response_obs
-                )
+                    """ Observation """
+                    numpyro.sample(
+                        site.obs,
+                        dist.Gamma(concentration=alpha, rate=beta),
+                        obs=response_obs
+                    )
 
     def run_svi(self, intensity, response_obs):
         logger.info(f"Running SVI ...")
@@ -414,13 +488,11 @@ class ActiveReLU(GammaModel):
             intensity,
             response_obs=response_obs
         )
-        svi_state, loss = svi_step(svi_state)
+        svi_state, _ = svi_step(svi_state)
 
-        losses = [loss]
         start = time.time()
         for step in range(self.n_steps):
-            svi_state, loss = svi_step(svi_state)
-            losses.append(loss)
+            svi_state, _ = svi_step(svi_state)
         end = time.time()
         time_taken = end - start
         time_taken = np.array(time_taken)
@@ -431,8 +503,8 @@ class ActiveReLU(GammaModel):
             num_samples=4000
         )
         posterior_samples = predictive(self.rng_key, intensity)
-        # posterior_samples = {u: np.array(v) for u, v in posterior_samples.items()}
-        return posterior_samples
+        posterior_samples = {u: np.array(v) for u, v in posterior_samples.items()}
+        return posterior_samples, time_taken
 
 
 import os
@@ -448,63 +520,66 @@ BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms-active-learn/
 
 
 def run_inference(df, model):
-    intensity, = model._collect_regressor(df=df)    # (n_data, n_response)
-    response_obs, = model._collect_response(df=df)  # (n_data, n_response)
-    posterior_samples = model.run_svi(intensity, response_obs)
+    intensity, = model._collect_regressor(df=df)    # (n_data, n_response, 1)
+    response_obs, = model._collect_response(df=df)  # (n_data, n_response, 1)
+    posterior_samples, time_taken = model.run_svi(intensity, response_obs)
+    for u, v in posterior_samples.items():
+        logger.info(f"{u}: {v.shape}")
+    logger.info(f"time_taken: {time_taken}")
 
     prediction_df = model.make_prediction_dataset(df=df, num=model.n_grid)
     posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
     for u, v in posterior_predictive.items():
         logger.info(f"{u}: {v.shape}")
+
+    intensity, = model._collect_regressor(df=df)    # (n_data, n_response, 1)
+    response, = model._collect_response(df=df)  # (n_data, n_response, 1)
+    intensity_pred, = model._collect_regressor(df=prediction_df)     # (n_grid, n_response, 1)
+    a = posterior_samples[site.a]        # (n_samples, n_data, n_response, 1)
+    mu = posterior_predictive[site.mu]  # (n_samples, n_grid, n_response, 1)
+    obs = posterior_predictive[site.obs]    # (n_samples, n_data, n_response, 1)
+    logger.info(f"intensity: {intensity.shape}, response: {response.shape}")
+    logger.info(f"intensity_pred: {intensity_pred.shape}, a: {a.shape}")
+    logger.info(f"mu: {mu.shape}, obs: {obs.shape}")
     dest = os.path.join(model.build_dir, "recruitment_curves.png")
     model.render_recruitment_curves(
-        df=df, posterior_samples=posterior_samples,
-        prediction_df=prediction_df, posterior_predictive=posterior_predictive,
+        intensity=intensity,
+        response=response,
+        intensity_pred=intensity_pred,
+        a=a,
+        mu=mu,
+        obs=obs,
         destination_path=dest
     )
 
-    obs = posterior_predictive[site.obs]    # (n_samples, n_data, n_response)
-    intensity = intensity[None, None, ...]  # (1, 1, n_data, n_response)
-    intensity = np.tile(intensity, (obs.shape[0], model.n_grid, 1, 1))  # (n_samples, n_grid, n_data, n_response)
+    # logger.info(f"swapped: {np.swapaxes(intensity_pred, 0, -1).shape}")
+    # logger.info(f"tiled: {np.tile(intensity, (1, 1, model.n_grid)).shape}")
+    intensity_choices = np.append(
+        np.tile(intensity, (1, 1, model.n_grid)),
+        np.swapaxes(intensity_pred, 0, -1),
+        axis=0
+    )
+    logger.info(f"intensity_choices: {intensity_choices.shape}")
+    intensity_new = np.tile(intensity_choices, (1, 1, obs.shape[0]))
+    logger.info(f"intensity_choices: {intensity_choices.shape}")
+    response_obs_new = np.append(
+        np.tile(response_obs, (1, 1, model.n_grid * obs.shape[0])),
+        obs.reshape(-1, *obs.shape[2:]).swapaxes(0, -1),
+        axis=0
+    )
+    logger.info(f"intensity_new: {intensity_new.shape}")
+    logger.info(f"response_obs_new: {response_obs_new.shape}")
 
-    grid, = model._collect_regressor(df=prediction_df)  # (n_grid, n_response)
-    grid = grid[None, :, None, :]   # (1, n_grid, 1, n_response)
-    grid = np.tile(grid, (obs.shape[0], 1, 1, 1))  # (n_samples, n_grid, 1, n_response)
-    logger.info(f"intensity: {intensity.shape}, grid: {grid.shape}")
+    n_reg = 1000
+    posterior_samples, time_taken = model.run_svi(intensity_new[..., :n_reg], response_obs_new[..., :n_reg])
+    for u, v in posterior_samples.items():
+        logger.info(f"{u}: {v.shape}")
+    logger.info(f"time_taken: {time_taken}")
 
-    response_obs = response_obs[None, None, ...]  # (1, 1, n_data, n_response)
-    response_obs = np.tile(response_obs, (obs.shape[0], model.n_grid, 1, 1))  # (n_samples, n_grid, n_data, n_response)
-
-    obs = obs[..., None, :] # (n_samples, n_data, 1, n_response)
-
-    intensity_concat = np.append(intensity, grid, axis=-2)  # (n_samples, n_grid, n_data + 1, n_response)
-    response_obs_concat = np.append(response_obs, obs, axis=-2)  # (n_samples, n_grid, n_data + 1, n_response
-    logger.info(f"intensity_concat: {intensity_concat.shape}")
-    logger.info(f"response_obs_concat: {response_obs_concat.shape}")
-
-    intensity_concat = intensity_concat[0, ...]
-    response_obs_concat = response_obs_concat[0, ...]
-    logger.info(f"intensity_concat: {intensity_concat.shape}")
-    logger.info(f"response_obs_concat: {response_obs_concat.shape}")
-
-    intensity_concat = intensity_concat[0:1, ...]
-    response_obs_concat = response_obs_concat[0:1, ...]
-    logger.info(f"intensity_concat: {intensity_concat.shape}")
-    logger.info(f"response_obs_concat: {response_obs_concat.shape}")
-
-    model.run_svi(intensity_concat, response_obs_concat)
-    # losses, posterior_samples, time_taken = pmap(
-    #     model.run_svi,
-    #     in_axes=0,
-    # )(intensity_concat, intensity_concat)
-    # posterior_samples = pmap(
-    #     model.run_svi,
-    #     in_axes=0,
-    # )(intensity_concat, intensity_concat)
-    posterior_samples = vmap(
-        model.run_svi,
-        in_axes=0,
-    )(intensity_concat, intensity_concat)
+    # prediction_df = model.make_prediction_dataset(df=df, num=model.n_grid)
+    # posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+    # for u, v in posterior_predictive.items():
+    #     logger.info(f"{u}: {v.shape}")
     return
 
 def main():
@@ -549,4 +624,9 @@ def main():
 
 
 if __name__ == "__main__":
+    # import jax
+    # print(jax.device_count())
+    # print(jax.devices())
+    # n_devices = jax.local_device_count()
+    # print(n_devices)
     main()
