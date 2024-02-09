@@ -23,6 +23,11 @@ from hbmep.model.utils import Site as site
 
 logger = logging.getLogger(__name__)
 
+import jax
+# PLATFORM = "cuda"
+# jax.config.update("jax_platforms", PLATFORM)
+# numpyro.set_platform(PLATFORM)
+jax.config.update("jax_enable_x64", False)
 
 class ReLU(GammaModel):
     NAME = "relu"
@@ -465,6 +470,22 @@ class ActiveReLU(GammaModel):
                         dist.Gamma(concentration=alpha, rate=beta),
                         obs=response_obs
                     )
+
+    def run_inference(self, intensity, response_obs):
+        """ Set up sampler """
+        sampler = NUTS(self._model)
+        mcmc = MCMC(sampler, **self.mcmc_params, progress_bar=False)
+
+        """ Run MCMC inference """
+        logger.info(f"Running inference with {self.NAME} ...")
+        start = time.time()
+        mcmc.run(self.rng_key, intensity, response_obs)
+        end = time.time()
+        time_taken = end - start
+        time_taken = np.array(time_taken)
+        posterior_samples = mcmc.get_samples()
+        posterior_samples = {k: np.array(v) for k, v in posterior_samples.items()}
+        return posterior_samples, time_taken
 
     def run_svi(self, intensity, response_obs):
         logger.info(f"Running SVI ...")
