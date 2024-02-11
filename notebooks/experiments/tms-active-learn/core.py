@@ -175,7 +175,16 @@ def main():
         logger.info(f"intensity_new: {intensity_new.shape}")
         logger.info(f"response_obs_new: {response_obs_new.shape}")
 
-        posterior_samples, time_taken_post = model.run_svi(intensity_new, response_obs_new)
+        logger.info(response_obs_new.min())
+        logger.info((response_obs_new == 0).sum())
+        # Run inference
+        match method:
+            case "mcmc":
+                posterior_samples, time_taken_post = model.run_inference(intensity_new, response_obs_new)
+            case "svi":
+                posterior_samples, time_taken_post = model.run_svi(intensity_new, response_obs_new)
+            case _:
+                raise ValueError(f"Invalid method: {method}")
         logger.info(f"Post: Time taken: {time_taken_post} seconds")
         np.save(os.path.join(model.build_dir, "time_taken.npy"), np.array([time_taken_pre, time_taken_post]))
 
@@ -209,8 +218,9 @@ def main():
     #     n_subjects=N_SUBJECTS
     # )
 
-    n_draws_space = ppd_obs.shape[0]
-    for draw in range(n_draws_space):
+    n_draws_space = range(ppd_obs.shape[0])
+    n_draws_space = [0]
+    for draw in n_draws_space:
         run_experiment(
             method="mcmc",
             draw=draw,

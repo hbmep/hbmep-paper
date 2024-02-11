@@ -22,7 +22,7 @@ from hbmep.model import functional as F
 from hbmep.model.utils import Site as site
 
 logger = logging.getLogger(__name__)
-PROGRESS_BAR = False
+PROGRESS_BAR = True
 
 import jax
 jax.config.update("jax_enable_x64", False)
