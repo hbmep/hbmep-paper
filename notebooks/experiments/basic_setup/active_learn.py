@@ -396,18 +396,28 @@ def main():
                     candidate_y_at_this_int[:, ix_intensity, ix_muscle] = y_grid
 
             vec_candidate_int_flattened = np.tile(vec_candidate_int[None, :, None], [N_obs, 1, 1]).reshape(-1, 1)
-            candidate_y_at_this_int_flattened = candidate_y_at_this_int.reshape(-1, 2)
+            candidate_y_at_this_int_flattened = candidate_y_at_this_int.reshape(-1, n_muscles)
 
             simulation_df_future = simulation_df_happened.copy()  # just an empty template
             # would be great to init the MCMC chains with the previous full fit (or fit of previous parallel op)
-            with Parallel(n_jobs=-1) as parallel:
-                entropy_list_flattened = parallel(
-                    delayed(fit_lookahead_wrapper)(simulation_df_future,
+            do_parallel = True  # easier to debug non-parallel
+            if do_parallel:
+                with Parallel(n_jobs=-1) as parallel:
+                    entropy_list_flattened = parallel(
+                        delayed(fit_lookahead_wrapper)(simulation_df_future,
+                                                       vec_candidate_int_flattened[ix_sample],
+                                                       candidate_y_at_this_int_flattened[ix_sample],
+                                                       config_fast, opt_param)
+                        for ix_sample in range(vec_candidate_int_flattened.shape[0])
+                    )
+            else:
+                entropy_list_flattened = []
+                for ix_sample in range(vec_candidate_int_flattened.shape[0]):
+                    entropy_list_flattened.append(fit_lookahead_wrapper(simulation_df_future,
                                                    vec_candidate_int_flattened[ix_sample],
                                                    candidate_y_at_this_int_flattened[ix_sample],
-                                                   config_fast, opt_param)
-                    for ix_sample in range(vec_candidate_int_flattened.shape[0])
-                )
+                                                   config_fast, opt_param))
+
             op_shape = list(candidate_y_at_this_int.shape[:-1])
             op_shape.append(n_muscles)
             entropy_list = np.array(entropy_list_flattened).reshape(op_shape)

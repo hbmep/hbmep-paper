@@ -1,12 +1,12 @@
 [paths]
 csv = ""
-build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test24_N30_single_muscle_a"
+build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test30_a_2muscles_identical/"
 
 [vars]
 features = [["participant", "participant_condition"]]
 intensity = "TMSInt"
-# response = ['PKPK_ECR', 'PKPK_FCR']
- response = ['PKPK_ECR']
+response = ['PKPK_ECR', 'PKPK_ECR']
+# response = ['PKPK_ECR']
 
 [mcmc]
 chains = 8  # !

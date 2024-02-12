@@ -9,7 +9,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 import time
 from numpyro.infer import MCMC, NUTS
-
+# from hbmep.config import Config
+# numpyro.set_host_device_count(14)
 
 def relu(x, a, b, L):
     return (
@@ -34,7 +35,6 @@ def model(x, y=None):
 
         with numpyro.plate('data', n):
             numpyro.sample('obs', dist.Normal(mean, sigma), obs=y)
-
 
 
 # Generating synthetic data
