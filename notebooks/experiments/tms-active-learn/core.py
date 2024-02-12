@@ -101,7 +101,7 @@ def main():
             fname="logs"
         )
 
-        df, encoder_dict = model.load(df=df)
+        df, _ = model.load(df=df)
         intensity, = model._collect_regressor(df=df)
         response_obs, = model._collect_response(df=df)
 

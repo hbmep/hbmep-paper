@@ -57,7 +57,7 @@ def main():
     # logger.info(f"Time: {len(time)}")
     mae = np.array(mae).reshape(len(methods_space), len(draws_space))
     mse = np.array(mse).reshape(len(methods_space), len(draws_space))
-    time = np.array(time).reshape(2, len(methods_space), len(draws_space))
+    time = np.array(time).reshape(len(methods_space), len(draws_space), 2)
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"Time: {time.shape}")
@@ -65,9 +65,9 @@ def main():
     for method_ind, method in enumerate(methods_space):
         msg = f"MAE: {method} mean:{mae[method_ind, ...].mean()} sem:{stats.sem(mae[method_ind, ...])}"
         logger.info(msg)
-        msg = f"Pre Time: {method} mean: {time[0, method_ind, ...].mean():.3f} sec, sdev:{np.std(time[0, method_ind, ...]):.3f} sec"
+        msg = f"Pre Time: {method} mean: {time[method_ind, ..., 0].mean():.3f} sec, sdev:{np.std(time[method_ind, ..., 0]):.3f} sec"
         logger.info(msg)
-        msg = f"Post Time: {method} mean: {time[1, method_ind, ...].mean():.3f} sec, sdev:{np.std(time[1, method_ind, ...]):.3f} sec"
+        msg = f"Post Time: {method} mean: {time[method_ind, ..., 1].mean():.3f} sec, sdev:{np.std(time[method_ind, ..., 1]):.3f} sec"
         logger.info(msg)
     return
 
