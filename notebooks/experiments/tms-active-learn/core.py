@@ -1,5 +1,6 @@
 import os
 import gc
+import time
 import pickle
 import logging
 
@@ -147,10 +148,10 @@ def main():
         posterior_predictive = {
             u: v[ind, ...][:N_OBS, ...] for u, v in posterior_predictive.items()
         }
-        for u, v in posterior_samples.items():
-            logger.info(f"{u}: {v.shape}")
-        for u, v in posterior_predictive.items():
-            logger.info(f"{u}: {v.shape}")
+        # for u, v in posterior_samples.items():
+        #     logger.info(f"{u}: {v.shape}")
+        # for u, v in posterior_predictive.items():
+        #     logger.info(f"{u}: {v.shape}")
 
         obs = posterior_predictive[site.obs]
         intensity_new = intensity_pred.reshape(-1,)
@@ -172,17 +173,52 @@ def main():
         response_obs_new = np.moveaxis(response_obs_new, 0, -1)
         intensity_new = intensity_new.reshape(*intensity_new.shape[:-2], -1)
         response_obs_new = response_obs_new.reshape(*response_obs_new.shape[:-2], -1)
+        # intensity_new = intensity_new[..., :5]
+        # response_obs_new = response_obs_new[..., :5]
         logger.info(f"intensity_new: {intensity_new.shape}")
         logger.info(f"response_obs_new: {response_obs_new.shape}")
 
-        logger.info(response_obs_new.min())
-        logger.info((response_obs_new == 0).sum())
         # Run inference
         match method:
             case "mcmc":
-                posterior_samples, time_taken_post = model.run_inference(intensity_new, response_obs_new)
+                def _run_inference(regression_ind):
+                    regression_dir = os.path.join(model.build_dir, f"regression_{regression_ind}")
+                    os.makedirs(regression_dir, exist_ok=True)
+                    posterior_samples, _ = model.run_inference(intensity_new[..., regression_ind], response_obs_new[..., regression_ind])
+                    dest = os.path.join(regression_dir, "inference.pkl")
+                    with open(dest, "wb") as g:
+                        pickle.dump((posterior_samples,), g)
+
+                start = time.time()
+                with Parallel(n_jobs=-1) as parallel:
+                    parallel(
+                        delayed(_run_inference)(regression_ind)
+                        for regression_ind in range(intensity_new.shape[-1])
+                    )
+                end = time.time()
+                time_taken_post = end - start
+
+                posterior_samples = None
+                for regression_ind in range(intensity_new.shape[-1]):
+                    regression_dir = os.path.join(model.build_dir, f"regression_{regression_ind}")
+                    src = os.path.join(regression_dir, "inference.pkl")
+                    with open(src, "rb") as g:
+                        _posterior_samples, = pickle.load(g)
+                    if posterior_samples is None:
+                        posterior_samples = _posterior_samples
+                    else:
+                        for u, v in _posterior_samples.items():
+                            posterior_samples[u] = np.concatenate([posterior_samples[u], v], axis=-1)
+                # for u, v in posterior_samples.items():
+                #     logger.info(f"{u}: {v.shape}")
+
+                regression_dir, _posterior_samples = None, None
+                del regression_dir, _posterior_samples
+                gc.collect()
+
             case "svi":
                 posterior_samples, time_taken_post = model.run_svi(intensity_new, response_obs_new)
+
             case _:
                 raise ValueError(f"Invalid method: {method}")
         logger.info(f"Post: Time taken: {time_taken_post} seconds")
@@ -193,8 +229,8 @@ def main():
             for u, v in posterior_samples.items()
         }
         posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
-        for u, v in posterior_predictive.items():
-            logger.info(f"{u}: {v.shape}")
+        # for u, v in posterior_predictive.items():
+        #     logger.info(f"{u}: {v.shape}")
         dest = os.path.join(model.build_dir, "post.png")
         model.render_recruitment_curves(
             intensity=intensity_new[..., ::N_OBS][..., ::10],
@@ -208,6 +244,11 @@ def main():
         )
 
 
+        ind, df, config, model, intensity, response_obs, posterior_samples, time_taken_pre, prediction_df, posterior_predictive, intensity_pred, a_true, a_pred, time_taken_post, obs, intensity_new, response_obs_new, = tuple([None] * 17)
+        del ind, df, config, model, intensity, response_obs, posterior_samples, time_taken_pre, prediction_df, posterior_predictive, intensity_pred, a_true, a_pred, time_taken_post, obs, intensity_new, response_obs_new
+        gc.collect()
+
+
     # # Run experiment
     # run_experiment(
     #     method="mcmc",
@@ -219,10 +260,9 @@ def main():
     # )
 
     n_draws_space = range(ppd_obs.shape[0])
-    n_draws_space = [0]
     for draw in n_draws_space:
         run_experiment(
-            method="mcmc",
+            method="svi",
             draw=draw,
             M=ActiveReLU,
             n_reps=N_REPS,

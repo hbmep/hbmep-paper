@@ -22,6 +22,8 @@ EXPERIMENT_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms-active-l
 def main():
     draws_space = range(50)
     methods_space = ["svi"]
+    # draws_space = range(5)
+    # methods_space = ["mcmc"]
     M = ActiveReLU
 
     """ Results """
