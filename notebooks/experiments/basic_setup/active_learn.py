@@ -207,6 +207,7 @@ def main():
     N_reps = 1  # if N_max = 50, then good choices are 1, 2, 5, 10
     N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
     range_min, range_max = 0, 100
+    do_parallel = True  # easier to debug non-parallel
     assert N_obs % 2 != 0, "Better if N_obs is odd."
     if choose_interp:
         vec_intensity_lin = create_max_diff_sequence(min_range=range_min, max_range=range_max, N=int(np.ceil(N_max/N_reps) + 1))
@@ -386,6 +387,7 @@ def main():
             # pct_of_chain = np.linspace(0, 100, N_obs + 2)[1:-1]
             # candidate_y_at_this_int = np.percentile(posterior_predictive['obs'], pct_of_chain, axis=0)
             candidate_y_at_this_int = np.zeros((N_obs, len(vec_candidate_int), n_muscles))
+            int_at_this_int = np.zeros((N_obs, len(vec_candidate_int), n_muscles))
             for ix_intensity in range(len(vec_candidate_int)):
                 for ix_muscle in range(n_muscles):
                     samples = posterior_predictive['obs'][:, ix_intensity, ix_muscle]
@@ -394,13 +396,14 @@ def main():
                     # or you could use percentile spacing, then correct for it in the integration (but was not obvious)
                     y_grid = np.linspace(np.percentile(samples, 2.5), np.percentile(samples, 97.5), N_obs)
                     candidate_y_at_this_int[:, ix_intensity, ix_muscle] = y_grid
+                    int_at_this_int[:, ix_intensity, ix_muscle] = vec_candidate_int[ix_intensity]  # just so it can use the same reshape code next
 
-            vec_candidate_int_flattened = np.tile(vec_candidate_int[None, :, None], [N_obs, 1, 1]).reshape(-1, 1)
+            # vec_candidate_int_flattened = np.tile(vec_candidate_int[None, :, None], [N_obs, 1, 1]).reshape(-1, 1)
+            vec_candidate_int_flattened = int_at_this_int.reshape(-1, n_muscles)
             candidate_y_at_this_int_flattened = candidate_y_at_this_int.reshape(-1, n_muscles)
 
             simulation_df_future = simulation_df_happened.copy()  # just an empty template
             # would be great to init the MCMC chains with the previous full fit (or fit of previous parallel op)
-            do_parallel = True  # easier to debug non-parallel
             if do_parallel:
                 with Parallel(n_jobs=-1) as parallel:
                     entropy_list_flattened = parallel(
@@ -418,9 +421,9 @@ def main():
                                                    candidate_y_at_this_int_flattened[ix_sample],
                                                    config_fast, opt_param))
 
-            op_shape = list(candidate_y_at_this_int.shape[:-1])
-            op_shape.append(n_muscles)
-            entropy_list = np.array(entropy_list_flattened).reshape(op_shape)
+            op_shape = list(candidate_y_at_this_int.shape)
+            # op_shape.append(n_muscles)
+            entropy_list = np.array(vec_candidate_int_flattened).reshape(op_shape)
             # Estimate the expected entropy E(H(x)) = SUM(H(y|x)p(y|x))dy
             mat_entropy = np.full((len(vec_candidate_int), n_muscles), np.nan)
             for ix_intensity in range(len(vec_candidate_int)):
@@ -443,7 +446,7 @@ def main():
             vec_entropy_diff = mat_entropy_diff.mean(axis=-1)
 
             ix_min_entropy = np.nanargmin(vec_entropy_diff)
-            next_intensity = list_candidate_intensities[ix_min_entropy]
+            next_intensity = vec_candidate_int[ix_min_entropy]
 
             # save some stuff for later debugging
             if not choose_interp:
