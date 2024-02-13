@@ -18,7 +18,7 @@ from numpyro.diagnostics import hpdi
 
 from hbmep.config import Config
 from hbmep.model import GammaModel
-from hbmep.model import functional as F
+import hbmep.functional as F
 from hbmep.model.utils import Site as site
 
 logger = logging.getLogger(__name__)

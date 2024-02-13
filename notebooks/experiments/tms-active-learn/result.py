@@ -20,8 +20,8 @@ EXPERIMENT_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms-active-l
 
 
 def main():
-    draws_space = range(50)
-    methods_space = ["svi"]
+    draws_space = range(4)
+    methods_space = ["mcmc"]
     # draws_space = range(5)
     # methods_space = ["mcmc"]
     M = ActiveReLU
@@ -60,6 +60,7 @@ def main():
     mae = np.array(mae).reshape(len(methods_space), len(draws_space))
     mse = np.array(mse).reshape(len(methods_space), len(draws_space))
     time = np.array(time).reshape(len(methods_space), len(draws_space), 2)
+    logger.info(time)
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"Time: {time.shape}")

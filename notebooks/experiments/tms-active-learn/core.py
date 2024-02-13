@@ -1,6 +1,7 @@
 import os
 import gc
 import time
+import shutil
 import pickle
 import logging
 
@@ -209,6 +210,10 @@ def main():
                     else:
                         for u, v in _posterior_samples.items():
                             posterior_samples[u] = np.concatenate([posterior_samples[u], v], axis=-1)
+
+                for regression_ind in range(intensity_new.shape[-1]):
+                    regression_dir = os.path.join(model.build_dir, f"regression_{regression_ind}")
+                    shutil.rmtree(regression_dir, ignore_errors=True)
                 # for u, v in posterior_samples.items():
                 #     logger.info(f"{u}: {v.shape}")
 
@@ -260,9 +265,10 @@ def main():
     # )
 
     n_draws_space = range(ppd_obs.shape[0])
+    n_draws_space = range(50)
     for draw in n_draws_space:
         run_experiment(
-            method="svi",
+            method="mcmc",
             draw=draw,
             M=ActiveReLU,
             n_reps=N_REPS,

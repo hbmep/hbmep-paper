@@ -3,6 +3,7 @@ csv = ""
 build_dir = "/home/vishu/repos/hbmep-paper/reports/tms/"
 
 [vars]
+# regressors = ["TMSInt", "participant_condition"]
 features = ["participant", "participant_condition"]
 intensity = "TMSInt"
 response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
