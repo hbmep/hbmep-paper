@@ -423,7 +423,7 @@ def main():
 
             op_shape = list(candidate_y_at_this_int.shape)
             # op_shape.append(n_muscles)
-            entropy_list = np.array(vec_candidate_int_flattened).reshape(op_shape)
+            entropy_list = np.array(entropy_list_flattened).reshape(op_shape)
             # Estimate the expected entropy E(H(x)) = SUM(H(y|x)p(y|x))dy
             mat_entropy = np.full((len(vec_candidate_int), n_muscles), np.nan)
             for ix_intensity in range(len(vec_candidate_int)):
