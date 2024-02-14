@@ -63,7 +63,7 @@ def main():
     logger.info(f"Pulses MAE: {pulses_mae.shape}")
 
     nrows, ncols = 1, 2
-    fig, axes = plt.subplots(nrows, ncols, figsize=(4.566, 2.5), constrained_layout=True, squeeze=False)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(4.566, 2.65), constrained_layout=True, squeeze=False)
 
     ax = axes[0, 0]
     x = n_subjects_space
