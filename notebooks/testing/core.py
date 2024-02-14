@@ -29,5 +29,5 @@ df, encoder_dict = model.load(df)
 # print(model.regressors)
 # print(model.response)
 
-model.plot(df=df, encoder_dict=encoder_dict)
-
+# model.plot(df=df, encoder_dict=encoder_dict)
+print(df[model.features].to_numpy().T.shape)

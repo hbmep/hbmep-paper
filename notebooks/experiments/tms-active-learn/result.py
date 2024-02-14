@@ -20,7 +20,7 @@ EXPERIMENT_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms-active-l
 
 
 def main():
-    draws_space = range(4)
+    draws_space = range(1, 15)
     methods_space = ["mcmc"]
     # draws_space = range(5)
     # methods_space = ["mcmc"]
