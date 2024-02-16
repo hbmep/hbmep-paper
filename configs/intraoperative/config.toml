@@ -1,0 +1,21 @@
+[paths]
+csv = ""
+build_dir = "/home/vishu/repos/hbmep-paper/reports/intraoperative/"
+
+[vars]
+features = ["participant", "sc_laterality"]
+intensity = "sc_current"
+response = ["Trapezius", "Deltoid", "Biceps", "Triceps", "APB", "ADM"]
+
+[mcmc]
+chains = 4
+warmup = 5000
+samples = 1000
+
+[model]
+link = "custom"
+
+[custom]
+
+[aesthetics]
+base = 1

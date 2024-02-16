@@ -2,15 +2,20 @@ import os
 import pickle
 import logging
 
-import arviz as az
+import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
 
-from hbmep.config import Config
+import arviz as az
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-from hbmep_paper.utils import setup_logging
+from hbmep.config import Config
+from hbmep.model.utils import Site as site
+
+from hbmep_paper.utils import setup_logging, run_svi
 from models import (
-    MixtureModel,
+    # MixtureModel,
     RectifiedLogistic,
     Logistic5,
     Logistic4,
@@ -18,24 +23,35 @@ from models import (
 )
 
 logger = logging.getLogger(__name__)
+LEVEL = logging.INFO
 
 TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/rats/J_RCML_000.toml"
 DATA_PATH = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
 FEATURES = [["participant", "compound_position"]]
-RESPONSE = ["LADM", "LBiceps", "LTriceps"]
-# RESPONSE = ["LADM", "LBiceps", "LDeltoid", "LFCR", "LTriceps"]
-# BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison/LBiceps"
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison"
+# FEATURES = ["participant", "compound_position"]
+RESPONSE = ["LBiceps", "LECR"]
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/tms/fn-comparison/testing"
 
 
 def run_inference(model):
     # Load data
     df = pd.read_csv(DATA_PATH)
     df, encoder_dict = model.load(df=df)
+    ind = df[model.features[0]].isin([0, 1])
+    df = df[ind].reset_index(drop=True).copy()
 
     # Run inference
-    # model.plot(df=df, encoder_dict=encoder_dict)
-    mcmc, posterior_samples = model.run_inference(df=df)
+    # mcmc, posterior_samples = model.run_inference(df=df)
+    # svi_results, posterior_samples = run_svi(df=df, model=model, **svi_kwargs)
+    svi_result, posterior_samples = run_svi(df=df, model=model, steps=20000, lr=1e-2)
+    # if model.NAME == "rectified_logistic":
+    #     logger.info(f"ell: {posterior_samples[site.ell].mean(axis=0)}")
+
+    losses = np.array(svi_result.losses)
+    plt.plot(losses)
+    dest = os.path.join(model.build_dir, "losses.png")
+    plt.savefig(dest)
+    logger.info(f"Saved to {dest}")
 
     # Predict and render plots
     prediction_df = model.make_prediction_dataset(df=df)
@@ -44,22 +60,19 @@ def run_inference(model):
     model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
 
     # Model evaluation
-    numpyro_data = az.from_numpyro(mcmc)
-    logger.info("Evaluating model ...")
-    score = az.loo(numpyro_data)
-    logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
-    score = az.waic(numpyro_data)
-    logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
+    # numpyro_data = az.from_numpyro(mcmc)
+    # logger.info("Evaluating model ...")
+    # score = az.loo(numpyro_data)
+    # logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
+    # score = az.waic(numpyro_data)
+    # logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
 
-    # Save posterior
-    dest = os.path.join(model.build_dir, "inference.pkl")
-    with open(dest, "wb") as f:
-        pickle.dump((model, mcmc, posterior_samples), f)
-    logger.info(dest)
+    # # Save posterior
+    # dest = os.path.join(model.build_dir, "inference.pkl")
+    # with open(dest, "wb") as f:
+    #     pickle.dump((model, mcmc, posterior_samples), f)
+    # logger.info(dest)
 
-    dest = os.path.join(model.build_dir, "numpyro_data.nc")
-    az.to_netcdf(numpyro_data, dest)
-    logger.info(dest)
     return
 
 
@@ -77,7 +90,8 @@ def main(Model):
     model._make_dir(config.BUILD_DIR)
     setup_logging(
         dir=model.build_dir,
-        fname=os.path.basename(__file__)
+        fname=os.path.basename(__file__),
+        level=LEVEL
     )
 
     # Run inference
@@ -87,7 +101,10 @@ def main(Model):
 
 if __name__ == "__main__":
     # Run single model
-    Model = ReLU
+    # Model = ReLU
+    # Model = Logistic4
+    Model = Logistic5
+    Model = RectifiedLogistic
     main(Model)
 
     # # Run multiple models in parallel

@@ -4,28 +4,19 @@ import logging
 
 import arviz as az
 import pandas as pd
-from joblib import Parallel, delayed
 
 from hbmep.config import Config
 
 from hbmep_paper.utils import setup_logging
-from models import (
-    MixtureModel,
-    RectifiedLogistic,
-    Logistic5,
-    Logistic4,
-    ReLU
-)
+from models import MixtureModel
 
 logger = logging.getLogger(__name__)
 
-TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/rats/J_RCML_000.toml"
-DATA_PATH = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
-FEATURES = [["participant", "compound_position"]]
-RESPONSE = ["LADM", "LBiceps", "LTriceps"]
-# RESPONSE = ["LADM", "LBiceps", "LDeltoid", "LFCR", "LTriceps"]
-# BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison/LBiceps"
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison"
+TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/tms/config.toml"
+DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
+FEATURES = ["participant", "participant_condition"]
+RESPONSE = ['PKPK_APB', 'PKPK_ECR', 'PKPK_FCR']
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/tms/group-comparison"
 
 
 def run_inference(model):
@@ -60,6 +51,7 @@ def run_inference(model):
     dest = os.path.join(model.build_dir, "numpyro_data.nc")
     az.to_netcdf(numpyro_data, dest)
     logger.info(dest)
+
     return
 
 
@@ -68,7 +60,7 @@ def main(Model):
     config = Config(toml_path=TOML_PATH)
     config.FEATURES = FEATURES
     config.RESPONSE = RESPONSE
-    config.BUILD_DIR = os.path.join(BUILD_DIR, Model.NAME)
+    config.BUILD_DIR = os.path.join(BUILD_DIR)
     config.MCMC_PARAMS["num_warmup"] = 5000
     config.MCMC_PARAMS["num_samples"] = 1000
     model = Model(config=config)
@@ -86,12 +78,4 @@ def main(Model):
 
 
 if __name__ == "__main__":
-    # Run single model
-    Model = ReLU
-    main(Model)
-
-    # # Run multiple models in parallel
-    # n_jobs = -1
-    # models = [RectifiedLogistic, Logistic5, Logistic4, ReLU]
-    # with Parallel(n_jobs=n_jobs) as parallel:
-    #     parallel(delayed(main)(Model) for Model in models)
+    main(MixtureModel)
