@@ -68,7 +68,7 @@ def run_svi(
     steps=2000,
     PROGRESS_BAR=True
 ):
-    # optimizer = numpyro.optim.ClippedAdam(step_size=lr, clip_norm=1e10)
+    # optimizer = numpyro.optim.ClippedAdam(step_size=lr)
     optimizer = numpyro.optim.Adam(step_size=lr)
     _guide = numpyro.infer.autoguide.AutoNormal(model._model)
     svi = SVI(
