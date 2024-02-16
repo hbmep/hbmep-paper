@@ -1,15 +1,14 @@
 import numpy as np
-import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
 
 from hbmep.config import Config
-from hbmep.model import BaseModel
+from hbmep.model import GammaModel
 from hbmep.model import functional as F
 from hbmep.model.utils import Site as site
 
 
-class RectifiedLogistic(BaseModel):
+class RectifiedLogistic(GammaModel):
     NAME = "rectified_logistic"
 
     def __init__(self, config: Config):
@@ -81,18 +80,26 @@ class RectifiedLogistic(BaseModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    c_1[feature0, feature1] + jnp.true_divide(c_2[feature0, feature1], mu)
+                    self.rate(
+                        mu,
+                        c_1[feature0, feature1],
+                        c_2[feature0, feature1]
+                    )
+                )
+                alpha = numpyro.deterministic(
+                    site.alpha,
+                    self.concentration(mu, beta)
                 )
 
                 """ Observation """
                 numpyro.sample(
                     site.obs,
-                    dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
+                    dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )
 
 
-class Logistic5(BaseModel):
+class Logistic5(GammaModel):
     NAME = "logistic5"
 
     def __init__(self, config: Config):
@@ -160,18 +167,26 @@ class Logistic5(BaseModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    c_1[feature0, feature1] + jnp.true_divide(c_2[feature0, feature1], mu)
+                    self.rate(
+                        mu,
+                        c_1[feature0, feature1],
+                        c_2[feature0, feature1]
+                    )
+                )
+                alpha = numpyro.deterministic(
+                    site.alpha,
+                    self.concentration(mu, beta)
                 )
 
                 """ Observation """
                 numpyro.sample(
                     site.obs,
-                    dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
+                    dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )
 
 
-class Logistic4(BaseModel):
+class Logistic4(GammaModel):
     NAME = "logistic4"
 
     def __init__(self, config: Config):
@@ -238,18 +253,26 @@ class Logistic4(BaseModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    c_1[feature0, feature1] + jnp.true_divide(c_2[feature0, feature1], mu)
+                    self.rate(
+                        mu,
+                        c_1[feature0, feature1],
+                        c_2[feature0, feature1]
+                    )
+                )
+                alpha = numpyro.deterministic(
+                    site.alpha,
+                    self.concentration(mu, beta)
                 )
 
                 """ Observation """
                 numpyro.sample(
                     site.obs,
-                    dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
+                    dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )
 
 
-class ReLU(BaseModel):
+class ReLU(GammaModel):
     NAME = "relu"
 
     def __init__(self, config: Config):
@@ -306,12 +329,20 @@ class ReLU(BaseModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    c_1[feature0, feature1] + jnp.true_divide(c_2[feature0, feature1], mu)
+                    self.rate(
+                        mu,
+                        c_1[feature0, feature1],
+                        c_2[feature0, feature1]
+                    )
+                )
+                alpha = numpyro.deterministic(
+                    site.alpha,
+                    self.concentration(mu, beta)
                 )
 
                 """ Observation """
                 numpyro.sample(
                     site.obs,
-                    dist.Gamma(concentration=jnp.multiply(mu, beta), rate=beta),
+                    dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )

@@ -10,8 +10,9 @@ import jax
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel, MaximumLikelihoodModelRecLog
+from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
 from core_number_of_subjects import (N_REPS, N_PULSES, EXPERIMENT_NAME)
+from constrained_opt.models import NelderMeadOptimization
 
 logger = logging.getLogger(__name__)
 SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data"
@@ -22,10 +23,9 @@ def main():
     n_reps = N_REPS
     n_pulses = N_PULSES
     n_subjects_space = [1, 4, 8, 16]
-    draws_space = range(600)
-    # models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel]
-    models = [HierarchicalBayesianModel, MaximumLikelihoodModelRecLog]
-    # models = [HierarchicalBayesianModel]
+
+    draws_space = range(2000)
+    models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
 
     """ Results """
     mae = []
@@ -51,7 +51,7 @@ def main():
                     a_pred = a_pred.mean(axis=0).reshape(-1,)
                     a_true = a_true.reshape(-1,)
 
-                elif M.NAME in ["nhbm", "mle", "mle_rec_log"]:
+                elif M.NAME in ["nhbm", "mle"]:
                     n_subjects_dir = f"n{n_subjects_space[-1]}"
                     a_true, a_pred = [], []
 
@@ -59,6 +59,33 @@ def main():
                         sub_dir = f"subject{subject}"
                         dir = os.path.join(
                             EXPERIMENT_DIR,
+                            draw_dir,
+                            n_subjects_dir,
+                            n_reps_dir,
+                            n_pulses_dir,
+                            M.NAME,
+                            sub_dir
+                        )
+                        a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
+                        a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
+
+                        a_pred_sub_map = a_pred_sub.mean(axis=0)
+                        a_true_sub = a_true_sub
+
+                        a_true += a_pred_sub_map.reshape(-1,).tolist()
+                        a_pred += a_true_sub.reshape(-1,).tolist()
+
+                    a_true = np.array(a_true)
+                    a_pred = np.array(a_pred)
+
+                elif M.NAME in ["nelder_mead"]:
+                    n_subjects_dir = f"n{n_subjects_space[-1]}"
+                    a_true, a_pred = [], []
+
+                    for subject in range(n_subjects):
+                        sub_dir = f"subject{subject}"
+                        dir = os.path.join(
+                            "/home/vishu/repos/hbmep-paper/reports/experiments/tms/constrained-opt",
                             draw_dir,
                             n_subjects_dir,
                             n_reps_dir,
@@ -104,11 +131,22 @@ def main():
         ax.errorbar(x=x, y=yme, yerr=ysem, marker="o", label=f"{model.NAME}", linestyle="--", ms=4)
         ax.set_xticks(x)
         ax.legend(loc="upper right")
+        ax.set_xlabel("# Subjects")
+        ax.set_ylabel("MAE")
+        ax.yaxis.set_major_locator(plt.MaxNLocator(3))
+        # ax.set_yticks([1.75, 2.75, 3.75])
 
+    ax.set_title("48 Pulses, 1 Rep, 5000 Draws")
+    ax.get_legend().remove()
+    ax.set_ylim(bottom=0.)
     fig.align_xlabels()
     fig.align_ylabels()
     dest = os.path.join(EXPERIMENT_DIR, "result.png")
     fig.savefig(dest, dpi=600)
+    logger.info(f"Saved to {dest}")
+
+    dest = os.path.join(EXPERIMENT_DIR, "mae.npy")
+    np.save(dest, mae)
     logger.info(f"Saved to {dest}")
     return
 
