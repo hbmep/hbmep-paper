@@ -37,7 +37,7 @@ def run_inference(model):
     # Load data
     df = pd.read_csv(DATA_PATH)
     df, encoder_dict = model.load(df=df)
-    ind = df[model.features[0]].isin([0, 1])
+    ind = df[model.features[0]].isin([0, 1, 10, 12])
     df = df[ind].reset_index(drop=True).copy()
 
     # Run inference
@@ -47,11 +47,11 @@ def run_inference(model):
     # if model.NAME == "rectified_logistic":
     #     logger.info(f"ell: {posterior_samples[site.ell].mean(axis=0)}")
 
-    losses = np.array(svi_result.losses)
-    plt.plot(losses)
-    dest = os.path.join(model.build_dir, "losses.png")
-    plt.savefig(dest)
-    logger.info(f"Saved to {dest}")
+    # losses = np.array(svi_result.losses)
+    # plt.plot(losses)
+    # dest = os.path.join(model.build_dir, "losses.png")
+    # plt.savefig(dest)
+    # logger.info(f"Saved to {dest}")
 
     # Predict and render plots
     prediction_df = model.make_prediction_dataset(df=df)
