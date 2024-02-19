@@ -194,7 +194,7 @@ class RectifiedLogistic(GammaModel):
                 # Observation
                 numpyro.sample(
                     site.obs,
-                    dist.Gamma(concentration=alpha, rate=beta),
+                    dist.Gamma(concentration=1e-6 + alpha, rate=1e-6 + beta),
                     obs=response_obs
                 )
 

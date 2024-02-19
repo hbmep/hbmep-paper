@@ -32,13 +32,16 @@ FEATURES = [["participant", "compound_position"]]
 RESPONSE = ["LBiceps", "LECR"]
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/tms/fn-comparison/testing"
 
+import jax
+print(jax.config.values["jax_enable_x64"])
+
 
 def run_inference(model):
     # Load data
     df = pd.read_csv(DATA_PATH)
     df, encoder_dict = model.load(df=df)
     ind = df[model.features[0]].isin([0])
-    # df = df[ind].reset_index(drop=True).copy()
+    df = df[ind].reset_index(drop=True).copy()
 
     # Run inference
     # mcmc, posterior_samples = model.run_inference(df=df)

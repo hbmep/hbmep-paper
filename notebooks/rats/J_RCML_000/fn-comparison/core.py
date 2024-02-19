@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/rats/J_RCML_000.toml"
 DATA_PATH = "/home/vishu/data/hbmep-processed/J_RCML_000/data.csv"
 FEATURES = [["participant", "compound_position"]]
-RESPONSE = ["LADM", "LBiceps", "LTriceps"]
+RESPONSE = ["LADM", "LBiceps"]
 # RESPONSE = ["LADM", "LBiceps", "LDeltoid", "LFCR", "LTriceps"]
 # BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison/LBiceps"
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/rats/J_RCML_000/fn-comparison"
@@ -32,10 +32,13 @@ def run_inference(model):
     # Load data
     df = pd.read_csv(DATA_PATH)
     df, encoder_dict = model.load(df=df)
+    # ind = df[model.features[0]].isin([0, 1])
+    # df = df[ind].reset_index(drop=True).copy()
 
     # Run inference
     # model.plot(df=df, encoder_dict=encoder_dict)
     mcmc, posterior_samples = model.run_inference(df=df)
+    logger.info(mcmc.print_summary())
 
     # Predict and render plots
     prediction_df = model.make_prediction_dataset(df=df)
@@ -47,6 +50,7 @@ def run_inference(model):
     numpyro_data = az.from_numpyro(mcmc)
     logger.info("Evaluating model ...")
     score = az.loo(numpyro_data)
+    logger.info(score)
     logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
     score = az.waic(numpyro_data)
     logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
@@ -71,6 +75,7 @@ def main(Model):
     config.BUILD_DIR = os.path.join(BUILD_DIR, Model.NAME)
     config.MCMC_PARAMS["num_warmup"] = 5000
     config.MCMC_PARAMS["num_samples"] = 1000
+    config.MCMC_PARAMS["chain_method"] = "vectorized"
     model = Model(config=config)
 
     # Setup logging
@@ -87,7 +92,7 @@ def main(Model):
 
 if __name__ == "__main__":
     # Run single model
-    Model = ReLU
+    Model = RectifiedLogistic
     main(Model)
 
     # # Run multiple models in parallel

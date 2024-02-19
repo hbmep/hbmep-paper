@@ -5,7 +5,7 @@ import numpyro.distributions as dist
 
 from hbmep.config import Config
 from hbmep.model import GammaModel
-from hbmep.model import functional as F
+import hbmep.functional as F
 from hbmep.model.utils import Site as site
 
 
@@ -128,13 +128,16 @@ class RectifiedLogistic(GammaModel):
     def __init__(self, config: Config):
         super(RectifiedLogistic, self).__init__(config=config)
 
-    def _model(self, features, intensity, response_obs=None):
-        features, n_features = features
-        intensity, n_data = intensity
-        intensity = intensity.reshape(-1, 1)
-        intensity = np.tile(intensity, (1, self.n_response))
+    def _model(self, intensity, features, response_obs=None):
+        n_data = intensity.shape[0]
+        n_features = np.max(features, axis=0) + 1
+        feature0 = features[..., 0]
 
-        feature0 = features[0].reshape(-1,)
+        intensity = jnp.array(intensity)
+        feature0 = jnp.array(feature0)
+
+        if response_obs is not None:
+            response_obs = jnp.array(response_obs)
 
         with numpyro.plate(site.n_response, self.n_response):
             # Hyper Priors

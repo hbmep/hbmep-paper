@@ -77,7 +77,7 @@ def run_svi(
         _guide,
         optimizer,
         # loss=Trace_ELBO()
-        loss=Trace_ELBO(num_particles=1)
+        loss=Trace_ELBO(num_particles=20)
     )
     svi_result = svi.run(
         model.rng_key,
