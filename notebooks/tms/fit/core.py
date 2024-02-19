@@ -37,8 +37,8 @@ def run_inference(model):
     # Load data
     df = pd.read_csv(DATA_PATH)
     df, encoder_dict = model.load(df=df)
-    ind = df[model.features[0]].isin([0, 1, 10, 12])
-    df = df[ind].reset_index(drop=True).copy()
+    ind = df[model.features[0]].isin([0])
+    # df = df[ind].reset_index(drop=True).copy()
 
     # Run inference
     # mcmc, posterior_samples = model.run_inference(df=df)
@@ -59,7 +59,17 @@ def run_inference(model):
     model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
     model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
 
-    # Model evaluation
+    # # Model evaluation
+    # from numpyro.infer.util import log_density
+    # intensity, features = model._get_regressors(df)
+    # response, = model._get_response(df)
+    # intensity = intensity[:20, ...]
+    # features = features[:20, ...]
+    # response = response[:20, ...]
+    # log_joint, model_trace = log_density(model=model._model, model_args=(intensity, features), model_kwargs={"response_obs": response}, params=posterior_samples)
+    # logger.info(f"Log joint: {log_joint}")
+
+
     # numpyro_data = az.from_numpyro(mcmc)
     # logger.info("Evaluating model ...")
     # score = az.loo(numpyro_data)
