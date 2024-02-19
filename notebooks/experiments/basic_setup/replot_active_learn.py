@@ -12,6 +12,7 @@ from copy import deepcopy
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
+import matplotlib
 from matplotlib import pyplot as plt
 import seaborn as sns
 from scipy.optimize import minimize
@@ -42,7 +43,7 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
-def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), overwrite=False):
+def main(root_dir=None, es='', fig_format='png', fig_size=(1920/250, 1080/250), overwrite=False):
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
     if root_dir is None:
@@ -100,6 +101,7 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), 
             df=df_custom, min_intensity=0, max_intensity=100, num=TOTAL_PULSES)
 
         colors = sns.color_palette('colorblind')
+        colors = [(208/255, 28/255, 138/255), (208/255, 28/255, 138/255), (208/255, 28/255, 138/255)]
         pp = model.predict(df=df_custom, posterior_samples=posterior_samples)
 
         # df_template = prediction_df.copy()
@@ -108,6 +110,7 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), 
         # df_template = df_template[ind1 & ind2]
 
         n_muscles = len(model.response)
+        n_muscles = 2 # overwrite to two
         # conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
         # conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
         # participants = list(encoder_dict[model.features[1]].inverse_transform(np.unique(df[model.features[1]])))
@@ -116,6 +119,12 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), 
         fig = plt.figure(figsize=fig_size)  # You can adjust the size as needed
         plt.suptitle(f'Sample: {iter}')
         gs = gridspec.GridSpec(3, 8, figure=fig)
+
+        # font = {'family': 'monospace',
+        #         'weight': 'normal',
+        #         'size': 'large'}
+        #
+        # matplotlib.rc('font', **font)
 
         # Define the subplots
         ix = 0
@@ -153,13 +162,20 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), 
                     markerfacecolor=[1, 0, 0], linestyle='None',
                     markeredgewidth=1, markersize=ms)
 
+            xtg = [0, 50, 100] # plt.MaxNLocator(3)
+            ytg = plt.MaxNLocator(3)
+            # ax.xaxis.set_major_locator(xtg)
+            ax.yaxis.set_major_locator(ytg)
+
             # if ix_p == 0 and ix_muscle == 0:
             #     ax.legend()
             # if ix_p == 0:
             #     ax.set_title(config.RESPONSE[ix_muscle].split('_')[1])
             # if ix_muscle == 0:
             ax.set_ylabel('AUC (µVs)')
-            ax.set_xlabel(model.intensity + ' Intensity (%MSO)')
+            ax.set_xticks([0, 50, 100])
+            ax.set_xticks([])
+            # ax.set_xlabel(model.intensity + ' Intensity (%MSO)')
             ax.set_xlim(xlim)
             ax.set_ylim(ylim)
             ax.set_title(vec_muscle[ix_muscle])
@@ -169,12 +185,14 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), 
             str_p = list_params[ix_params]
             # fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
             for ix_muscle in range(n_muscles):
+                x = df[model.intensity].values
                 if str_p == 'a':
                     ax = ax_a[ix_muscle]
+                    Y = posterior_samples[str_p][:, 0, ix_muscle]
                 elif str_p == 'H':
                     ax = ax_H[ix_muscle]
-                x = df[model.intensity].values
-                Y = posterior_samples[str_p][:, 0, ix_muscle]
+                    Y = posterior_samples[str_p][:, 0, ix_muscle] + posterior_samples[site.L][:, 0, ix_muscle]
+
                 case_isfinite = np.isfinite(Y)
                 if len(case_isfinite) - np.sum(case_isfinite) != 0:
                     Y = Y[case_isfinite]
@@ -192,7 +210,8 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), 
                     ax.set_xlim(xlim)
                     ax.set_ylim(ylim_local)
                     ax.set_ylabel('Density')
-                    ax.set_xlabel('Threshold')
+                    ax.set_xlabel(model.intensity + ' Intensity (%MSO)')
+                    ax.set_xticks([0, 50, 100])
                     a_gt = posterior_samples_gt[site.a][0][0][ix_muscle]
                     ax.plot(np.ones(2) * a_gt, ylim_local, '--', color=colors[ix_muscle])
                 elif str_p == 'H':
@@ -202,8 +221,10 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/200, 1080/200), 
                     ax.set_ylim(ylim)
                     ax.set_xlim(xlim_local)
                     ax.set_xlabel('Density')
+                    ax.yaxis.set_major_locator(ytg)
                     H_gt = posterior_samples_gt[site.H][0][0][ix_muscle]
                     ax.plot(xlim, np.ones(2) * H_gt, '--', color=colors[ix_muscle])
+                    ax.set_yticks([])
 
                 # sns.histplot(Y, ax=ax)
                 # if ix_p == 0 and ix_muscle == 0:
@@ -274,6 +295,6 @@ if __name__ == "__main__":
     root_dir = None
 
     # main(fig_size=(1920 / 400, 1080 / 400), es='_zoom', fig_format='svg', overwrite=overwrite)
-    main(root_dir=root_dir,fig_format='svg', overwrite=overwrite)
+    main(root_dir=root_dir, fig_format='svg', overwrite=overwrite)
     root_dir = main(root_dir=root_dir, fig_format='png', overwrite=overwrite)
     write_video(root_dir=root_dir)

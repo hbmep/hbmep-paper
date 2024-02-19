@@ -15,7 +15,7 @@ FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 TOML_PATH = "/home/mcintosh/Local/gitprojects/hbmep-paper/configs/experiments/basic_setup.toml"
 
 # Change this to indicate data path
-DATA_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/data/proc_2023-11-28 1.csv"
+DATA_PATH = "/home/mcintosh/Cloud/Research/reports/put_in_2024_active_learning_sims_for_R03/hbmep_sim/data/proc_2023-11-28 1.csv"
 
 
 def main():

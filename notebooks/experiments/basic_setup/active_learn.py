@@ -200,12 +200,12 @@ def main():
     seed = dict()
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
-    opt_param = [site.a] #  ['a', 'H']
+    opt_param = [site.a, site.H]  # ['a', 'H']
     choose_interp = False
     make_figures_per_sample = False  # True eventually crashes some X-sessions
     N_max = 30
     N_reps = 1  # if N_max = 50, then good choices are 1, 2, 5, 10
-    N_obs = 29  # this is how many entropy calcs to do per every y drawn from x... larger is better
+    N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
     range_min, range_max = 0, 100
     do_parallel = True  # easier to debug non-parallel
     assert N_obs % 2 != 0, "Better if N_obs is odd."
