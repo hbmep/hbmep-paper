@@ -7,7 +7,7 @@ reports/
 dist/
 build/
 **/.idea
-
+**/.vscode
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
