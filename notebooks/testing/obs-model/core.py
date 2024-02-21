@@ -60,7 +60,7 @@ def run_inference(model):
 
 
 def main(Model):
-    """ Build model """
+    # Build model
     config = Config(toml_path=TOML_PATH)
     config.FEATURES = FEATURES
     config.RESPONSE = RESPONSE
