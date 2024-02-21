@@ -66,23 +66,20 @@ def run_svi(
     model,
     lr=1e-2,
     steps=2000,
-    PROGRESS_BAR=True
+    PROGRESS_BAR=True,
 ):
     optimizer = numpyro.optim.ClippedAdam(step_size=lr)
-    # optimizer = numpyro.optim.Adam(step_size=lr)
-    # _guide = numpyro.infer.autoguide.AutoNormal(model._model)
-    _guide = numpyro.infer.autoguide.AutoMultivariateNormal(model._model)
+    _guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(model._model)
     svi = SVI(
         model._model,
         _guide,
         optimizer,
-        # loss=Trace_ELBO()
-        loss=Trace_ELBO(num_particles=1)
+        loss=Trace_ELBO(num_particles=20)
     )
     svi_result = svi.run(
         model.rng_key,
         steps,
-        *model._get_regressors(df),
+        *model._get_regressors(df=df),
         *model._get_response(df=df),
         progress_bar=PROGRESS_BAR
     )
