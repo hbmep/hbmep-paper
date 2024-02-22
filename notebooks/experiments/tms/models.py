@@ -1,31 +1,30 @@
+import logging
+
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-from numpyro.distributions import constraints
-import jax.numpy as jnp
 
 from hbmep.config import Config
+from hbmep.nn import functional as F
 from hbmep.model import GammaModel
-from hbmep.model import functional as F
 from hbmep.model.utils import Site as site
+
+logger = logging.getLogger(__name__)
 
 
 class HierarchicalBayesianModel(GammaModel):
-    NAME = "hbm"
+    NAME = "hierarchical_bayesian_model"
 
     def __init__(self, config: Config):
         super(HierarchicalBayesianModel, self).__init__(config=config)
 
-    def _model(self, features, intensity, response_obs=None):
-        features, n_features = features
-        intensity, n_data = intensity
-        intensity = intensity.reshape(-1, 1)
-        intensity = np.tile(intensity, (1, self.n_response))
-
-        feature0 = features[0].reshape(-1,)
+    def _model(self, intensity, features, response_obs=None):
+        n_data = intensity.shape[0]
+        n_features = np.max(features, axis=0) + 1
+        feature0 = features[..., 0]
 
         with numpyro.plate(site.n_response, self.n_response):
-            """ Hyper-priors """
+            # Hyper Priors
             a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 20., low=0))
             a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
 
@@ -40,7 +39,7 @@ class HierarchicalBayesianModel(GammaModel):
             c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
 
             with numpyro.plate(site.n_features[0], n_features[0]):
-                """ Priors """
+                # Priors
                 a = numpyro.sample(
                     site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
                 )
@@ -57,7 +56,7 @@ class HierarchicalBayesianModel(GammaModel):
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
-                """ Model """
+                # Model
                 mu = numpyro.deterministic(
                     site.mu,
                     F.rectified_logistic(
@@ -83,7 +82,7 @@ class HierarchicalBayesianModel(GammaModel):
                     self.concentration(mu, beta)
                 )
 
-                """ Observation """
+                # Observation
                 numpyro.sample(
                     site.obs,
                     dist.Gamma(concentration=alpha, rate=beta),
@@ -92,22 +91,19 @@ class HierarchicalBayesianModel(GammaModel):
 
 
 class NonHierarchicalBayesianModel(GammaModel):
-    NAME = "nhbm"
+    NAME = "non_hierarchical_bayesian_model"
 
     def __init__(self, config: Config):
         super(NonHierarchicalBayesianModel, self).__init__(config=config)
 
-    def _model(self, features, intensity, response_obs=None):
-        features, n_features = features
-        intensity, n_data = intensity
-        intensity = intensity.reshape(-1, 1)
-        intensity = np.tile(intensity, (1, self.n_response))
-
-        feature0 = features[0].reshape(-1,)
+    def _model(self, intensity, features, response_obs=None):
+        n_data = intensity.shape[0]
+        n_features = np.max(features, axis=0) + 1
+        feature0 = features[..., 0]
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
-                """ Hyper-priors """
+                # Hyper Priors
                 a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 20., low=0))
                 a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
 
@@ -121,7 +117,7 @@ class NonHierarchicalBayesianModel(GammaModel):
                 c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
                 c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
 
-                """ Priors """
+                # Priors
                 a = numpyro.sample(
                     site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
                 )
@@ -138,7 +134,7 @@ class NonHierarchicalBayesianModel(GammaModel):
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
-                """ Model """
+                # Model
                 mu = numpyro.deterministic(
                     site.mu,
                     F.rectified_logistic(
@@ -164,7 +160,7 @@ class NonHierarchicalBayesianModel(GammaModel):
                     self.concentration(mu, beta)
                 )
 
-                """ Observation """
+                # Observation
                 numpyro.sample(
                     site.obs,
                     dist.Gamma(concentration=alpha, rate=beta),
@@ -173,22 +169,19 @@ class NonHierarchicalBayesianModel(GammaModel):
 
 
 class MaximumLikelihoodModel(GammaModel):
-    NAME = "mle"
+    NAME = "maximum_likelihood_model"
 
     def __init__(self, config: Config):
         super(MaximumLikelihoodModel, self).__init__(config=config)
 
-    def _model(self, features, intensity, response_obs=None):
-        features, n_features = features
-        intensity, n_data = intensity
-        intensity = intensity.reshape(-1, 1)
-        intensity = np.tile(intensity, (1, self.n_response))
-
-        feature0 = features[0].reshape(-1,)
+    def _model(self, intensity, features, response_obs=None):
+        n_data = intensity.shape[0]
+        n_features = np.max(features, axis=0) + 1
+        feature0 = features[..., 0]
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
-                """ Priors """
+                # Uniform priors (maximum likelihood estimation)
                 a = numpyro.sample(
                     site.a, dist.Uniform(0., 150.)
                 )
@@ -205,7 +198,7 @@ class MaximumLikelihoodModel(GammaModel):
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
-                """ Model """
+                # Model
                 mu = numpyro.deterministic(
                     site.mu,
                     F.rectified_logistic(
@@ -231,7 +224,7 @@ class MaximumLikelihoodModel(GammaModel):
                     self.concentration(mu, beta)
                 )
 
-                """ Observation """
+                # Observation
                 numpyro.sample(
                     site.obs,
                     dist.Gamma(concentration=alpha, rate=beta),

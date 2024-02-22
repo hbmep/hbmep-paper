@@ -1,35 +1,30 @@
 import os
-import functools
 import pickle
 import logging
-from pathlib import Path
 
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 import numpy as np
-import jax.numpy as jnp
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
 from constants import (
-    TOTAL_SUBJECTS,
-    TOTAL_PULSES,
-    TOTAL_REPS,
-    REP
+    REP,
+    SIMULATE_DATA_DIR,
+    SIMULATION_DF,
+    INFERENCE_FILE
 )
 
 logger = logging.getLogger(__name__)
-SIMULATION_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/simulate_data"
-SIMULATION_DF_PATH = os.path.join(SIMULATION_DIR, "simulation_df.csv")
-SIMULATION_PPD_PATH = os.path.join(SIMULATION_DIR, "simulation_ppd.pkl")
-BUILD_DIR = SIMULATION_DIR
+
+SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR, SIMULATION_DF)
+SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR, INFERENCE_FILE)
+BUILD_DIR = SIMULATE_DATA_DIR
 
 
 def plot(simulator, simulation_df, simulation_ppd, n_draws_to_plot, dest):
-    """ Plot """
     temp_ppd = {
         k: v[:n_draws_to_plot, ...] for k, v in simulation_ppd.items()
     }
@@ -60,20 +55,22 @@ def plot(simulator, simulation_df, simulation_ppd, n_draws_to_plot, dest):
 
 
 def main():
-    """ Load simulated data / ppd """
+    # Load simulated data / ppd
     src = SIMULATION_DF_PATH
-    simulation_df = pd.read_csv(src)
+    simulation_df = pd.read_csv(SIMULATION_DF_PATH)
 
     src = SIMULATION_PPD_PATH
     with open(src, "rb") as g:
         simulator, simulation_ppd = pickle.load(g)
 
+    # Set up logging
     setup_logging(
         dir=BUILD_DIR,
         fname=os.path.basename(__file__)
     )
     logger.info(f"simulation_df: {simulation_df.shape}")
 
+    # Plot
     for r in [1, 2, 4, 8]:
         n_draws_to_plot = 5
         if r == 1: n_draws_to_plot = 50
@@ -84,7 +81,7 @@ def main():
         for s in [site.mu, site.obs]:
             temp_simulation_ppd[s] = temp_simulation_ppd[s][:, ind, ...]
 
-        dest = os.path.join(BUILD_DIR, f"reps_{r}.pdf")
+        dest = os.path.join(BUILD_DIR, f"plot_reps_{r}.pdf")
         plot(simulator, temp_simulation_df, temp_simulation_ppd, n_draws_to_plot, dest)
 
     return

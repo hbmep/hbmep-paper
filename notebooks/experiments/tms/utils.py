@@ -1,7 +1,6 @@
 import logging
 
 import numpy as np
-import jax
 
 from hbmep.config import Config
 
@@ -43,6 +42,5 @@ def generate_nested_pulses(simulator, simulation_df):
             assert set(pulses_map[n_pulses]) <= set(
                 pulses_map[N_PULSES_SPACE[i + 1]]
             )
-        # logger.info(f"n_pulses: {n_pulses}, pulses: {pulses_map[n_pulses]}")
 
     return pulses_map
