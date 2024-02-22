@@ -89,7 +89,7 @@ class MixtureModel(GammaModel):
                     c_2_raw = numpyro.sample("c_2_raw", dist.HalfCauchy(scale=1))
                     c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
-        # Outlier Distribution
+        # Outlier distribution
         outlier_prob = numpyro.sample(site.outlier_prob, dist.Uniform(0., .01))
         outlier_scale = numpyro.sample(site.outlier_scale, dist.HalfNormal(10))
 

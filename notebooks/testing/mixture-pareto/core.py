@@ -7,7 +7,6 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from hbmep.config import Config
-from hbmep.nn import functional as F
 
 from hbmep_paper.utils import setup_logging
 from models import *
@@ -21,9 +20,8 @@ DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
 FEATURES = [["participant", "participant_condition"]]
 RESPONSE = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
 # RESPONSE = ['PKPK_ADM', 'PKPK_APB', 'PKPK_ECR']
-# RESPONSE = ['PKPK_APB']
 
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/testing/obs-model/"
+BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/testing/mixture-pareto/"
 
 
 def run_inference(model):
@@ -35,6 +33,7 @@ def run_inference(model):
 
     # Run inference
     mcmc, posterior_samples = model.run_inference(df=df)
+    logger.info(mcmc.print_summary(prob=.95))
 
     # Predict and render plots
     prediction_df = model.make_prediction_dataset(df=df)
@@ -43,13 +42,12 @@ def run_inference(model):
     model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
 
     # Model evaluation
-    inference_data = az.from_numpyro(mcmc)
-    logger.info(az.summary(inference_data).to_string())
+    numpyro_data = az.from_numpyro(mcmc)
     logger.info("Evaluating model ...")
-    score = az.loo(inference_data)
+    score = az.loo(numpyro_data)
     logger.info(f"ELPD LOO (Log): {score.elpd_loo:.2f}")
     logger.info(score)
-    score = az.waic(inference_data)
+    score = az.waic(numpyro_data)
     logger.info(f"ELPD WAIC (Log): {score.elpd_waic:.2f}")
 
     # Save posterior
@@ -85,15 +83,14 @@ def main(Model):
 
 if __name__ == "__main__":
     # Run multiple models in parallel
-    # models = [Current, SDMinusL, SDPower, SDPowerMinusL, SDPowerMinusL2]
-    # models = [Current]
-    # n_jobs = 1
-    # with Parallel(n_jobs=n_jobs) as parallel:
-    #     parallel(
-    #         delayed(main)(M)
-    #         for M in models
-    #     )
+    models = [MixtureModel]
+    n_jobs = 1
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(main)(M)
+            for M in models
+        )
 
-    # Run a single model
-    Model = RectifiedLogistic
-    main(Model)
+    # # Run a single model
+    # Model = Current
+    # main(Model)

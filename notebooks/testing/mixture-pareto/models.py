@@ -13,11 +13,11 @@ from hbmep.model.utils import Site as site
 logger = logging.getLogger(__name__)
 
 
-class RectifiedLogistic(GammaModel):
-    NAME = "rectified_logistic"
+class MixtureModel(GammaModel):
+    NAME = "mixture_model"
 
     def __init__(self, config: Config):
-        super(RectifiedLogistic, self).__init__(config=config)
+        super(MixtureModel, self).__init__(config=config)
 
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
@@ -61,6 +61,10 @@ class RectifiedLogistic(GammaModel):
                 c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
                 c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
 
+        # Outlier distribution
+        outlier_prob = numpyro.sample(site.outlier_prob, dist.Uniform(0., .01))
+        outlier_scale = numpyro.sample(site.outlier_scale, dist.HalfNormal(10))
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 # Model
@@ -87,6 +91,24 @@ class RectifiedLogistic(GammaModel):
                 alpha = numpyro.deterministic(
                     site.alpha,
                     self.concentration(mu, beta)
+                )
+
+                # Component distributions
+                q = numpyro.deterministic(site.q, outlier_prob * jnp.ones((n_data, self.n_response)))
+                bg_scale = numpyro.deterministic(site.bg_scale, outlier_scale * jnp.ones((n_data, self.n_response)))
+
+                mixing_distribution = dist.Categorical(
+                    probs=jnp.stack([1 - q, q], axis=-1)
+                )
+                component_distributions=[
+                    dist.Gamma(concentration=alpha, rate=beta),
+                    dist.HalfNormal(scale=bg_scale)
+                ]
+
+                # Mixture
+                Mixture = dist.MixtureGeneral(
+                    mixing_distribution=mixing_distribution,
+                    component_distributions=component_distributions
                 )
 
                 # Observation
