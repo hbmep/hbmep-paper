@@ -211,6 +211,67 @@ def main():
                     del a_true, a_pred
                     gc.collect()
 
+            case "nelder_mead_optimization":
+                # Load data
+                ind = (
+                    (simulation_df[simulator.features[0]] < n_subjects) &
+                    (simulation_df[REP] < n_reps) &
+                    (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+                )
+                df = simulation_df[ind].reset_index(drop=True).copy()
+                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
+                ind = df[simulator.response[0]] > 0
+                df = df[ind].reset_index(drop=True).copy()
+
+                # Build model
+                config = Config(toml_path=TOML_PATH)
+                config.BUILD_DIR = os.path.join(
+                    BUILD_DIR,
+                    draw_dir,
+                    n_subjects_dir,
+                    n_reps_dir,
+                    n_pulses_dir,
+                    M.NAME
+                )
+                model = M(config=config)
+
+                # Set up logging
+                model._make_dir(model.build_dir)
+                setup_logging(
+                    dir=model.build_dir,
+                    fname="logs"
+                )
+
+                # Run inference
+                df, encoder_dict = model.load(df=df)
+                params = model.run_inference(df=df)
+
+                # Predictions and recruitment curves
+                prediction_df = model.make_prediction_dataset(df=df)
+                prediction_df = model.predict(df=prediction_df, params=params)
+                model.render_recruitment_curves(
+                    df=df,
+                    encoder_dict=encoder_dict,
+                    params=params,
+                    prediction_df=prediction_df,
+                )
+
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = params[site.a]
+                assert a_pred.shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+                config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                model, params = None, None
+                a_true, a_pred = None, None
+                del config, df, prediction_df, encoder_dict, _
+                del model, params
+                del a_true, a_pred
+                gc.collect()
+
             case _:
                 raise ValueError(f"Invalid model {M.NAME}.")
 
