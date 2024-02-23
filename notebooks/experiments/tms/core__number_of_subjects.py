@@ -1,138 +1,251 @@
 import os
+import gc
+import pickle
 import logging
 
+import pandas as pd
 import numpy as np
-import scipy.stats as stats
-import matplotlib.pyplot as plt
+from joblib import Parallel, delayed
+
+from hbmep.config import Config
+from hbmep.model.utils import Site as site
+from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
 from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
-from core__number_of_subjects import N_REPS, N_PULSES, N_SUBJECTS_SPACE
-from constants import NUMBER_OF_SUJECTS_DIR
+from utils import generate_nested_pulses
+from constants import (
+    TOML_PATH,
+    REP,
+    SIMULATE_DATA_DIR,
+    SIMULATION_DF,
+    INFERENCE_FILE,
+    NUMBER_OF_SUJECTS_DIR
+)
 
 logger = logging.getLogger(__name__)
 
+
+SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR, SIMULATION_DF)
+SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR, INFERENCE_FILE)
 BUILD_DIR = NUMBER_OF_SUJECTS_DIR
 
+N_REPS = 1
+N_PULSES = 48
+N_SUBJECTS_SPACE = [1, 4, 8, 16]
 
+
+@timing
 def main():
-    n_reps = N_REPS
-    n_pulses = N_PULSES
-    n_subjects_space = N_SUBJECTS_SPACE
+    # Load simulated dataframe
+    src = SIMULATION_DF_PATH
+    simulation_df = pd.read_csv(src)
 
-    draws_space = range(600)
-    models = [HierarchicalBayesianModel]
+    # Load simulation ppd
+    src = SIMULATION_PPD_PATH
+    with open(src, "rb") as g:
+        simulator, simulation_ppd = pickle.load(g)
 
-    mae = []
-    mse = []
-    for n_subjects in n_subjects_space:
-        for draw in draws_space:
-            for M in models:
-                n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
-                draw_dir = f"d{draw}"
+    ppd_a = simulation_ppd[site.a]
+    ppd_obs = simulation_ppd[site.obs]
+    simulation_ppd = None
+    del simulation_ppd
+    gc.collect()
 
-                match M.NAME:
-                    case "hierarchical_bayesian_model":
-                        dir = os.path.join(
-                            BUILD_DIR,
-                            draw_dir,
-                            n_subjects_dir,
-                            n_reps_dir,
-                            n_pulses_dir,
-                            M.NAME
-                        )
-                        a_true = np.load(os.path.join(dir, "a_true.npy"))
-                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))
-
-                        a_pred = a_pred.mean(axis=0).reshape(-1,)
-                        a_true = a_true.reshape(-1,)
-
-                    case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
-                        n_subjects_dir = f"n{n_subjects_space[-1]}"
-                        a_true, a_pred = [], []
-
-                        for subject in range(n_subjects):
-                            sub_dir = f"subject{subject}"
-                            dir = os.path.join(
-                                BUILD_DIR,
-                                draw_dir,
-                                n_subjects_dir,
-                                n_reps_dir,
-                                n_pulses_dir,
-                                M.NAME,
-                                sub_dir
-                            )
-                            a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
-                            a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
-
-                            a_pred_sub_map = a_pred_sub.mean(axis=0)
-                            a_true_sub = a_true_sub
-
-                            a_true += a_pred_sub_map.reshape(-1,).tolist()
-                            a_pred += a_true_sub.reshape(-1,).tolist()
-
-                        a_true = np.array(a_true)
-                        a_pred = np.array(a_pred)
-
-                    case _:
-                        raise ValueError(f"Invalid model {M.NAME}.")
-
-                curr_mae = np.abs(a_true - a_pred).mean()
-                curr_mse = np.square(a_true - a_pred).mean()
-                mae.append(curr_mae)
-                mse.append(curr_mse)
-
-    mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
-    mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
-
-    logger.info(f"MAE: {mae.shape}")
-    logger.info(f"MSE: {mse.shape}")
-
-    nrows, ncols = 1, 1
-    fig, axes = plt.subplots(
-        nrows,
-        ncols,
-        figsize=(ncols * 5, nrows * 3),
-        squeeze=False,
-        constrained_layout=True
-    )
-
-    ax = axes[0, 0]
-    for model_ind, model in enumerate(models):
-        x = n_subjects_space
-        y = mae[..., model_ind]
-        yme = y.mean(axis=-1)
-        ysem = stats.sem(y, axis=-1)
-        ax.errorbar(
-            x=x,
-            y=yme,
-            yerr=ysem,
-            marker="o",
-            label=f"{model.NAME}",
-            linestyle="--",
-            ms=4
-        )
-        ax.set_xticks(x)
-        ax.legend(loc="upper right")
-        ax.set_xlabel("# Subjects")
-        ax.set_ylabel("MAE")
-
-    ax.set_title("48 Pulses, 1 Rep")
-    # ax.set_ylim(bottom=0.)
-
-    fig.align_xlabels()
-    fig.align_ylabels()
-
-    dest = os.path.join(BUILD_DIR, "results.png")
-    fig.savefig(dest, dpi=600)
-    logger.info(f"Saved to {dest}")
-
-    return
-
-
-if __name__ == "__main__":
+    # Set up logging
+    simulator._make_dir(BUILD_DIR)
     setup_logging(
         dir=BUILD_DIR,
         fname=os.path.basename(__file__)
     )
+
+    # Generate nested pulses
+    pulses_map = generate_nested_pulses(simulator, simulation_df)
+
+
+    # Define experiment
+    def run_experiment(
+        n_reps,
+        n_pulses,
+        n_subjects,
+        draw,
+        M
+    ):
+        # Required for build directory
+        n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
+        draw_dir = f"d{draw}"
+
+        match M.NAME:
+            case "hierarchical_bayesian_model":
+                # Load data
+                ind = (
+                    (simulation_df[simulator.features[0]] < n_subjects) &
+                    (simulation_df[REP] < n_reps) &
+                    (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+                )
+                df = simulation_df[ind].reset_index(drop=True).copy()
+                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
+                ind = df[simulator.response[0]] > 0
+                df = df[ind].reset_index(drop=True).copy()
+
+                # Build model
+                config = Config(toml_path=TOML_PATH)
+                config.BUILD_DIR = os.path.join(
+                    BUILD_DIR,
+                    draw_dir,
+                    n_subjects_dir,
+                    n_reps_dir,
+                    n_pulses_dir,
+                    M.NAME
+                )
+                model = M(config=config)
+
+                # Set up logging
+                model._make_dir(model.build_dir)
+                setup_logging(
+                    dir=model.build_dir,
+                    fname="logs"
+                )
+
+                # Run inference
+                df, encoder_dict = model.load(df=df)
+                _, posterior_samples = model.run_inference(df=df)
+
+                # Predictions and recruitment curves
+                prediction_df = model.make_prediction_dataset(df=df)
+                posterior_predictive = model.predict(
+                    df=prediction_df, posterior_samples=posterior_samples
+                )
+                model.render_recruitment_curves(
+                    df=df,
+                    encoder_dict=encoder_dict,
+                    posterior_samples=posterior_samples,
+                    prediction_df=prediction_df,
+                    posterior_predictive=posterior_predictive
+                )
+
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = posterior_samples[site.a]
+                assert a_pred.mean(axis=0).shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+                config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                model, posterior_samples, posterior_predictive = None, None, None
+                a_true, a_pred = None, None
+                del config, df, prediction_df, encoder_dict, _
+                del model, posterior_samples, posterior_predictive
+                del a_true, a_pred
+                gc.collect()
+
+            # Non-hierarchical methods like Non Hierarchical Bayesian Model and
+            # Maximum Likelihood Model need to be run separately on individual subjects
+            # otherwise, there are convergence issues when the number of subjects is large
+            case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
+                for subject in range(n_subjects):
+                    sub_dir = f"subject{subject}"
+
+                    # Load data
+                    ind = (
+                        (simulation_df[simulator.features[0]] == subject) &
+                        (simulation_df[REP] < n_reps) &
+                        (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+                    )
+                    df = simulation_df[ind].reset_index(drop=True).copy()
+                    df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
+                    ind = df[simulator.response[0]] > 0
+                    df = df[ind].reset_index(drop=True).copy()
+
+                    # Build model
+                    config = Config(toml_path=TOML_PATH)
+                    config.BUILD_DIR = os.path.join(
+                        BUILD_DIR,
+                        draw_dir,
+                        n_subjects_dir,
+                        n_reps_dir,
+                        n_pulses_dir,
+                        M.NAME,
+                        sub_dir
+                    )
+                    model = M(config=config)
+
+                    # Set up logging
+                    model._make_dir(model.build_dir)
+                    setup_logging(
+                        dir=model.build_dir,
+                        fname="logs"
+                    )
+
+                    # Run inference
+                    df, encoder_dict = model.load(df=df)
+                    _, posterior_samples = model.run_inference(df=df)
+
+                    # Predictions and recruitment curves
+                    prediction_df = model.make_prediction_dataset(df=df)
+                    posterior_predictive = model.predict(
+                        df=prediction_df, posterior_samples=posterior_samples
+                    )
+                    model.render_recruitment_curves(
+                        df=df,
+                        encoder_dict=encoder_dict,
+                        posterior_samples=posterior_samples,
+                        prediction_df=prediction_df,
+                        posterior_predictive=posterior_predictive
+                    )
+
+                    # Compute error and save results
+                    a_true = ppd_a[draw, [subject], ...]
+                    a_pred = posterior_samples[site.a]
+                    assert a_pred.mean(axis=0).shape == a_true.shape
+                    np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                    np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+                    config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                    model, posterior_samples, posterior_predictive = None, None, None
+                    a_true, a_pred = None, None
+                    del config, df, prediction_df, encoder_dict, _
+                    del model, posterior_samples, posterior_predictive
+                    del a_true, a_pred
+                    gc.collect()
+
+            case _:
+                raise ValueError(f"Invalid model {M.NAME}.")
+
+        return
+
+
+    # Experiment space
+    draws_space = np.arange(ppd_obs.shape[0])
+    n_subjects_space = N_SUBJECTS_SPACE
+    n_jobs = -1
+
+    ## Uncomment the following to run
+    ## experiment for different models
+
+    # # Run for Hierarchical Bayesian Model
+    # models = [HierarchicalBayesianModel]
+
+    # Run for Non-hierarchical Bayesian Model
+    n_subjects_space = [16]
+    models = [NonHierarchicalBayesianModel]
+
+    # # Run for Maximum Likelihood Model
+    # n_subjects_space = [16]
+    # models = [MaximumLikelihoodModel]
+
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(run_experiment)(
+                N_REPS, N_PULSES, n_subjects, draw, M
+            )
+            for draw in draws_space
+            for n_subjects in n_subjects_space
+            for M in models
+        )
+
+
+if __name__ == "__main__":
     main()

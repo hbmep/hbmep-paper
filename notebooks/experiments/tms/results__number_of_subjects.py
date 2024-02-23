@@ -20,7 +20,7 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(550)
+    draws_space = range(600)
     models = [HierarchicalBayesianModel]
 
     mae = []
@@ -46,6 +46,33 @@ def main():
 
                         a_pred = a_pred.mean(axis=0).reshape(-1,)
                         a_true = a_true.reshape(-1,)
+
+                    case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
+                        n_subjects_dir = f"n{n_subjects_space[-1]}"
+                        a_true, a_pred = [], []
+
+                        for subject in range(n_subjects):
+                            sub_dir = f"subject{subject}"
+                            dir = os.path.join(
+                                BUILD_DIR,
+                                draw_dir,
+                                n_subjects_dir,
+                                n_reps_dir,
+                                n_pulses_dir,
+                                M.NAME,
+                                sub_dir
+                            )
+                            a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
+                            a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
+
+                            a_pred_sub_map = a_pred_sub.mean(axis=0)
+                            a_true_sub = a_true_sub
+
+                            a_true += a_pred_sub_map.reshape(-1,).tolist()
+                            a_pred += a_true_sub.reshape(-1,).tolist()
+
+                        a_true = np.array(a_true)
+                        a_pred = np.array(a_pred)
 
                     case _:
                         raise ValueError(f"Invalid model {M.NAME}.")
