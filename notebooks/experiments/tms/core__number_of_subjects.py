@@ -30,8 +30,8 @@ SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR, SIMULATION_DF)
 SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR, INFERENCE_FILE)
 BUILD_DIR = NUMBER_OF_SUJECTS_DIR
 
-N_PULSES = 48
 N_REPS = 1
+N_PULSES = 48
 N_SUBJECTS_SPACE = [1, 4, 8, 16]
 
 
@@ -140,6 +140,78 @@ def main():
                 del a_true, a_pred
                 gc.collect()
 
+            # Non-hierarchical methods like Non Hierarchical Bayesian Model and
+            # Maximum Likelihood Model need to be run separately on individual subjects
+            # otherwise, there are convergence issues when the number of subjects is large
+            case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
+                for subject in range(n_subjects):
+                    sub_dir = f"subject{subject}"
+
+                    # Load data
+                    ind = (
+                        (simulation_df[simulator.features[0]] == subject) &
+                        (simulation_df[REP] < n_reps) &
+                        (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+                    )
+                    df = simulation_df[ind].reset_index(drop=True).copy()
+                    df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
+                    ind = df[simulator.response[0]] > 0
+                    df = df[ind].reset_index(drop=True).copy()
+
+                    # Build model
+                    toml_path = TOML_PATH
+                    config = Config(toml_path=toml_path)
+                    config.BUILD_DIR = os.path.join(
+                        BUILD_DIR,
+                        draw_dir,
+                        n_subjects_dir,
+                        n_reps_dir,
+                        n_pulses_dir,
+                        M.NAME,
+                        sub_dir
+                    )
+                    model = M(config=config)
+
+                    # Set up logging
+                    model._make_dir(model.build_dir)
+                    setup_logging(
+                        dir=model.build_dir,
+                        fname="logs"
+                    )
+
+                    # Run inference
+                    df, encoder_dict = model.load(df=df)
+                    _, posterior_samples = model.run_inference(df=df)
+
+                    # Predictions and recruitment curves
+                    prediction_df = model.make_prediction_dataset(df=df)
+                    posterior_predictive = model.predict(
+                        df=prediction_df, posterior_samples=posterior_samples
+                    )
+                    model.render_recruitment_curves(
+                        df=df,
+                        encoder_dict=encoder_dict,
+                        posterior_samples=posterior_samples,
+                        prediction_df=prediction_df,
+                        posterior_predictive=posterior_predictive
+                    )
+
+                    # Compute error and save results
+                    a_true = ppd_a[draw, [subject], ...]
+                    a_pred = posterior_samples[site.a]
+                    assert a_pred.mean(axis=0).shape == a_true.shape
+                    np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                    np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+                    config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                    model, posterior_samples, posterior_predictive = None, None, None
+                    a_true, a_pred = None, None
+                    del config, df, prediction_df, encoder_dict, _
+                    del model, posterior_samples, posterior_predictive
+                    del a_true, a_pred
+                    gc.collect()
+
             case _:
                 raise ValueError(f"Invalid model {M.NAME}.")
 
@@ -154,12 +226,12 @@ def main():
     ## Uncomment the following to run
     ## experiment for different models
 
-    # Run for Hierarchical Bayesian Model
-    models = [HierarchicalBayesianModel]
+    # # Run for Hierarchical Bayesian Model
+    # models = [HierarchicalBayesianModel]
 
-    # # Run for Non-hierarchical Bayesian Model
-    # n_subjects_space = [16]
-    # models = [NonHierarchicalBayesianModel]
+    # Run for Non-hierarchical Bayesian Model
+    n_subjects_space = [16]
+    models = [NonHierarchicalBayesianModel]
 
     # # Run for Maximum Likelihood Model
     # n_subjects_space = [16]
