@@ -216,7 +216,6 @@ def main():
                     del a_true, a_pred
                     gc.collect()
 
-
             # This is also a non-hierarchical method. Internally, it will
             # run separately on individual subjects
             case "nelder_mead_optimization":
