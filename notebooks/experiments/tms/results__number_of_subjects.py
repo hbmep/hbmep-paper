@@ -20,7 +20,7 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(180)
+    draws_space = range(550)
     models = [HierarchicalBayesianModel]
 
     mae = []
