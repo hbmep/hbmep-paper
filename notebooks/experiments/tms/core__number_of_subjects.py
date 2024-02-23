@@ -12,7 +12,12 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
+from models import (
+    HierarchicalBayesianModel,
+    NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization
+)
 from utils import generate_nested_pulses
 from constants import (
     TOML_PATH,
@@ -211,6 +216,9 @@ def main():
                     del a_true, a_pred
                     gc.collect()
 
+
+            # This is also a non-hierarchical method. Internally, it will
+            # run separately on individual subjects
             case "nelder_mead_optimization":
                 # Load data
                 ind = (
@@ -296,6 +304,10 @@ def main():
     # # Run for Maximum Likelihood Model
     # n_subjects_space = [16]
     # models = [MaximumLikelihoodModel]
+
+    # # Run for Nelder-Mead Optimization
+    # n_subjects_space = [16]
+    # models = [NelderMeadOptimization]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
