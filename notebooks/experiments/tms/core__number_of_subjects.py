@@ -160,8 +160,7 @@ def main():
                     df = df[ind].reset_index(drop=True).copy()
 
                     # Build model
-                    toml_path = TOML_PATH
-                    config = Config(toml_path=toml_path)
+                    config = Config(toml_path=TOML_PATH)
                     config.BUILD_DIR = os.path.join(
                         BUILD_DIR,
                         draw_dir,
