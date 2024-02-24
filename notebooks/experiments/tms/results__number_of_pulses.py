@@ -12,25 +12,25 @@ from models import (
     MaximumLikelihoodModel,
     NelderMeadOptimization
 )
-from core__number_of_subjects import N_REPS, N_PULSES, N_SUBJECTS_SPACE
-from constants import NUMBER_OF_SUJECTS_DIR
+from core__number_of_pulses import N_REPS, N_SUBJECTS
+from constants import N_PULSES_SPACE, NUMBER_OF_PULSES_DIR
 
 logger = logging.getLogger(__name__)
 
-BUILD_DIR = NUMBER_OF_SUJECTS_DIR
+BUILD_DIR = NUMBER_OF_PULSES_DIR
 
 
 def main():
     n_reps = N_REPS
-    n_pulses = N_PULSES
-    n_subjects_space = N_SUBJECTS_SPACE
+    n_subjects = N_SUBJECTS
+    n_pulses_space = N_PULSES_SPACE
 
-    draws_space = range(1000)
+    draws_space = range(100)
     models = [HierarchicalBayesianModel]
 
     mae = []
     mse = []
-    for n_subjects in n_subjects_space:
+    for n_pulses in n_pulses_space:
         for draw in draws_space:
             for M in models:
                 n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
@@ -53,7 +53,7 @@ def main():
                         a_true = a_true.reshape(-1,)
 
                     case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
-                        n_subjects_dir = f"n{n_subjects_space[-1]}"
+                        n_subjects_dir = f"n{N_SUBJECTS}"
                         a_true, a_pred = [], []
 
                         for subject in range(n_subjects):
@@ -79,6 +79,21 @@ def main():
                         a_true = np.array(a_true)
                         a_pred = np.array(a_pred)
 
+                    case "nelder_mead_optimization":
+                        dir = os.path.join(
+                            BUILD_DIR,
+                            draw_dir,
+                            n_subjects_dir,
+                            n_reps_dir,
+                            n_pulses_dir,
+                            M.NAME
+                        )
+                        a_true = np.load(os.path.join(dir, "a_true.npy"))[:n_subjects, ...]
+                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))[:n_subjects, ...]
+
+                        a_pred = a_pred.reshape(-1,)
+                        a_true = a_true.reshape(-1,)
+
                     case _:
                         raise ValueError(f"Invalid model {M.NAME}.")
 
@@ -87,8 +102,8 @@ def main():
                 mae.append(curr_mae)
                 mse.append(curr_mse)
 
-    mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
-    mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
+    mae = np.array(mae).reshape(len(n_pulses_space), len(draws_space), len(models))
+    mse = np.array(mse).reshape(len(n_pulses_space), len(draws_space), len(models))
 
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
@@ -104,7 +119,7 @@ def main():
 
     ax = axes[0, 0]
     for model_ind, model in enumerate(models):
-        x = n_subjects_space
+        x = n_pulses_space
         y = mae[..., model_ind]
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
@@ -119,10 +134,10 @@ def main():
         )
         ax.set_xticks(x)
         ax.legend(loc="upper right")
-        ax.set_xlabel("# Subjects")
+        ax.set_xlabel("# Pulses")
         ax.set_ylabel("MAE")
 
-    ax.set_title("48 Pulses, 1 Rep")
+    ax.set_title("8 Subjects, 1 Rep")
     ax.set_ylim(bottom=0.)
 
     fig.align_xlabels()
