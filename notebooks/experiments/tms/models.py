@@ -243,5 +243,5 @@ class NelderMeadOptimization(BoundedOptimization):
         self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
         self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
         self.num_points = 1000
-        self.num_iters = 4000
+        self.num_iters = 100
         self.n_jobs = -1

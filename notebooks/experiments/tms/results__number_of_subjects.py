@@ -6,7 +6,12 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel
+from models import (
+    HierarchicalBayesianModel,
+    NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization
+)
 from core__number_of_subjects import N_REPS, N_PULSES, N_SUBJECTS_SPACE
 from constants import NUMBER_OF_SUJECTS_DIR
 
@@ -20,7 +25,7 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(600)
+    draws_space = range(800)
     models = [HierarchicalBayesianModel]
 
     mae = []
@@ -118,7 +123,7 @@ def main():
         ax.set_ylabel("MAE")
 
     ax.set_title("48 Pulses, 1 Rep")
-    # ax.set_ylim(bottom=0.)
+    ax.set_ylim(bottom=0.)
 
     fig.align_xlabels()
     fig.align_ylabels()

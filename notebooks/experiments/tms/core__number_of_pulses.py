@@ -25,19 +25,18 @@ from constants import (
     SIMULATE_DATA_DIR,
     SIMULATION_DF,
     INFERENCE_FILE,
-    NUMBER_OF_SUJECTS_DIR
+    NUMBER_OF_PULSES_DIR,
+    N_PULSES_SPACE
 )
 
 logger = logging.getLogger(__name__)
 
-
 SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR, SIMULATION_DF)
 SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR, INFERENCE_FILE)
-BUILD_DIR = NUMBER_OF_SUJECTS_DIR
+BUILD_DIR = NUMBER_OF_PULSES_DIR
 
 N_REPS = 1
-N_PULSES = 48
-N_SUBJECTS_SPACE = [1, 4, 8, 16]
+N_SUBJECTS = 8
 
 
 @timing
@@ -148,7 +147,7 @@ def main():
             # Non-hierarchical methods like Non Hierarchical Bayesian Model and
             # Maximum Likelihood Model need to be run separately on individual subjects
             # otherwise, there are convergence issues when the number of subjects is large
-            case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
+            case  "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
                 for subject in range(n_subjects):
                     sub_dir = f"subject{subject}"
 
@@ -287,35 +286,24 @@ def main():
 
     # Experiment space
     # draws_space = np.arange(ppd_obs.shape[0])
-    draws_space = list(range(635, 2000))
-    n_subjects_space = N_SUBJECTS_SPACE
+    draws_space = list(range(2000))
+    n_pulses_space = N_PULSES_SPACE
     n_jobs = -1
 
-    ## Uncomment the following to run
-    ## experiment for different models
-
-    # Run for Hierarchical Bayesian Model
-    models = [HierarchicalBayesianModel]
-
-    # # Run for Non-hierarchical Bayesian Model
-    # n_subjects_space = [16]
-    # models = [NonHierarchicalBayesianModel]
-
-    # # Run for Maximum Likelihood Model
-    # n_subjects_space = [16]
-    # models = [MaximumLikelihoodModel]
-
-    # # Run for Nelder-Mead Optimization
-    # n_subjects_space = [16]
-    # models = [NelderMeadOptimization]
+    models = [
+        HierarchicalBayesianModel,
+        NonHierarchicalBayesianModel,
+        MaximumLikelihoodModel,
+        NelderMeadOptimization
+    ]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(
-                N_REPS, N_PULSES, n_subjects, draw, M
+                N_REPS, n_pulses, N_SUBJECTS, draw, M
             )
             for draw in draws_space
-            for n_subjects in n_subjects_space
+            for n_pulses in n_pulses_space
             for M in models
         )
 
