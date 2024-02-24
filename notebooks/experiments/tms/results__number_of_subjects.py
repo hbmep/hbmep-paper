@@ -12,7 +12,9 @@ from models import (
     MaximumLikelihoodModel,
     NelderMeadOptimization
 )
-from core__number_of_subjects import N_REPS, N_PULSES, N_SUBJECTS_SPACE
+from core__number_of_subjects import (
+    N_REPS, N_PULSES, N_SUBJECTS_SPACE
+)
 from constants import NUMBER_OF_SUJECTS_DIR
 
 logger = logging.getLogger(__name__)
@@ -25,8 +27,11 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(1000)
+    draws_space = range(1100)
     models = [HierarchicalBayesianModel]
+    # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
+    # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
+    # models = [NelderMeadOptimization]
 
     mae = []
     mse = []
@@ -78,6 +83,21 @@ def main():
 
                         a_true = np.array(a_true)
                         a_pred = np.array(a_pred)
+
+                    case "nelder_mead_optimization":
+                        dir = os.path.join(
+                            BUILD_DIR,
+                            draw_dir,
+                            "n16",
+                            n_reps_dir,
+                            n_pulses_dir,
+                            M.NAME
+                        )
+                        a_true = np.load(os.path.join(dir, "a_true.npy"))[:n_subjects, ...]
+                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))[:n_subjects, ...]
+
+                        a_pred = a_pred.reshape(-1,)
+                        a_true = a_true.reshape(-1,)
 
                     case _:
                         raise ValueError(f"Invalid model {M.NAME}.")

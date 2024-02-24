@@ -26,7 +26,12 @@ def main():
     n_pulses_space = N_PULSES_SPACE
 
     draws_space = range(100)
-    models = [HierarchicalBayesianModel]
+    models = [
+        HierarchicalBayesianModel,
+        NonHierarchicalBayesianModel,
+        MaximumLikelihoodModel,
+        NelderMeadOptimization
+    ]
 
     mae = []
     mse = []
