@@ -63,12 +63,6 @@ def main():
     with open(src, "rb") as g:
         simulator, simulation_ppd = pickle.load(g)
 
-    ppd_a = simulation_ppd[site.a]
-    l = ((ppd_a < 100)).all(axis=(1, 2))
-    l = np.where(l == False)
-    print(l)
-    return
-
     # Set up logging
     setup_logging(
         dir=BUILD_DIR,

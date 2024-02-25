@@ -28,9 +28,9 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(600)
+    draws_space = range(900)
     models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
-    models = [SVIHierarchicalBayesianModel]
+    # models = [SVIHierarchicalBayesianModel]
     # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
     # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
     # models = [NelderMeadOptimization]

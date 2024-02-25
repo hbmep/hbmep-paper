@@ -256,14 +256,12 @@ class SVIHierarchicalBayesianModel(HierarchicalBayesianModel):
 
     def run_inference(self, df):
         step_size = 1e-2
-        num_steps = 10000
-        loss = Trace_ELBO(num_particles=50)
+        num_steps = 5000
+        num_particles = 100
+
+        loss = Trace_ELBO(num_particles=num_particles)
         optimizer = numpyro.optim.ClippedAdam(step_size=step_size)
-        _guide = numpyro.infer.autoguide.AutoDiagonalNormal(self._model)
-        num_samples = int(
-            (self.mcmc_params["num_samples"] * self.mcmc_params["num_chains"])
-            / self.mcmc_params["thinning"]
-        )
+        _guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(self._model)
 
         svi = SVI(self._model, _guide, optimizer, loss=loss)
         svi_result = svi.run(
@@ -271,6 +269,28 @@ class SVIHierarchicalBayesianModel(HierarchicalBayesianModel):
             num_steps,
             *self._get_regressors(df),
             *self._get_response(df=df)
+        )
+        losses = svi_result.losses
+
+        if np.isnan(losses).any():
+            logger.info(f"NaNs in losses: {losses}")
+            logger.info(f"Reverting to AutoDiagonalNormal guide")
+
+            loss = Trace_ELBO(num_particles=num_particles)
+            optimizer = numpyro.optim.ClippedAdam(step_size=step_size)
+            _guide = numpyro.infer.autoguide.AutoDiagonalNormal(self._model)
+
+            svi = SVI(self._model, _guide, optimizer, loss=loss)
+            svi_result = svi.run(
+                self.rng_key,
+                num_steps,
+                *self._get_regressors(df),
+                *self._get_response(df=df)
+            )
+
+        num_samples = int(
+            (self.mcmc_params["num_samples"] * self.mcmc_params["num_chains"])
+            / self.mcmc_params["thinning"]
         )
         predictive = Predictive(
             _guide,

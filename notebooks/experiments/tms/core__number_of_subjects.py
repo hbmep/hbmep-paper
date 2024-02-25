@@ -6,6 +6,8 @@ import logging
 import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -116,7 +118,23 @@ def main():
 
                 # Run inference
                 df, encoder_dict = model.load(df=df)
-                _, posterior_samples = model.run_inference(df=df)
+
+                match M.NAME:
+                    case "svi_hierarchical_bayesian_model":
+                        svi_result, posterior_samples = model.run_inference(df=df)
+                        losses = svi_result.losses
+
+                        sns.lineplot(x=range(len(losses)), y=losses)
+                        plt.ylim(top=max(losses[-2000:]))
+                        dest = os.path.join(model.build_dir, "losses.png")
+                        plt.savefig(dest)
+                        logger.info(f"Losses plot saved at {dest}")
+
+                        svi_result, losses, dest = None, None, None
+                        del svi_result, losses, dest
+
+                    case _:
+                        _, posterior_samples = model.run_inference(df=df)
 
                 # Predictions and recruitment curves
                 prediction_df = model.make_prediction_dataset(df=df)
@@ -138,7 +156,7 @@ def main():
                 np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                 np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
                 a_true, a_pred = None, None
                 del config, df, prediction_df, encoder_dict, _
@@ -209,7 +227,7 @@ def main():
                     np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                     np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                    config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                    config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                     model, posterior_samples, posterior_predictive = None, None, None
                     a_true, a_pred = None, None
                     del config, df, prediction_df, encoder_dict, _
@@ -272,7 +290,7 @@ def main():
                 np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                 np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, params = None, None
                 a_true, a_pred = None, None
                 del config, df, prediction_df, encoder_dict, _
