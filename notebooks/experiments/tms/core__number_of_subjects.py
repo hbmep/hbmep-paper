@@ -16,7 +16,8 @@ from models import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization
+    NelderMeadOptimization,
+    SVIHierarchicalBayesianModel
 )
 from utils import generate_nested_pulses
 from constants import (
@@ -81,7 +82,7 @@ def main():
         draw_dir = f"d{draw}"
 
         match M.NAME:
-            case "hierarchical_bayesian_model":
+            case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -287,15 +288,17 @@ def main():
 
     # Experiment space
     # draws_space = np.arange(ppd_obs.shape[0])
-    draws_space = list(range(635, 2000))
+    draws_space = list(range(2000))
     n_subjects_space = N_SUBJECTS_SPACE
     n_jobs = -1
 
     ## Uncomment the following to run
     ## experiment for different models
 
-    # Run for Hierarchical Bayesian Model
-    models = [HierarchicalBayesianModel]
+    # Run for Hierarchical Bayesian Model /
+    # SVI Hierarchical Bayesian Model
+    # models = [HierarchicalBayesianModel]
+    models = [SVIHierarchicalBayesianModel]
 
     # # Run for Non-hierarchical Bayesian Model
     # n_subjects_space = [16]
@@ -318,6 +321,11 @@ def main():
             for n_subjects in n_subjects_space
             for M in models
         )
+
+    # Model = SVIHierarchicalBayesianModel
+    # draw = 62
+    # n_subjects = 16
+    # run_experiment(N_REPS, N_PULSES, n_subjects, draw, Model)
 
 
 if __name__ == "__main__":

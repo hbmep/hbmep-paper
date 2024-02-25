@@ -10,7 +10,8 @@ from models import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization
+    NelderMeadOptimization,
+    SVIHierarchicalBayesianModel
 )
 from core__number_of_subjects import (
     N_REPS, N_PULSES, N_SUBJECTS_SPACE
@@ -27,8 +28,9 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(1100)
-    models = [HierarchicalBayesianModel]
+    draws_space = range(600)
+    models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
+    models = [SVIHierarchicalBayesianModel]
     # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
     # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
     # models = [NelderMeadOptimization]
@@ -42,7 +44,7 @@ def main():
                 draw_dir = f"d{draw}"
 
                 match M.NAME:
-                    case "hierarchical_bayesian_model":
+                    case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
                         dir = os.path.join(
                             BUILD_DIR,
                             draw_dir,

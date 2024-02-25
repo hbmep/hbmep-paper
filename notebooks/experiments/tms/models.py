@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
+from numpyro.infer import Predictive, SVI, Trace_ELBO
 
 from hbmep.config import Config
 from hbmep.nn import functional as F
@@ -245,3 +246,37 @@ class NelderMeadOptimization(BoundedOptimization):
         self.num_points = 1000
         self.num_iters = 100
         self.n_jobs = -1
+
+
+class SVIHierarchicalBayesianModel(HierarchicalBayesianModel):
+    NAME = "svi_hierarchical_bayesian_model"
+
+    def __init__(self, config: Config):
+        super(SVIHierarchicalBayesianModel, self).__init__(config=config)
+
+    def run_inference(self, df):
+        step_size = 1e-2
+        num_steps = 10000
+        loss = Trace_ELBO(num_particles=50)
+        optimizer = numpyro.optim.ClippedAdam(step_size=step_size)
+        _guide = numpyro.infer.autoguide.AutoDiagonalNormal(self._model)
+        num_samples = int(
+            (self.mcmc_params["num_samples"] * self.mcmc_params["num_chains"])
+            / self.mcmc_params["thinning"]
+        )
+
+        svi = SVI(self._model, _guide, optimizer, loss=loss)
+        svi_result = svi.run(
+            self.rng_key,
+            num_steps,
+            *self._get_regressors(df),
+            *self._get_response(df=df)
+        )
+        predictive = Predictive(
+            _guide,
+            params=svi_result.params,
+            num_samples=num_samples
+        )
+        posterior_samples = predictive(self.rng_key, *self._get_regressors(df=df))
+        posterior_samples = {u: np.array(v) for u, v in posterior_samples.items()}
+        return svi_result, posterior_samples
