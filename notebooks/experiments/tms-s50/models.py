@@ -3,11 +3,10 @@ import logging
 import numpy as np
 import numpyro
 import numpyro.distributions as dist
-from numpyro.infer import Predictive, SVI, Trace_ELBO
 
 from hbmep.config import Config
 from hbmep.nn import functional as F
-from hbmep.model import GammaModel, BoundedOptimization
+from hbmep.model import GammaModel
 from hbmep.model.utils import Site as site
 
 logger = logging.getLogger(__name__)
@@ -54,6 +53,11 @@ class RectifiedLogistic(GammaModel):
 
                 c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
                 c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
+
+                s50 = numpyro.deterministic(
+                    "s50",
+                    F.rectified_logistic_s50(a, b, v, L, ell, H)
+                )
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -132,7 +136,7 @@ class Logistic4(GammaModel):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_logistic(
+                    F.logistic4(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],

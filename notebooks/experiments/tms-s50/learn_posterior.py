@@ -9,7 +9,7 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel
+from models import Logistic4
 from constants import TOML_PATH, DATA_PATH, LEARN_POSTERIOR_DIR, INFERENCE_FILE
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ def main():
     # Build model
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = BUILD_DIR
-    model = HierarchicalBayesianModel(config=config)
+    model = Logistic4(config=config)
 
     # Set up logging
     model._make_dir(model.build_dir)

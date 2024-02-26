@@ -7,11 +7,8 @@ import matplotlib.pyplot as plt
 
 from hbmep_paper.utils import setup_logging
 from models import (
-    HierarchicalBayesianModel,
-    NonHierarchicalBayesianModel,
-    MaximumLikelihoodModel,
-    NelderMeadOptimization,
-    SVIHierarchicalBayesianModel
+    RectifiedLogistic,
+    Logistic4
 )
 from core__number_of_subjects import (
     N_REPS, N_PULSES, N_SUBJECTS_SPACE
@@ -28,13 +25,8 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(1850)
-    models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
-    # models = [SVIHierarchicalBayesianModel]
-    # models = [HierarchicalBayesianModel]
-    # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
-    # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
-    # models = [NelderMeadOptimization]
+    draws_space = range(5)
+    models = [RectifiedLogistic, Logistic4]
 
     mae = []
     mse = []
@@ -45,7 +37,7 @@ def main():
                 draw_dir = f"d{draw}"
 
                 match M.NAME:
-                    case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
+                    case "rectified_logistic" | "logistic4":
                         dir = os.path.join(
                             BUILD_DIR,
                             draw_dir,
@@ -58,48 +50,6 @@ def main():
                         a_pred = np.load(os.path.join(dir, "a_pred.npy"))
 
                         a_pred = a_pred.mean(axis=0).reshape(-1,)
-                        a_true = a_true.reshape(-1,)
-
-                    case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
-                        n_subjects_dir = f"n{n_subjects_space[-1]}"
-                        a_true, a_pred = [], []
-
-                        for subject in range(n_subjects):
-                            sub_dir = f"subject{subject}"
-                            dir = os.path.join(
-                                BUILD_DIR,
-                                draw_dir,
-                                n_subjects_dir,
-                                n_reps_dir,
-                                n_pulses_dir,
-                                M.NAME,
-                                sub_dir
-                            )
-                            a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
-                            a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
-
-                            a_pred_sub_map = a_pred_sub.mean(axis=0)
-                            a_true_sub = a_true_sub
-
-                            a_true += a_pred_sub_map.reshape(-1,).tolist()
-                            a_pred += a_true_sub.reshape(-1,).tolist()
-
-                        a_true = np.array(a_true)
-                        a_pred = np.array(a_pred)
-
-                    case "nelder_mead_optimization":
-                        dir = os.path.join(
-                            BUILD_DIR,
-                            draw_dir,
-                            f"n{n_subjects_space[-1]}",
-                            n_reps_dir,
-                            n_pulses_dir,
-                            M.NAME
-                        )
-                        a_true = np.load(os.path.join(dir, "a_true.npy"))[:n_subjects, ...]
-                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))[:n_subjects, ...]
-
-                        a_pred = a_pred.reshape(-1,)
                         a_true = a_true.reshape(-1,)
 
                     case _:

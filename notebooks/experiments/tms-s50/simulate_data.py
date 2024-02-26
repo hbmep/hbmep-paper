@@ -10,12 +10,11 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel
+from models import Logistic4
 from constants import (
     TOML_PATH,
     TOTAL_SUBJECTS,
     TOTAL_PULSES,
-    PULSES_SPACE,
     TOTAL_REPS,
     REP,
     LEARN_POSTERIOR_DIR,
@@ -34,7 +33,7 @@ def main():
     # Build simulator
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = BUILD_DIR
-    simulator = HierarchicalBayesianModel(config=config)
+    simulator = Logistic4(config=config)
 
     # Set up logging
     simulator._make_dir(simulator.build_dir)
@@ -74,8 +73,8 @@ def main():
     # Exclude priors
     present_sites = sorted(list(posterior_samples.keys()))
     sites_to_exclude = [
-        site.a, site.b, site.v,
-        site.L, site.ell, site.H,
+        site.a, site.b,
+        site.L, site.H,
         site.c_1, site.c_2,
         site.mu, site.beta, site.alpha, site.obs
     ]

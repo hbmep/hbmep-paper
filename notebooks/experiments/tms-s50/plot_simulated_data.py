@@ -71,18 +71,17 @@ def main():
     logger.info(f"simulation_df: {simulation_df.shape}")
 
     # Plot
-    for r in [1, 2, 4, 8]:
-        n_draws_to_plot = 5
-        if r == 1: n_draws_to_plot = 50
+    r = 1
+    n_draws_to_plot = 50
 
-        ind = simulation_df[REP] < r
-        temp_simulation_df = simulation_df[ind].reset_index(drop=True).copy()
-        temp_simulation_ppd = simulation_ppd.copy()
-        for s in [site.mu, site.obs]:
-            temp_simulation_ppd[s] = temp_simulation_ppd[s][:, ind, ...]
+    ind = simulation_df[REP] < r
+    temp_simulation_df = simulation_df[ind].reset_index(drop=True).copy()
+    temp_simulation_ppd = simulation_ppd.copy()
+    for s in [site.mu, site.obs]:
+        temp_simulation_ppd[s] = temp_simulation_ppd[s][:, ind, ...]
 
-        dest = os.path.join(BUILD_DIR, f"plot_reps_{r}.pdf")
-        plot(simulator, temp_simulation_df, temp_simulation_ppd, n_draws_to_plot, dest)
+    dest = os.path.join(BUILD_DIR, f"plot_reps_{r}.pdf")
+    plot(simulator, temp_simulation_df, temp_simulation_ppd, n_draws_to_plot, dest)
 
     return
 

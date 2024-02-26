@@ -32,7 +32,7 @@ def main():
         NonHierarchicalBayesianModel,
         MaximumLikelihoodModel,
         NelderMeadOptimization,
-        # SVIHierarchicalBayesianModel
+        SVIHierarchicalBayesianModel
     ]
 
     mae = []
