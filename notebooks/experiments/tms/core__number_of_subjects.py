@@ -124,14 +124,19 @@ def main():
                         svi_result, posterior_samples = model.run_inference(df=df)
                         losses = svi_result.losses
 
-                        sns.lineplot(x=range(len(losses)), y=losses)
-                        plt.ylim(top=max(losses[-2000:]))
+                        fig, axes = plt.subplots(
+                            1, 1, figsize=(5, 5), constrained_layout=True, squeeze=False
+                        )
+                        ax = axes[0, 0]
+                        sns.lineplot(x=range(len(losses)), y=losses, ax=ax)
+                        ax.set_ylim(max(losses[-2000:]))
                         dest = os.path.join(model.build_dir, "losses.png")
-                        plt.savefig(dest)
+                        fig.savefig(dest)
                         logger.info(f"Losses plot saved at {dest}")
 
+                        fig, ax = None, None
                         svi_result, losses, dest = None, None, None
-                        del svi_result, losses, dest
+                        del fig, ax, svi_result, losses, dest
 
                     case _:
                         _, posterior_samples = model.run_inference(df=df)
@@ -305,8 +310,7 @@ def main():
 
 
     # Experiment space
-    # draws_space = np.arange(ppd_obs.shape[0])
-    draws_space = list(range(1500, 2000))
+    draws_space = list(range(2000))
     n_subjects_space = N_SUBJECTS_SPACE
     n_jobs = -1
 
@@ -315,11 +319,12 @@ def main():
 
     # Run for Hierarchical Bayesian Model /
     # SVI Hierarchical Bayesian Model
-    models = [HierarchicalBayesianModel]
+    models = [SVIHierarchicalBayesianModel]
+    n_subjects_space = [16]
     # models = [SVIHierarchicalBayesianModel]
 
     # # Run for Non-hierarchical Bayesian Model
-    # n_subjects_space = [16]
+    n_subjects_space = [16]
     # models = [NonHierarchicalBayesianModel]
 
     # # Run for Maximum Likelihood Model
@@ -341,7 +346,7 @@ def main():
         )
 
     # Model = SVIHierarchicalBayesianModel
-    # draw = 62
+    # draw = 228
     # n_subjects = 16
     # run_experiment(N_REPS, N_PULSES, n_subjects, draw, Model)
 

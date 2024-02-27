@@ -1,9 +1,10 @@
 import logging
 
 import numpy as np
+from jax import random
 import numpyro
 import numpyro.distributions as dist
-from numpyro.infer import Predictive, SVI, Trace_ELBO
+from numpyro.infer import Predictive, SVI, Trace_ELBO, TraceMeanField_ELBO, RenyiELBO
 
 from hbmep.config import Config
 from hbmep.nn import functional as F
@@ -259,34 +260,23 @@ class SVIHierarchicalBayesianModel(HierarchicalBayesianModel):
         num_steps = 5000
         num_particles = 100
 
-        loss = Trace_ELBO(num_particles=num_particles)
+        loss = TraceMeanField_ELBO(num_particles=num_particles)
         optimizer = numpyro.optim.ClippedAdam(step_size=step_size)
-        _guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(self._model)
-
+        _guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(
+            self._model
+        )
         svi = SVI(self._model, _guide, optimizer, loss=loss)
         svi_result = svi.run(
             self.rng_key,
             num_steps,
             *self._get_regressors(df),
-            *self._get_response(df=df)
+            *self._get_response(df=df),
+            stable_update=True
         )
         losses = svi_result.losses
 
         if np.isnan(losses).any():
-            logger.info(f"NaNs in losses: {losses}")
-            logger.info(f"Reverting to AutoDiagonalNormal guide")
-
-            loss = Trace_ELBO(num_particles=num_particles)
-            optimizer = numpyro.optim.ClippedAdam(step_size=step_size)
-            _guide = numpyro.infer.autoguide.AutoDiagonalNormal(self._model)
-
-            svi = SVI(self._model, _guide, optimizer, loss=loss)
-            svi_result = svi.run(
-                self.rng_key,
-                num_steps,
-                *self._get_regressors(df),
-                *self._get_response(df=df)
-            )
+            logger.info("NaNs in losses")
 
         num_samples = int(
             (self.mcmc_params["num_samples"] * self.mcmc_params["num_chains"])

@@ -140,7 +140,7 @@ def main():
             ms=4
         )
         ax.set_xticks(x)
-        ax.legend(loc="upper right")
+        ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
         ax.set_xlabel("# Pulses")
         ax.set_ylabel("MAE")
 

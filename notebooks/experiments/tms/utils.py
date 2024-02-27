@@ -1,8 +1,13 @@
 import logging
+import warnings
+from functools import partial
 
 import numpy as np
+import numpyro.distributions as dist
+from numpyro.distributions import biject_to
+from numpyro.util import find_stack_level
 
-from hbmep.config import Config
+from hbmep.nn.functional import EPSILON
 
 from constants import (
     TOTAL_PULSES,
@@ -44,3 +49,40 @@ def generate_nested_pulses(simulator, simulation_df):
             )
 
     return pulses_map
+
+
+def init_to_uniform(site=None, radius=2):
+    """
+    Initialize to a random point in the area `(-radius, radius)` of unconstrained domain.
+
+    :param float radius: specifies the range to draw an initial point in the unconstrained domain.
+    """
+    if site is None:
+        return partial(init_to_uniform, radius=radius)
+
+    if (
+        site["type"] == "sample"
+        and not site["is_observed"]
+        and not site["fn"].support.is_discrete
+    ):
+        if site["value"] is not None:
+            warnings.warn(
+                f"init_to_uniform() skipping initialization of site '{site['name']}'"
+                " which already stores a value.",
+                stacklevel=find_stack_level(),
+            )
+            return site["value"]
+
+        # XXX: we import here to avoid circular import
+        from numpyro.infer.util import helpful_support_errors
+
+        rng_key = site["kwargs"].get("rng_key")
+        sample_shape = site["kwargs"].get("sample_shape")
+
+        with helpful_support_errors(site):
+            transform = biject_to(site["fn"].support)
+        unconstrained_shape = transform.inverse_shape(site["fn"].shape())
+        unconstrained_samples = dist.Uniform(EPSILON, radius)(
+            rng_key=rng_key, sample_shape=sample_shape + unconstrained_shape
+        )
+        return transform(unconstrained_samples)

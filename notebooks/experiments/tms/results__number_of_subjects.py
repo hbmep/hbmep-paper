@@ -21,6 +21,7 @@ from constants import NUMBER_OF_SUJECTS_DIR
 logger = logging.getLogger(__name__)
 
 BUILD_DIR = NUMBER_OF_SUJECTS_DIR
+# BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/learn_posterior/simulate_data/experiments/number_of_subjects_archived"
 
 
 def main():
@@ -28,9 +29,13 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(1850)
+    # draws_space = list(range(0, 50))
+    # draws_space += list(range(60, 110))
+    draws_space = range(40)
+    # BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/learn_posterior/simulate_data/experiments/number_of_subjects_archived"
+
+    # models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization, SVIHierarchicalBayesianModel]
     models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
-    # models = [SVIHierarchicalBayesianModel]
     # models = [HierarchicalBayesianModel]
     # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
     # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
@@ -54,6 +59,17 @@ def main():
                             n_pulses_dir,
                             M.NAME
                         )
+
+                        if n_subjects == 16 and M.NAME == "svi_hierarchical_bayesian_model" and BUILD_DIR != NUMBER_OF_SUJECTS_DIR:
+                            dir = os.path.join(
+                                BUILD_DIR,
+                                draw_dir,
+                                n_subjects_dir,
+                                n_reps_dir,
+                                n_pulses_dir,
+                                "svi_hierarchical_bayesian_model_"
+                            )
+
                         a_true = np.load(os.path.join(dir, "a_true.npy"))
                         a_pred = np.load(os.path.join(dir, "a_pred.npy"))
 
@@ -141,7 +157,7 @@ def main():
             ms=4
         )
         ax.set_xticks(x)
-        ax.legend(loc="upper right")
+        ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
         ax.set_xlabel("# Subjects")
         ax.set_ylabel("MAE")
 
