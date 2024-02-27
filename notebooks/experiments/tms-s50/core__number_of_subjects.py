@@ -79,76 +79,7 @@ def main():
         draw_dir = f"d{draw}"
 
         match M.NAME:
-            case "rectified_logistic":
-                # Load data
-                ind = (
-                    (simulation_df[simulator.features[0]] < n_subjects) &
-                    (simulation_df[REP] < n_reps) &
-                    (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
-                )
-                df = simulation_df[ind].reset_index(drop=True).copy()
-                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
-
-                ind = df[simulator.response[0]] > 0
-                df = df[ind].reset_index(drop=True).copy()
-
-                # Build model
-                config = Config(toml_path=TOML_PATH)
-                config.BUILD_DIR = os.path.join(
-                    BUILD_DIR,
-                    draw_dir,
-                    n_subjects_dir,
-                    n_reps_dir,
-                    n_pulses_dir,
-                    M.NAME
-                )
-                model = M(config=config)
-
-                # Set up logging
-                model._make_dir(model.build_dir)
-                setup_logging(
-                    dir=model.build_dir,
-                    fname="logs"
-                )
-
-                # Run inference
-                df, encoder_dict = model.load(df=df)
-                _, posterior_samples = model.run_inference(df=df)
-
-                # Predictions and recruitment curves
-                prediction_df = model.make_prediction_dataset(df=df)
-                posterior_predictive = model.predict(
-                    df=prediction_df, posterior_samples=posterior_samples
-                )
-
-                # We copy site.s50 into site.a so that in plots
-                # we see estimated site.s50 instead of site.a
-                posterior_samples[site.a] = posterior_samples[site.s50]
-
-                model.render_recruitment_curves(
-                    df=df,
-                    encoder_dict=encoder_dict,
-                    posterior_samples=posterior_samples,
-                    prediction_df=prediction_df,
-                    posterior_predictive=posterior_predictive
-                )
-
-                # Compute error and save results
-                a_true = ppd_a[draw, :n_subjects, ...]
-                a_pred = posterior_samples[site.a]
-                assert a_pred.mean(axis=0).shape == a_true.shape
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
-
-                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
-                model, posterior_samples, posterior_predictive = None, None, None
-                a_true, a_pred = None, None
-                del config, df, prediction_df, encoder_dict, _
-                del model, posterior_samples, posterior_predictive
-                del a_true, a_pred
-                gc.collect()
-
-            case "logistic4":
+            case "rectified_logistic" | "logistic4":
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -225,6 +156,7 @@ def main():
     n_jobs = -1
 
     models = [RectifiedLogistic, Logistic4]
+    models = [RectifiedLogistic]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
@@ -235,11 +167,6 @@ def main():
             for n_subjects in n_subjects_space
             for M in models
         )
-
-    # Model = SVIHierarchicalBayesianModel
-    # draw = 62
-    # n_subjects = 16
-    # run_experiment(N_REPS, N_PULSES, n_subjects, draw, Model)
 
 
 if __name__ == "__main__":

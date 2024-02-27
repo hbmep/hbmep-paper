@@ -12,6 +12,39 @@ from hbmep.model.utils import Site as site
 logger = logging.getLogger(__name__)
 
 
+import jax
+import jax.numpy as jnp
+def rectified_logistic_S50(
+    x, a, b, v, L, ell, H
+):
+    return (
+        L
+        + jax.nn.relu(
+            - ell
+            + jnp.multiply(
+                H + ell,
+                jnp.power(
+                    F.EPSILON
+                    + jax.nn.sigmoid(
+                        F._linear_transform(x, a, b)
+                        - jnp.log(
+                            - 1
+                            + jnp.power(
+                                jnp.true_divide(
+                                    H + ell,
+                                    jnp.true_divide(H, 2) + ell
+                                ),
+                                v
+                            )
+                        )
+                    ),
+                    jnp.true_divide(1, v)
+                )
+            )
+        )
+    )
+
+
 class RectifiedLogistic(GammaModel):
     NAME = "rectified_logistic"
 
@@ -54,17 +87,12 @@ class RectifiedLogistic(GammaModel):
                 c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
                 c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
 
-                s50 = numpyro.deterministic(
-                    "s50",
-                    F.rectified_logistic_s50(a, b, v, L, ell, H)
-                )
-
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_logistic(
+                    rectified_logistic_S50(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],

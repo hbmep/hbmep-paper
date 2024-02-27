@@ -24,8 +24,9 @@ def main():
     n_reps = N_REPS
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
+    n_subjects_space = [1, 4, 8]
 
-    draws_space = range(5)
+    draws_space = range(1)
     models = [RectifiedLogistic, Logistic4]
 
     mae = []
