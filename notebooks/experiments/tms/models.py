@@ -1,10 +1,10 @@
 import logging
 
 import numpy as np
-from jax import random
 import numpyro
 import numpyro.distributions as dist
-from numpyro.infer import Predictive, SVI, Trace_ELBO, TraceMeanField_ELBO, RenyiELBO
+from numpyro.infer import Predictive, SVI, Trace_ELBO
+from numpyro.infer.autoguide import AutoLowRankMultivariateNormal
 
 from hbmep.config import Config
 from hbmep.nn import functional as F
@@ -257,14 +257,12 @@ class SVIHierarchicalBayesianModel(HierarchicalBayesianModel):
 
     def run_inference(self, df):
         step_size = 1e-2
-        num_steps = 5000
+        num_steps = 6000
         num_particles = 100
 
-        loss = TraceMeanField_ELBO(num_particles=num_particles)
+        loss = Trace_ELBO(num_particles=num_particles)
         optimizer = numpyro.optim.ClippedAdam(step_size=step_size)
-        _guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(
-            self._model
-        )
+        _guide = AutoLowRankMultivariateNormal(self._model)
         svi = SVI(self._model, _guide, optimizer, loss=loss)
         svi_result = svi.run(
             self.rng_key,

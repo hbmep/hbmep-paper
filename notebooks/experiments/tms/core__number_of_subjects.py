@@ -128,8 +128,7 @@ def main():
                             1, 1, figsize=(5, 5), constrained_layout=True, squeeze=False
                         )
                         ax = axes[0, 0]
-                        sns.lineplot(x=range(len(losses)), y=losses, ax=ax)
-                        ax.set_ylim(max(losses[-2000:]))
+                        sns.lineplot(x=range(len(losses[-2000:])), y=losses[-2000:], ax=ax)
                         dest = os.path.join(model.build_dir, "losses.png")
                         fig.savefig(dest)
                         logger.info(f"Losses plot saved at {dest}")
@@ -320,11 +319,11 @@ def main():
     # Run for Hierarchical Bayesian Model /
     # SVI Hierarchical Bayesian Model
     models = [SVIHierarchicalBayesianModel]
-    n_subjects_space = [16]
+    # n_subjects_space = [16]
     # models = [SVIHierarchicalBayesianModel]
 
     # # Run for Non-hierarchical Bayesian Model
-    n_subjects_space = [16]
+    # n_subjects_space = [16]
     # models = [NonHierarchicalBayesianModel]
 
     # # Run for Maximum Likelihood Model

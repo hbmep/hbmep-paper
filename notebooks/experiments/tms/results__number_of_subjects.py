@@ -31,7 +31,7 @@ def main():
 
     # draws_space = list(range(0, 50))
     # draws_space += list(range(60, 110))
-    draws_space = range(40)
+    draws_space = range(1500)
     # BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/experiments/tms/learn_posterior/simulate_data/experiments/number_of_subjects_archived"
 
     # models = [HierarchicalBayesianModel, NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization, SVIHierarchicalBayesianModel]
