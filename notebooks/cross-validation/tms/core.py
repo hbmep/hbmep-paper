@@ -9,7 +9,6 @@ from joblib import Parallel, delayed
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
-from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
 from models import (
@@ -28,7 +27,6 @@ from constants import (
 logger = logging.getLogger(__name__)
 
 
-@timing
 def main():
     # Load data
     data = pd.read_csv(DATA_PATH)
@@ -53,6 +51,7 @@ def main():
 
         # Run inference
         df, encoder_dict = model.load(df=data)
+        logger.info(f"Running inference for {model.NAME} with {df.shape[0]} samples ...")
         mcmc, posterior_samples = model.run_inference(df=df)
 
         # Predictions and recruitment curves
@@ -119,7 +118,6 @@ def main():
     # # Run single model
     # M = RectifiedLogistic
     # run_inference(M)
-
     return
 
 
