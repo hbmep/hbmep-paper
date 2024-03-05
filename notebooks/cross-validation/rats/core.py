@@ -55,6 +55,7 @@ def main():
 
         # Run inference
         df, encoder_dict = model.load(df=data)
+        logger.info(f"Running inference for {model.NAME} with {df.shape[0]} samples ...")
         mcmc, posterior_samples = model.run_inference(df=df)
 
         # Predictions and recruitment curves
