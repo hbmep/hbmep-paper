@@ -14,4 +14,4 @@ num_samples = 4000
 thinning = 4
 
 [misc]
-base = 20
+base = 10
