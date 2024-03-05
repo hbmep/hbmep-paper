@@ -15,9 +15,7 @@ from models import (
     RectifiedLogistic,
     Logistic5,
     Logistic4,
-    RectifiedLinear,
-    L5CustomJVP,
-    ReLogNoV
+    RectifiedLinear
 )
 from constants import (
     DATA_PATH,
@@ -40,12 +38,8 @@ def main():
         config = Config(toml_path=TOML_PATH)
         config.BUILD_DIR = os.path.join(
             BUILD_DIR,
-            M.NAME,
-            "large_samples"
+            M.NAME
         )
-        config.MCMC_PARAMS["num_samples"] = 16000
-        config.MCMC_PARAMS["num_warmup"] = 4000
-        config.MCMC_PARAMS["thinning"] = 1
         model = M(config=config)
 
         # Set up logging
@@ -54,6 +48,8 @@ def main():
             dir=model.build_dir,
             fname=os.path.basename(__file__)
         )
+        for u, v in model.mcmc_params.items():
+            logger.info(f"{u} = {v}")
 
         # Run inference
         df, encoder_dict = model.load(df=data)
@@ -107,25 +103,24 @@ def main():
         gc.collect()
 
 
-    # # Run multiple models in parallel
-    # n_jobs = -1
-    # models = [
-    #     # RectifiedLogistic,
-    #     # Logistic5,
-    #     # Logistic4,
-    #     # RectifiedLinear,
-    #     L5CustomJVP,
-    #     ReLogNoV
-    # ]
+    # Run multiple models in parallel
+    n_jobs = -1
+    models = [
+        RectifiedLogistic,
+        Logistic5,
+        # Logistic4,
+        # RectifiedLinear,
+    ]
 
-    # with Parallel(n_jobs=n_jobs) as parallel:
-    #     parallel(
-    #         delayed(run_inference)(M) for M in models
-    #     )
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(run_inference)(M) for M in models
+        )
 
-    # Run single model
-    M = ReLogNoV
-    run_inference(M)
+    # # Run single model
+    # M = RectifiedLogistic
+    # run_inference(M)
+
     return
 
 
