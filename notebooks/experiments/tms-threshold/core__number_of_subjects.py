@@ -16,9 +16,9 @@ from hbmep.utils import timing
 from hbmep_paper.utils import setup_logging
 from models import (
     HierarchicalBayesianModel,
-    # NonHierarchicalBayesianModel,
-    # MaximumLikelihoodModel,
-    # NelderMeadOptimization,
+    NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization,
     SVIHierarchicalBayesianModel
 )
 from utils import generate_nested_pulses
@@ -318,11 +318,11 @@ def main():
 
     # Run for Hierarchical Bayesian Model /
     # SVI Hierarchical Bayesian Model
-    models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
+    # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
 
     # # Run for Non-hierarchical Bayesian Model
-    # n_subjects_space = [16]
-    # models = [NonHierarchicalBayesianModel]
+    n_subjects_space = [16]
+    models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
 
     # # Run for Maximum Likelihood Model
     # n_subjects_space = [16]
@@ -331,6 +331,8 @@ def main():
     # # Run for Nelder-Mead Optimization
     # n_subjects_space = [16]
     # models = [NelderMeadOptimization]
+
+    draws_space = range(150, 2000)
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
