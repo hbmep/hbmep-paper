@@ -16,10 +16,7 @@ from models import (
     RectifiedLogistic,
     Logistic5,
     Logistic4,
-    RectifiedLinear,
-    L5CustomJVP,
-    ReLogNoV,
-    ReLogNoVRatio
+    RectifiedLinear
 )
 from constants import (
     DATA_PATH,
@@ -53,6 +50,8 @@ def main():
             dir=model.build_dir,
             fname=os.path.basename(__file__)
         )
+        for u, v in model.mcmc_params.items():
+            logger.info(f"{u} = {v}")
 
         # Run inference
         df, encoder_dict = model.load(df=data)
@@ -108,8 +107,8 @@ def main():
     # # Run multiple models in parallel
     # n_jobs = -1
     # models = [
-    #     RectifiedLogistic,
-    #     Logistic5,
+        RectifiedLogistic,
+        Logistic5,
     #     Logistic4,
     #     RectifiedLinear
     # ]
@@ -119,9 +118,9 @@ def main():
     #         delayed(run_inference)(M) for M in models
     #     )
 
-    # Run single model
-    M = ReLogNoVRatio
-    run_inference(M)
+    # # Run single model
+    # M = RectifiedLogistic
+    # run_inference(M)
 
     return
 
