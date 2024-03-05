@@ -111,8 +111,8 @@ def main():
     models = [
         RectifiedLogistic,
         Logistic5,
-        # Logistic4,
-        # RectifiedLinear
+        Logistic4,
+        RectifiedLinear
     ]
 
     with Parallel(n_jobs=n_jobs) as parallel:

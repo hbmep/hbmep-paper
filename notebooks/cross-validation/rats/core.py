@@ -40,7 +40,7 @@ def main():
         config = Config(toml_path=TOML_PATH)
         config.BUILD_DIR = os.path.join(
             BUILD_DIR,
-            M.NAME,
+            M.NAME
         )
         model = M(config=config)
 
@@ -105,18 +105,18 @@ def main():
 
 
     # # Run multiple models in parallel
-    # n_jobs = -1
-    # models = [
+    n_jobs = -1
+    models = [
         RectifiedLogistic,
         Logistic5,
-    #     Logistic4,
-    #     RectifiedLinear
-    # ]
+        Logistic4,
+        RectifiedLinear
+    ]
 
-    # with Parallel(n_jobs=n_jobs) as parallel:
-    #     parallel(
-    #         delayed(run_inference)(M) for M in models
-    #     )
+    with Parallel(n_jobs=n_jobs) as parallel:
+        parallel(
+            delayed(run_inference)(M) for M in models
+        )
 
     # # Run single model
     # M = RectifiedLogistic
