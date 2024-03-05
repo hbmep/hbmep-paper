@@ -9,104 +9,90 @@
 
 \begin{document}
 
-The simplest form of the standard $3-$stage hierarchical model in the context of MEP size modeling can be described as follows. Let there be $N_P$ exchangeable sequences $\{(x_i^p, y_i^p)_{i=1}^{n(p)} \mid j = 1, 2 \ldots N_P\}$ of MEP size $y_i^p \in \mathbb{R}^+$ recorded at stimulation intensity $x_i^p \in \mathbb{R}_0^+$ from $p^{th}$ participant, for  a total of $N_P$ participants.\\
+The simplest form of a standard 3-stage hierarchical Bayesian model in the context of modeling MEP size can be described as follows. Let there be $N_P$ exchangeable sequences $\left\{\left({x_i}^p, {y_i}^p\right)_{i=1}^{n(p)} \mid j = 1, 2 \ldots N_P\right\}$ of MEP sizes ${y_i}^p \in \mathbb{R}^+$ recorded at stimulation intensity ${x_i}^p \in \mathbb{R}_0^+$ from $p^{\text{th}}$ participant, for  a total of $N_P$ participants. Here $n(p)$ denotes the number of intensities tested for $p^{\text{th}}$ participant.\\
 
-The first stage of hierarchy is the \textit{participant-level} and specifies parametric model $P(y_i^p \mid x_i^p, \theta_p)$ for each of the $N_P$ sequences and models the MEP size $y_i^p$ as a function of stimulus intensity $x_i^p$ and participant-specific parameters $\theta_p$. In the second stage, $\theta_1, \theta_2 \ldots \theta_P$ are assumed to be exchangeable and generated from a common distribution P($\theta_p \mid \gamma$) with hyper-parameters $\gamma$. In the third stage, the hyper-parameters $\gamma$ are assumed to be unknown and are assigned a non-informative prior, also called hyperprior, density $P(\gamma)$.
+The first stage of hierarchy is the \textit{participant-level} and specifies parametric model $P\left({y_i}^p \mid {x_i}^p, \theta^p\right)$ for each of the $N_P$ participants and models the MEP size ${y_i}^p$ as a function of stimulus intensity ${x_i}^p$ and participant-specific parameters $\theta^p$. In the second stage, $\theta_1, \theta_2 \ldots \theta^P$ are assumed to be exchangeable and generated from a common distribution $P\left(\theta^p \mid \gamma\right)$ with hyper-parameters $\gamma$. In the third stage, the hyper-parameters $\gamma$ are assumed to be unknown and assigned \textit{weakly-informative} prior, also called hyperprior-density $P\left(\gamma\right)$.
 \begin{align*}
-y_i^p \mid x_i^p, \theta_p, \gamma &\sim P(y_i^p \mid x_i^p, \theta_p, \gamma) \tag{4.3.1} \\
-\theta_p \mid \gamma &\sim P(\theta_p \mid \gamma) \tag{4.3.2} \\
-\gamma &\sim P(\gamma) \tag{4.3.3}
+{y_i}^p \mid {x_i}^p, \theta^p, \gamma &\sim P\left({y_i}^p \mid {x_i}^p, \theta^p, \gamma\right) \tag{4.3.1} \\
+\theta^p \mid \gamma &\sim P\left(\theta^p \mid \gamma\right) \tag{4.3.2} \\
+\gamma &\sim P\left(\gamma\right) \tag{4.3.3}
 \end{align*}
-Figure $4.3.1$ shows the graphical representation of the basic hierarchical model implemented by hbmep (Section $5.1$) for recruitment-curve fitting\\
-\begin{minipage}{.5\textwidth}
-    \begin{figure}[H]
-        \centering
-        \tikz{ %
-            % Obs
-            \node[obs,fill] (obs) {$y_i^p$};%
+Figure $4.3.1$ shows the graphical representation of the default hierarchical model implemented by hbmep for fitting recruitment-curves on TMS data [ref.] in [ref. to function comparison fig.].\\
+\begin{figure}[H]
+    \centering
+    \tikz{ %
+        % Obs
+        \node[obs,fill,] (obs) {${y_i}^{p}$};%
 
-            % Deterministic mu, beta
-            \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill] (beta) {$\beta_i^p$}; %
-            \node[det,above=of obs,xshift=1.2cm,yshift=0cm,fill] (mu) {$\mu_i^p$}; %
-            \node[obs,above=of obs,xshift=-.8cm,yshift=1cm,fill] (intensity) {$x_i^p$};%
-            \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$i: 1, 2 \ldots N(p)$};
+        % Deterministic mu, beta
+        \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill,] (beta) {${\beta_i}^{p}$}; %
+        \node[det,above=of obs,xshift=1.2cm,yshift=.2cm,fill,] (mu) {${\mu_i}^{p}$}; %
+        \node[obs,above=of obs,xshift=-.8cm,yshift=1.5cm,fill,] (intensity) {${x_i}^{p}$};%
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$\text{intensity }i: 1, 2 \ldots n(p)$};
 
-            % % PRIORS
-            % a, b, v
-            \node[latent,above=of obs,yshift=2.2cm,xshift=-1.3cm,fill] (a) {$a_p$};
-            \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b_p$};
-            \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v_p$};
-            % L, ell, H
-            \node[latent,right=of v,xshift=-.9cm,fill] (L) {$L_p$};
-            \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell_p$};
-            \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H_p$};
-            % g1, g2
-            \node[latent,left=of a,xshift=.3cm,fill] (g2) {${c_2}_p$};
-            \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${c_1}_p$};
+        % % PRIORS
+        % a, b, v
+        \node[latent,above=of obs,yshift=3cm,xshift=-1.5cm,fill,] (a) {$a^{p}$};
+        \node[latent,right=of a,xshift=-.3cm,fill,] (b) {$b^{p}$};
+        \node[latent,right=of b,xshift=-.9cm,fill,] (v) {$v^{p}$};
+        % L, ell, H
+        \node[latent,right=of v,xshift=-.9cm,fill,] (L) {$L^{p}$};
+        \node[latent,right=of L,xshift=-.9cm,fill,] (ell) {$\ell^{p}$};
+        \node[latent,right=of ell,xshift=-.9cm,fill,] (H) {$H^{p}$};
+        % g1, g2
+        \node[latent,left=of a,xshift=.3cm,fill,] (g2) {${c_2}^{p}$};
+        \node[latent,left=of g2,xshift=.9cm,fill,] (g1) {${c_1}^{p}$};
 
-            % Participants plate
-            \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p : 1, 2 \ldots N_P$};
+        % Participants plate
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$\text{participant }p : 1, 2 \ldots N_P$};
 
-            % % HYPER-PRIORS
-            \node[latent,above=of a,xshift=-.4cm,fill] (a_mean) {$\mu_a$};
-            \node[latent,above=of a,xshift=.4cm,fill] (a_scale) {$\sigma_a$};
-            \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
-            \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{c_2}$};
-            \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{c_1}$};
-            \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
-            \node[latent,above=of H,fill] (H_scale) {$\sigma_H$};
-            \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
-            \node[latent,above=of ell,fill] (ell_scale) {$\sigma_\ell$};
+        % % HYPER-PRIORS
+        \node[latent,above=of a,xshift=-.43cm,fill,] (a_mean) {${\mu_a}$};
+        \node[latent,above=of a,xshift=.43cm,fill,] (a_scale) {${\sigma_a}$};
+        \node[latent,above=of b,fill] (b_scale) {${\sigma_b}$};
+        \node[latent,above=of g2,fill] (g2_scale) {${\sigma_{c_2}}$};
+        \node[latent,above=of g1,fill,] (g1_scale) {${\sigma_{c_1}}$};
+        \node[latent,above=of L,fill,] (L_scale) {${\sigma_L}$};
+        \node[latent,above=of H,fill,] (H_scale) {${\sigma_H}$};
+        \node[latent,above=of v,fill,] (v_scale) {${\sigma_v}$};
+        \node[latent,above=of ell,fill,] (ell_scale) {${\sigma_\ell}$};
 
-            % % GLOBAL PRIORS
-            % \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{g_1}}$};
-            % \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{g_2}}$};
-            % \node[latent,above=of b_scale,fill] (b_scale_global_scale) {$\sigma_{\sigma_{b}}$};
-            % \node[latent,above=of L_scale,fill] (L_scale_global_scale) {$\sigma_{\sigma_L}$};
-            % \node[latent,above=of H_scale,fill] (H_scale_global_scale) {$\sigma_{\sigma_H}$};
-            % \node[latent,above=of v_scale,fill] (v_scale_global_scale) {$\sigma_{\sigma_v}$};
-            % \node[latent,above=of ell_scale,fill] (ell_scale_global_scale) {$\sigma_{\sigma_\ell}$};
+        % Edges from Hyper-priors to Priors
+        \edge {g1_scale} {g1}
+        \edge {g2_scale} {g2}
+        \edge {a_mean, a_scale} {a}
+        \edge {b_scale} {b}
+        \edge {L_scale} {L}
+        \edge {H_scale} {H}
+        \edge {v_scale} {v}
+        \edge {ell_scale} {ell}
 
-            % % Edges from Global-priors to Priors
-            % \edge {g1_scale_global_scale} {g1_scale}
-            % \edge {g2_scale_global_scale} {g2_scale}
-            % \edge {b_scale_global_scale} {b_scale}
-            % \edge {L_scale_global_scale} {L_scale}
-            % \edge {H_scale_global_scale} {H_scale}
-            % \edge {v_scale_global_scale} {v_scale}
-            % \edge {ell_scale_global_scale} {ell_scale}
+        % Edges from Priors to Deterministic
+        \edge {g1, g2} {beta}
+        \edge {a, b, v, L, ell, H} {mu}
 
-            % Edges from Hyper-priors to Priors
-            \edge {g1_scale} {g1}
-            \edge {g2_scale} {g2}
-            \edge {a_mean, a_scale} {a}
-            \edge {b_scale} {b}
-            \edge {L_scale} {L}
-            \edge {H_scale} {H}
-            \edge {v_scale} {v}
-            \edge {ell_scale} {ell}
+        % Edges to obs
+        \edge {intensity} {beta, mu}
+        \edge {beta,mu} {obs};
+        \edge {mu} {beta};
+    }
+\end{figure}
 
-            % Edges from Priors to Deterministic
-            \edge {g1, g2} {beta}
-            \edge {a, b, v, L, ell, H} {mu}
+\begin{align*}
+    &\text{Observation model} \\
+    &{y_i}^{p}\sim \text{Gamma}\left({\mu_i}^{p}\cdot{\beta_i}^{p}, {\beta_i}^{p}\right) \\
+    &{\mu_i}^{p} \gets \mathcal{F}\left({x_i}^{p} \mid a^{p}, {\Omega}^{p}\right) \\
+    &{\beta_i}^{p} \gets \frac1{{c_1}^{p}} + \frac1{{c_2}^{p}{\mu_i}^{p}}\\\\
+    &\text{Participant specific parameters} \\
+    &a^{p} \sim \text{TruncatedNormal}\left({\mu_a}, {\sigma_a}\right)\\
+    &{\theta}^{p} \sim \text{HalfNormal}\left({\sigma_{\theta}}\right) \text{ for all } \theta^{p} \in {\Omega}^{p}\\\\
+    &\text{Priors} \\
+    & {\mu_a} \sim \text{TruncatedNormal}\left(50, 20\right)\\
+    &{\sigma_a} \sim \text{HalfNormal}\left(30\right)\\
+    &{\sigma_L} \sim \text{HalfNormal}\left(0.05\right)\\
+    &{\sigma_\theta} \sim \text{HalfNormal}\left(5\right) \text{ for all } {\sigma_\theta}\in \Omega\\\\
+    &{\Omega}^{p} \gets \left\{{b}^{p}, {v}^{p}, {L}^{p}, {\ell}^{p}, {H}^{p}, {c_1}^{p}, {c_2}^{p}\right\}\\
+    &\Omega \gets \left\{{\sigma_{b}}, {\sigma_{v}},  {\sigma_{\ell}}, {\sigma_{H}}, {\sigma_{c_1}}, {\sigma_{c_2}}\right\}
+\end{align*}
 
-            % Edges to obs
-            \edge {intensity} {beta, mu}
-            \edge {beta,mu} {obs};
-            \edge {mu} {beta};
-        }
-    \end{figure}
-\end{minipage}
-\begin{minipage}{.6\textwidth}
-    \begin{align*}
-        &y_i^p \mid x_i^p, \Omega_1^p \sim \mathcal{G}\left(\mu_i^p\cdot\beta_i^p, \beta_i^p\right) \\
-        &\mu_i^p = \mathcal{F}\left(x_i^p \mid \Omega_1^p\right) \;\; \beta_i^p = {c_1}_p + \frac{\mu_i^p}{{c_2}_p}\\\\
-        &a_p \sim \mathcal{TN}\left(\mu_a, \sigma_a\right)\\
-        &\theta_p \sim \mathcal{HN}\left(\sigma_{\theta_p}\right) \; \forall \theta_p \in \Omega_1^p \setminus \{a_p\}\\\\
-        & \mu_a \sim \mathcal{TN}\left(50, 20\right)\;\; \sigma_a \sim \mathcal{HN}\left(30\right)\\
-        &\sigma_{\sigma_L} \sim \mathcal{HN}\left(.05\right) \;\; \sigma_\theta \sim \mathcal{HN}\left(5\right) \;\forall \theta \in \Omega_2\\\\
-        &\Omega_1^p = \{ a_p, b_p, v_p, L_p, \ell_p, H_p, {c_1}_p, {c_2}_p\}\\
-        &\Omega_2 = \{\sigma_{L}, \sigma_{H}, \sigma_{v}, \sigma_{\ell}, \sigma_{c_1}, \sigma_{c_2}\}
-    \end{align*}
-\end{minipage}\\\\
 \end{document}

@@ -9,7 +9,9 @@
 
 \begin{document}
 
-It’s often the case that there is some group structure present within participants. The default model can then be extended to exploit such structure which allows for direct comparison of group parameters. We introduce partial-pooling of group parameters by placing a group-specific prior on each parameter. The group-specific priors are then informed by global priors which are shared between groups. The global priors are informed by hyperpriors, which are shared between all groups and chosen to be weakly informative. \\
+Inference lies at the heart of the motivation for estimating parameters of the RC, for example, to understand whether parameters are changed due to an intervention, dependent on a site of stimulation or between groups of participants. Increasing the statistical power of an inferential analysis can lead to a reduction in the required number of participants. One way to increase power over commonly used frequentist methods (e.g. t-tests) applied after parameter estimation is to construct conditions or groups directly into a hierarchical Bayesian model. Such a model can summarize parameters of multiple participants across different groups and conditions into group-parameters, which can then be used to test hypotheses.
+
+It’s often the case that there is some group structure present within participants. The default model can then be extended to model such structure which allows for direct comparison of group parameters. We introduce partial-pooling of group parameters by placing a \textit{group-specific} prior on each parameter. The group-specific priors are then informed by global priors which are shared between groups. The global priors are informed by hyperpriors, which are shared between all groups and chosen to be weakly informative. \\
 
 Fig. 4.3.2 shows the graphical representation of group model implemented by hbmep. In section 5.2, we use this model $($with $N_G = 2$$)$ to directly compare the group threshold parameters $\mu_a$ of uninjured and injured participants.
 

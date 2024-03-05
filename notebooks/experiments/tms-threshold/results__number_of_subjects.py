@@ -29,9 +29,13 @@ def main():
     n_subjects_space = N_SUBJECTS_SPACE
     n_subjects_space = [1, 4, 8, 16]
 
-    draws_space = range(22)
+    draws_space = [i for i in range(29)]
+    draws_space += [i for i in range(30, 41)]
+    draws_space += [i for i in range(42, 62)]
+    draws_space = range(146)
 
     models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
+    # models = [HierarchicalBayesianModel]
     # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel, NelderMeadOptimization]
     # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
     # models = [HierarchicalBayesianModel]
