@@ -26,7 +26,6 @@ class RectifiedLogistic(GammaModel):
             a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
 
             b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-            v_scale = numpyro.sample("v_scale", dist.HalfNormal(5.))
 
             L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
             ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
@@ -43,9 +42,6 @@ class RectifiedLogistic(GammaModel):
 
                 b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
                 b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
-
-                v_raw = numpyro.sample("v_raw", dist.HalfNormal(scale=1))
-                v = numpyro.deterministic(site.v, jnp.multiply(v_scale, v_raw))
 
                 L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
                 L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
@@ -71,7 +67,6 @@ class RectifiedLogistic(GammaModel):
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
-                        v=v[feature0],
                         L=L[feature0],
                         ell=ell[feature0],
                         H=H[feature0]
