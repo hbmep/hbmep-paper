@@ -30,8 +30,8 @@ def main():
 
     draws_space = range(2000)
 
-    # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
-    models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
+    models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
+    # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
     # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
     # models = [HierarchicalBayesianModel]
 
