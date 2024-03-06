@@ -6,6 +6,8 @@ import logging
 import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -81,7 +83,7 @@ def main():
         draw_dir = f"d{draw}"
 
         match M.NAME:
-            case "hierarchical_bayesian_model":
+            case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -115,7 +117,27 @@ def main():
 
                 # Run inference
                 df, encoder_dict = model.load(df=df)
-                _, posterior_samples = model.run_inference(df=df)
+
+                match M.NAME:
+                    case "svi_hierarchical_bayesian_model":
+                        svi_result, posterior_samples = model.run_inference(df=df)
+                        losses = svi_result.losses
+
+                        fig, axes = plt.subplots(
+                            1, 1, figsize=(5, 5), constrained_layout=True, squeeze=False
+                        )
+                        ax = axes[0, 0]
+                        sns.lineplot(x=range(len(losses[-2000:])), y=losses[-2000:], ax=ax)
+                        dest = os.path.join(model.build_dir, "losses.png")
+                        fig.savefig(dest)
+                        logger.info(f"Losses plot saved at {dest}")
+
+                        fig, ax = None, None
+                        svi_result, losses, dest = None, None, None
+                        del fig, ax, svi_result, losses, dest
+
+                    case _:
+                        _, posterior_samples = model.run_inference(df=df)
 
                 # Predictions and recruitment curves
                 prediction_df = model.make_prediction_dataset(df=df)
@@ -137,7 +159,7 @@ def main():
                 np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                 np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
+                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
                 a_true, a_pred = None, None
                 del config, df, prediction_df, encoder_dict, _
@@ -286,16 +308,16 @@ def main():
 
 
     # Experiment space
-    # draws_space = np.arange(ppd_obs.shape[0])
-    draws_space = range(910, 2000)
+    draws_space = range(0, 2000)
     n_pulses_space = N_PULSES_SPACE
     n_jobs = -1
 
     models = [
         HierarchicalBayesianModel,
-        NonHierarchicalBayesianModel,
-        MaximumLikelihoodModel,
-        NelderMeadOptimization
+        # NonHierarchicalBayesianModel,
+        # MaximumLikelihoodModel,
+        # NelderMeadOptimization,
+        SVIHierarchicalBayesianModel
     ]
 
     with Parallel(n_jobs=n_jobs) as parallel:
