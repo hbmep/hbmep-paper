@@ -10,14 +10,12 @@
 \begin{document}
     In Equation 4.2.3 we described how the expected observed MEP size is modeled as a rectified-logistic function $\mathcal{F}\left(x\right)$ of stimulation intensity $x$. More generally, $\mathcal{F}$ is called the \textit{activation} function which transforms a linear combination of the input $-b(x - a)$, and links it to the expected MEP size $\E(y \mid x, \Omega)$, where $\mathcal{F}$ is parametrized by $\Omega$.\\
 
-    There are various choices available for the activation function. The most common choice is the Sigmoid (Logistic-4) [cite papers], followed by Rectified Linear Unit (ReLU) [McIntosh 2023], given in Eqns. 4.7.2, 4.7.3 respectively. Additionally, Logistic-5 (Eqn. 4.7.1) [Pitcher 2003 (find better one)] is also available which is a more generalized version of Logistic-4 and contains an extra parameter $v$ to control near which asymptote the maximum growth occurs.\\
+    There are various choices available for the activation function. The most common choice is the Sigmoid (Logistic-4) [cite papers], followed by Rectified Linear Unit (ReLU) [McIntosh 2023], given in Eqns. 4.7.2, 4.7.3 respectively. Additionally, Logistic-5 (Eqn. 4.7.1) [Pitcher 2003] is also available which is a more generalized version of Logistic-4 and contains an extra parameter $v$ to control near which asymptote the maximum growth occurs.\\
     \begin{align*}
-        &\text{Logistic-5} & a, b, v, L, H > 0\ \;\;&x \mapsto L + \frac{H}{\left\{1 + \left(2^v - 1\right)e^{-b\left(x-a\right)}\right\}^{1/v}}  \tag{4.7.1}\\
+        &\text{Logistic-5} & a, b, v, L, H > 0\ \;\;&x \mapsto L + \frac{H}{\left(1 + ve^{-b\left(x-a\right)}\right)^{1/v}}  \tag{4.7.1}\\
         &\text{Logistic-4} & a, b, L, H > 0\ \;\;&x \mapsto L + \frac{H}{1 + e^{-b\left(x-a\right)}}  \tag{4.7.2}\\
-        &\text{Rectified-linear} & a, b, L > 0\ \;\;&x \mapsto L + \max\left\{0, b\left(x - a\right)\right\}  \tag{4.7.3}\\
+        &\text{ReLU} & a, b, L > 0\ \;\;&x \mapsto L + \max\left(0, b\left(x - a\right)\right)  \tag{4.7.3}\\
     \end{align*}
-
-    Note here in Eqns. 4.7.1 - 4.7.2, parameter $a$ models the $S_{50}$ stimulation intensity, required to produce response midway between the offset $(L)$ and maximal response $(L + H)$. In Eqn. 4.7.3, $a$ models the threshold required to produce minimal response above offset $(L)$\\
 
     In section 5.5, we use the same observation model from Eqn. 4.2.2 - 4.2.4 except we vary the activation function and use Bayesian leave-one-out (LOO) cross validation [Aki Vehtari paper] to compare how well they describe datasets of sections 4.4 - 4.6.
 

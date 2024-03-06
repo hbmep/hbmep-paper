@@ -1,0 +1,18 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usepackage{fullpage}
+\usepackage{bm}
+\usepackage{float}
+\usetikzlibrary{bayesnet}
+\DeclareMathOperator{\E}{\mathbb{E}}
+
+\begin{document}
+    Rectified Linear Unit $\left(\text{ReLU}\left(x\right) = \max\left(0, x\right)\right)$ and Sigmoid $\left(\sigma\left(x\right) = 1 / \left(1 + e^{-x}\right)\right)$ are common functions for introducing non-linearity in modeling approaches. These functions are implemented in a numerically stable way in many libraries, including JAX, which is used by hbmep. Eqns. 4.2.5-4.2.8 describe how hbmep implements the activation funtions in Eqns. X-Y as composition of these functions.
+    \begin{align*}
+        &\text{Rectified-logistic} &\;\;&x \mapsto L - l + \left(H + l\right)\cdot\text{ReLU}\left(\sigma\left(b\left(x - a\right) - \ln\left(H / \ell\right)\right)\right)\tag{4.7.1}\\
+        &\text{Logistic-5} &\;\;&x \mapsto L + H\cdot \left\{\sigma\left(b\left(x - a\right) - \ln\left(2^v - 1\right)\right)\right\}^{\frac1v} \tag{4.7.1}\\
+        &\text{Logistic-4} &\;\;&x \mapsto L + H\cdot\sigma\left(b\left(x - a\right)\right)  \tag{4.7.2}\\
+        &\text{Rectified-linear} &\;\;&x \mapsto L + \text{ReLU}\left(b\left(x - a\right)\right) \tag{4.7.3}\\
+    \end{align*}
+\end{document}

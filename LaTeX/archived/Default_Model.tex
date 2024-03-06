@@ -82,7 +82,7 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
     &\text{Observation model} \\
     &{y_i}^{p}\sim \text{Gamma}\left({\mu_i}^{p}\cdot{\beta_i}^{p}, {\beta_i}^{p}\right) \\
     &{\mu_i}^{p} \gets \mathcal{F}\left({x_i}^{p} \mid a^{p}, {\Omega}^{p}\right) \\
-    &{\beta_i}^{p} \gets \frac1{{c_1}^{p}} + \frac1{{c_2}^{p}\cdot{\mu_i}^{p}}\\\\
+    &{\beta_i}^{p} \gets \frac1{{c_1}^{p}} + \frac1{{c_2}^{p}{\mu_i}^{p}}\\\\
     &\text{Participant specific parameters} \\
     &a^{p} \sim \text{TruncatedNormal}\left({\mu_a}, {\sigma_a}\right)\\
     &{\theta}^{p} \sim \text{HalfNormal}\left({\sigma_{\theta}}\right) \text{ for all } \theta^{p} \in {\Omega}^{p}\\\\

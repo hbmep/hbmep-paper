@@ -1,0 +1,132 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usepackage{fullpage}
+\usepackage{bm}
+\usepackage{float}
+\usetikzlibrary{bayesnet}
+\DeclareMathOperator{\E}{\mathbb{E}}
+
+\begin{document}
+
+    Although attempts are made to filter outliers as much as posssible from the data, there is still a possibility that some outliers remain. To account for this, we use a mixture model to model the data. The mixture model is a combination of two normal distributions, one for the outliers and one for the inliers. The mixture model is defined as follows,
+
+    \begin{figure}[H]
+        \centering
+        \tikz{ %
+            % Obs
+            \node[obs,fill] (obs) {$y$};%
+
+            % Deterministic mu, beta
+            \node[det,above=of obs,xshift=-.8cm,fill] (beta) {$\beta$}; %
+            \node[det,above=of obs,xshift=.8cm,yshift=.5cm,fill] (mu) {$\mu$}; %
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_obs} {(obs)(mu)(beta)} {$1, 2 \ldots n(p, h)$};
+
+            % % PRIORS
+            % a, b, v
+            \node[det,above=of obs,yshift=2.8cm,xshift=-1.3cm,fill] (a) {$a$};
+            \node[latent,right=of a,xshift=-.9cm,fill] (b) {$b$};
+            \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v$};
+            % L, H, v, ell
+            \node[latent,right=of v,xshift=-.9cm,fill] (L) {$L$};
+            \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell$};
+            \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H$};
+            % g1, g2
+            \node[latent,left=of a,xshift=.9cm,fill] (g2) {${g_2}$};
+            \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${g_1}$};
+
+            % Participants plate
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p:1, 2 \ldots N_P$};
+
+            % % HYPER-PRIORS
+            \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
+            % g1_scale, g2_scale, L_scale, H_scale, v_scale, ell_scale
+            \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{g_2}$};
+            \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{g_1}$};
+            \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
+            \node[latent,above=of H,fill] (H_scale) {$\sigma_H$};
+            \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
+            \node[latent,above=of ell,fill] (ell_scale) {$\sigma_\ell$};
+
+            % Groups plate
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(plate_participant)} {$h: 1, 2 \ldots N_H$};
+
+            % GLOBAL PRIORS
+            \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{g_1}}$};
+            \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{g_2}}$};
+            \node[latent,above=of b_scale,fill] (b_scale_global_scale) {$\sigma_{\sigma_{b}}$};
+            \node[latent,above=of L_scale,fill] (L_scale_global_scale) {$\sigma_{\sigma_L}$};
+            \node[latent,above=of H_scale,fill] (H_scale_global_scale) {$\sigma_{\sigma_H}$};
+            \node[latent,above=of v_scale,fill] (v_scale_global_scale) {$\sigma_{\sigma_v}$};
+            \node[latent,above=of ell_scale,fill] (ell_scale_global_scale) {$\sigma_{\sigma_\ell}$};
+
+            % Edges from Global-priors to Priors
+            \edge {g1_scale_global_scale} {g1_scale}
+            \edge {g2_scale_global_scale} {g2_scale}
+            \edge {b_scale_global_scale} {b_scale}
+            \edge {L_scale_global_scale} {L_scale}
+            \edge {H_scale_global_scale} {H_scale}
+            \edge {v_scale_global_scale} {v_scale}
+            \edge {ell_scale_global_scale} {ell_scale}
+
+            % Edges from Hyper-priors to Priors
+            \edge {g1_scale} {g1}
+            \edge {g2_scale} {g2}
+            \edge {b_scale} {b}
+            \edge {L_scale} {L}
+            \edge {H_scale} {H}
+            \edge {v_scale} {v}
+            \edge {ell_scale} {ell}
+
+            % Edges from Priors to Deterministic
+            \edge {g1, g2} {beta}
+            \edge {a, b, v, L, ell, H} {mu}
+
+            % Edges to obs
+            \edge {beta,mu} {obs};
+            \edge {mu} {beta};
+
+            % Fixed
+            \node[latent,left=of a,xshift=-3cm,yshift=.8cm,fill] (a_fixed) {$a_{\text{fixed}}$};
+            \node[latent,above=of a_fixed,xshift=-.6cm,yshift=-.5cm,fill] (a_fixed_mean) {$\mu_{a_{\text{fixed}}}$};
+            \node[latent,above=of a_fixed,xshift=.6cm,yshift=-.5cm,fill] (a_fixed_scale) {$\sigma_{a_{\text{fixed}}}$};
+            % \plate[inner sep=.1cm, yshift=.0cm] {plate_participant_fixed} {(a_fixed)} {$p: 1, 2 \ldots N_P$};
+            % \plate[inner sep=.1cm, yshift=.0cm] {plate_group_fixed} {(a_fixed_mean)(a_fixed_scale)(plate_participant_fixed)} {$h: 1$};
+            \tikzset{plate caption/.style={caption, node distance=0, inner sep=0cm,
+            below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.3em}}
+            \plate {plate_participant_fixed} {(a_fixed)} {$p: 1, 2 \ldots N_P$};
+            \tikzset{plate caption/.style={caption, node distance=0, inner sep=-.1cm,
+            below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.3em}}
+            \plate {plate_group_fixed} {(a_fixed_mean)(a_fixed_scale)(plate_participant_fixed)} {$h: 1$};
+
+            % Random
+            \node[latent,below=of a_fixed,yshift=-3cm,fill] (a_random) {$a_{\text{random}}$};
+            \node[latent,above=of a_random,xshift=-.7cm,yshift=-.5cm,fill] (a_random_mean) {$\mu_{a_{\text{random}}}$};
+            \node[latent,above=of a_random,xshift=.7cm,yshift=-.5cm,fill] (a_random_scale) {$\sigma_{a_{\text{random}}}$};
+            \tikzset{plate caption/.style={caption, node distance=0, inner sep=0cm,
+            below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.3em}}
+            \plate {plate_participant_random} {(a_random)} {$p: 1, 2 \ldots N_P$};
+            \tikzset{plate caption/.style={caption, node distance=0, inner sep=-.1cm,
+            below left=0cm and -1.2cm of #1.south,text height=1.2em,text depth=0.3em}}
+            \plate {plate_group_random} {(a_random_mean)(a_random_scale)(plate_participant_random)} {$h: 2, 3 \ldots N_H$};
+
+            % Edges for fixed
+            \edge {a_fixed_mean, a_fixed_scale} {a_fixed}
+
+            % Edges for random
+            \edge {a_random_mean, a_random_scale} {a_random}
+
+            % Edges from a_fixed and a_random to deterministic a
+            \edge {a_fixed, a_random} {a}
+        }
+    \end{figure}
+
+    where,
+    \begin{align*}
+        a_p^1 &= {a_p}_\text{fixed} \tag{4.3.1} \\
+        a_p^h &= {a_p}_\text{fixed} + {a_p^h}_\text{random} \;\; \forall h > 1\tag{4.3.2}
+    \end{align*}
+
+    A priori we assume no random effects, or lack thereof. This is reflected in the choice of a flat prior for ${\mu}_{a_{\text{random}}}$ that is symmetric about $0$. Once the model is fit, we look at the shift in the posterior distribution of ${\mu}_{a_{\text{random}}}$ to assess the strength of the random component.
+
+\end{document}
