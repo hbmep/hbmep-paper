@@ -16,6 +16,7 @@ from models import (
 )
 from constants import (
     INFERENCE_FILE,
+    NETCODE_FILE,
     BUILD_DIR
 )
 
@@ -37,6 +38,9 @@ def main():
             mcmc = pickle.load(f)[1]
             mcmc = az.from_numpyro(mcmc)
             inference_data[M.NAME] = mcmc
+            dest = os.path.join(BUILD_DIR, M.NAME, NETCODE_FILE)
+            az.to_netcdf(mcmc, dest)
+            logger.info(f"Saved to {dest}")
 
     comp_df = az.compare(inference_data)
     logger.info(comp_df.to_string())
