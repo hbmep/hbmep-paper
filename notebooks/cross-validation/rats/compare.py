@@ -45,6 +45,7 @@ def main():
     az.plot_compare(comp_df, ax=ax)
     dest = os.path.join(BUILD_DIR, "compare.png")
     fig.savefig(dest)
+    logger.info(f"Saved to {dest}")
     return
 
 
