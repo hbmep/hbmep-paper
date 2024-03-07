@@ -40,7 +40,7 @@ BUILD_DIR = NUMBER_OF_SUJECTS_DIR
 
 N_REPS = 1
 N_PULSES = 48
-N_SUBJECTS_SPACE = [1, 4, 8, 16]
+N_SUBJECTS_SPACE = [1, 2, 4, 8, 16]
 
 
 @timing
@@ -309,8 +309,7 @@ def main():
 
 
     # Experiment space
-    draws_space = range(0, 2000)
-    n_subjects_space = N_SUBJECTS_SPACE
+    draws_space = range(2000, 2500)
     n_jobs = -1
 
     ## Uncomment the following to run
@@ -318,11 +317,11 @@ def main():
 
     # Run for Hierarchical Bayesian Model /
     # SVI Hierarchical Bayesian Model
-    models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
+    # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
 
-    # # # Run for Non-hierarchical Bayesian Model
-    # n_subjects_space = [16]
-    # models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
+    # Run for Non-hierarchical Bayesian Model
+    n_subjects_space = [16]
+    models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
 
     # # Run for Maximum Likelihood Model
     # n_subjects_space = [16]
@@ -331,8 +330,6 @@ def main():
     # # Run for Nelder-Mead Optimization
     # n_subjects_space = [16]
     # models = [NelderMeadOptimization]
-
-    draws_space = range(1280, 2000)
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(

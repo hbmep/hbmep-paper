@@ -28,10 +28,10 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(2000)
+    draws_space = range(2010)
 
-    models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
-    models += [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
+    # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
+    models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
     # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
     # models = [HierarchicalBayesianModel]
 

@@ -26,13 +26,13 @@ def main():
     n_subjects = N_SUBJECTS
     n_pulses_space = N_PULSES_SPACE
 
-    draws_space = range(1200)
+    draws_space = range(1370)
     models = [
         HierarchicalBayesianModel,
-        NonHierarchicalBayesianModel,
-        MaximumLikelihoodModel,
-        NelderMeadOptimization,
-        # SVIHierarchicalBayesianModel
+        # NonHierarchicalBayesianModel,
+        # MaximumLikelihoodModel,
+        # NelderMeadOptimization,
+        SVIHierarchicalBayesianModel
     ]
 
     mae = []
