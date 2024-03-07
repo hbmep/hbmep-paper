@@ -73,9 +73,8 @@ def main():
 
     # Define experiment
     def run_inference(M):
-        df = data.copy()
-
         for fold_column in FOLD_COLUMNS:
+            df = data.copy()
             # Build model
             config = Config(toml_path=TOML_PATH)
             config.BUILD_DIR = os.path.join(

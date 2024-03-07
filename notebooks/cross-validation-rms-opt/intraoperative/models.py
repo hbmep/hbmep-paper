@@ -12,10 +12,11 @@ class RectifiedLogistic(BoundedOptimization):
         self.solver = "Nelder-Mead"
         self.functional = F.rectified_logistic
         self.named_params = [site.a, site.b, site.L, site.ell, site.H]
-        self.bounds = [(1e-9, 30.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.bounds = [(1e-9, 30.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 50)]
         self.informed_bounds = [(2, 8), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
         self.num_points = 1000
-        self.num_iters = 100
+        # self.num_iters = 100
+        self.num_iters = 1
         self.n_jobs = -1
 
 
@@ -27,10 +28,11 @@ class Logistic5(BoundedOptimization):
         self.solver = "Nelder-Mead"
         self.functional = F.logistic5
         self.named_params = [site.a, site.b, site.v, site.L, site.H]
-        self.bounds = [(1e-9, 30.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.bounds = [(1e-9, 30.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 50)]
         self.informed_bounds = [(2, 8), (1e-3, 5.), (1e-3, 5.), (1e-4, .1), (.5, 5)]
         self.num_points = 1000
-        self.num_iters = 100
+        # self.num_iters = 100
+        self.num_iters = 1
         self.n_jobs = -1
 
 
@@ -42,10 +44,11 @@ class Logistic4(BoundedOptimization):
         self.solver = "Nelder-Mead"
         self.functional = F.logistic4
         self.named_params = [site.a, site.b, site.L, site.H]
-        self.bounds = [(1e-9, 30.), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.bounds = [(1e-9, 30.), (1e-9, 10), (1e-9, 10), (1e-9, 50)]
         self.informed_bounds = [(2, 8), (1e-3, 5.), (1e-4, .1), (.5, 5)]
         self.num_points = 1000
-        self.num_iters = 100
+        # self.num_iters = 100
+        self.num_iters = 1
         self.n_jobs = -1
 
 
@@ -60,5 +63,6 @@ class RectifiedLinear(BoundedOptimization):
         self.bounds = [(1e-9, 30.), (1e-9, 10), (1e-9, 10)]
         self.informed_bounds = [(2, 8), (1e-3, 5.), (1e-4, .1)]
         self.num_points = 1000
-        self.num_iters = 100
+        # self.num_iters = 100
+        self.num_iters = 1
         self.n_jobs = -1
