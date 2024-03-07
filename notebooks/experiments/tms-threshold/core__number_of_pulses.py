@@ -308,7 +308,7 @@ def main():
 
 
     # Experiment space
-    draws_space = range(0, 2000)
+    draws_space = range(1370, 2000)
     n_pulses_space = N_PULSES_SPACE
     n_jobs = -1
 
@@ -317,7 +317,7 @@ def main():
         # NonHierarchicalBayesianModel,
         # MaximumLikelihoodModel,
         # NelderMeadOptimization,
-        SVIHierarchicalBayesianModel
+        # SVIHierarchicalBayesianModel
     ]
 
     with Parallel(n_jobs=n_jobs) as parallel:
