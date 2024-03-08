@@ -317,7 +317,7 @@ def main():
         # NonHierarchicalBayesianModel,
         # MaximumLikelihoodModel,
         # NelderMeadOptimization,
-        # SVIHierarchicalBayesianModel
+        SVIHierarchicalBayesianModel
     ]
 
     with Parallel(n_jobs=n_jobs) as parallel:

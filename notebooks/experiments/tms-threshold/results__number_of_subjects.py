@@ -2,8 +2,6 @@ import os
 import logging
 
 import numpy as np
-import scipy.stats as stats
-import matplotlib.pyplot as plt
 
 from hbmep_paper.utils import setup_logging
 from models import (
@@ -28,12 +26,15 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(2010)
+    draws_space = range(2000)
 
-    # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
-    models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
-    # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
-    # models = [HierarchicalBayesianModel]
+    models = [
+        NelderMeadOptimization,
+        MaximumLikelihoodModel,
+        NonHierarchicalBayesianModel,
+        SVIHierarchicalBayesianModel,
+        HierarchicalBayesianModel
+    ]
 
     mae = []
     mse = []
@@ -116,46 +117,11 @@ def main():
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
 
-    nrows, ncols = 1, 1
-    fig, axes = plt.subplots(
-        nrows,
-        ncols,
-        figsize=(ncols * 5, nrows * 3),
-        squeeze=False,
-        constrained_layout=True
-    )
-
-    ax = axes[0, 0]
-    for model_ind, model in enumerate(models):
-        x = n_subjects_space
-        # # Jitter x
-        # x = [model_ind / 100 + i for i in x]
-        y = mae[..., model_ind]
-        yme = y.mean(axis=-1)
-        ysem = stats.sem(y, axis=-1)
-        ysd = y.std(axis=-1)
-        ax.errorbar(
-            x=x,
-            y=yme,
-            yerr=2 * ysem,
-            marker="o",
-            label=f"{model.NAME}",
-            linestyle="--",
-            ms=4
-        )
-        ax.set_xticks(x)
-        ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
-        ax.set_xlabel("# Subjects")
-        ax.set_ylabel("MAE")
-
-    ax.set_title("48 Pulses, 1 Rep")
-    ax.set_ylim(bottom=0.)
-
-    fig.align_xlabels()
-    fig.align_ylabels()
-
-    dest = os.path.join(BUILD_DIR, "results.png")
-    fig.savefig(dest, dpi=600)
+    dest = os.path.join(BUILD_DIR, "mae.npy")
+    np.save(dest, mae)
+    logger.info(f"Saved to {dest}")
+    dest = os.path.join(BUILD_DIR, "mse.npy")
+    np.save(dest, mse)
     logger.info(f"Saved to {dest}")
 
     return

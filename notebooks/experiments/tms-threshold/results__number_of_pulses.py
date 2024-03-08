@@ -26,7 +26,7 @@ def main():
     n_subjects = N_SUBJECTS
     n_pulses_space = N_PULSES_SPACE
 
-    draws_space = range(1370)
+    draws_space = range(2000)
     models = [
         HierarchicalBayesianModel,
         # NonHierarchicalBayesianModel,

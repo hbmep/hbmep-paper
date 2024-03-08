@@ -10,6 +10,7 @@ TOTAL_PULSES = 64
 N_PULSES_SPACE = [32, 40, 48, 56, 64]
 
 TOTAL_REPS = 8
+N_REPS_PER_PULSE_SPACE = [1, 2, 4, 8]
 
 REP = "rep"
 INFERENCE_FILE = "inference.pkl"
