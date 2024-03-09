@@ -20,7 +20,9 @@ def main():
     n_pulses_space = N_PULSES_SPACE
     n_reps_space = N_REPS_PER_PULSE_SPACE
     M = HierarchicalBayesianModel
-    draws_space = range(5)
+    draws_space = range(230)
+    # draws_space = list(range(3, 5))
+    # # draws_space += list(range(0, 3))
 
     mae = []
     mse = []

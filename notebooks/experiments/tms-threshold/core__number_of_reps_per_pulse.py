@@ -6,8 +6,6 @@ import logging
 import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
