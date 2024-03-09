@@ -28,11 +28,11 @@ def main():
 
     draws_space = range(2000)
     models = [
-        HierarchicalBayesianModel,
-        # NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel,
-        # NelderMeadOptimization,
-        SVIHierarchicalBayesianModel
+        NelderMeadOptimization,
+        MaximumLikelihoodModel,
+        NonHierarchicalBayesianModel,
+        SVIHierarchicalBayesianModel,
+        HierarchicalBayesianModel
     ]
 
     mae = []
@@ -115,43 +115,11 @@ def main():
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
 
-    nrows, ncols = 1, 1
-    fig, axes = plt.subplots(
-        nrows,
-        ncols,
-        figsize=(ncols * 5, nrows * 3),
-        squeeze=False,
-        constrained_layout=True
-    )
-
-    ax = axes[0, 0]
-    for model_ind, model in enumerate(models):
-        x = n_pulses_space
-        y = mae[..., model_ind]
-        yme = y.mean(axis=-1)
-        ysem = stats.sem(y, axis=-1)
-        ax.errorbar(
-            x=x,
-            y=yme,
-            yerr=ysem,
-            marker="o",
-            label=f"{model.NAME}",
-            linestyle="--",
-            ms=4
-        )
-        ax.set_xticks(x)
-        ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
-        ax.set_xlabel("# Pulses")
-        ax.set_ylabel("MAE")
-
-    ax.set_title("8 Subjects, 1 Rep")
-    ax.set_ylim(bottom=0.)
-
-    fig.align_xlabels()
-    fig.align_ylabels()
-
-    dest = os.path.join(BUILD_DIR, "results.png")
-    fig.savefig(dest, dpi=600)
+    dest = os.path.join(BUILD_DIR, "mae.npy")
+    np.save(dest, mae)
+    logger.info(f"Saved to {dest}")
+    dest = os.path.join(BUILD_DIR, "mse.npy")
+    np.save(dest, mse)
     logger.info(f"Saved to {dest}")
 
     return

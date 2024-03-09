@@ -17,9 +17,15 @@ from models import (
 from core__number_of_subjects import (
     N_REPS, N_PULSES, N_SUBJECTS_SPACE
 )
-from constants import NUMBER_OF_SUJECTS_DIR, EXPERIMENTS_DIR
+from constants import (
+    N_PULSES_SPACE,
+    NUMBER_OF_SUJECTS_DIR,
+    NUMBER_OF_PULSES_DIR,
+    EXPERIMENTS_DIR
+)
 
 logger = logging.getLogger(__name__)
+plt.rcParams["svg.fonttype"] = "none"
 
 BUILD_DIR = EXPERIMENTS_DIR
 axis_label_size = 8
@@ -80,6 +86,51 @@ def main():
     ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
     ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
 
+    n_pulses_space = N_PULSES_SPACE
+    models = [
+        NelderMeadOptimization,
+        MaximumLikelihoodModel,
+        NonHierarchicalBayesianModel,
+        SVIHierarchicalBayesianModel,
+        HierarchicalBayesianModel
+    ]
+    cmap = sns.color_palette("hls", 8)
+    # colors = cmap(np.linspace(0, .7, 5 * len(models)))[::-1][::5]
+    colors = cmap[2:2+5]
+
+    src = os.path.join(NUMBER_OF_PULSES_DIR, "mae.npy")
+    mae = np.load(src)
+
+    ax = axes[0, 1]
+    for model_ind, model in enumerate(models):
+        # if model_ind == 3: continue
+        x = n_pulses_space
+        # Jitter x
+        # x = [model_ind / 100 + i for i in x]
+        y = mae[..., model_ind]
+        yme = y.mean(axis=-1)
+        ysem = stats.sem(y, axis=-1)
+        # ysd = y.std(axis=-1)
+        ax.errorbar(
+            x=x,
+            y=yme,
+            yerr=ysem,
+            marker="o",
+            label=f"{model.NAME}",
+            linestyle="--",
+            ms=3,
+            # linewidth=1,
+            color=colors[model_ind]
+        )
+        ax.set_xticks(x)
+        # ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
+        ax.set_xlabel("# Pulses")
+        ax.set_ylabel("MAE")
+
+    ax.set_ylim(bottom=0.)
+    ax.set_xlabel("Number of Pulses", fontsize=axis_label_size)
+    ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
+
     for i in range(ncols):
         ax = axes[0, i]
         sides = ["top", "right"]
@@ -101,6 +152,13 @@ def main():
         )
         ax.grid(axis="y", linestyle="--", alpha=.25)
         ax.set_ylabel("")
+
+    ax = axes[0, 0]
+    ax.sharey(axes[0, 1])
+    ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
+
+    ax = axes[0, 1]
+    ax.tick_params(labelleft=False)
 
     fig.align_xlabels()
     fig.align_ylabels()
