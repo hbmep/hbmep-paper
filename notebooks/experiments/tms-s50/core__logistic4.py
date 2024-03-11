@@ -23,10 +23,10 @@ from utils import generate_nested_pulses
 from constants import (
     TOML_PATH,
     REP,
-    SIMULATE_DATA_LOGISTIC5_DIR as SIMULATE_DATA_DIR,
+    SIMULATE_DATA_LOGISTIC4_DIR as SIMULATE_DATA_DIR,
     SIMULATION_DF,
     INFERENCE_FILE,
-    EXPERIMENTS_LOGISTIC5_DIR as NUMBER_OF_PULSES_DIR,
+    EXPERIMENTS_LOGISTIC4_DIR as NUMBER_OF_PULSES_DIR,
     N_PULSES_SPACE
 )
 
@@ -147,7 +147,7 @@ def main():
 
 
     # Experiment space
-    draws_space = range(200, 500)
+    draws_space = range(0, 500)
     n_pulses_space = N_PULSES_SPACE
     n_jobs = -1
 

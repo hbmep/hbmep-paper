@@ -147,7 +147,7 @@ def main():
 
 
     # Experiment space
-    draws_space = range(0, 200)
+    draws_space = range(200, 500)
     n_pulses_space = N_PULSES_SPACE
     n_jobs = -1
 

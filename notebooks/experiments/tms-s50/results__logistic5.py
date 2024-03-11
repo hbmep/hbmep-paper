@@ -27,7 +27,7 @@ def main():
     n_subjects = N_SUBJECTS
     n_pulses_space = N_PULSES_SPACE
 
-    draws_space = range(100)
+    draws_space = range(200)
     models = [
         RectifiedLogistic,
         Logistic5,
