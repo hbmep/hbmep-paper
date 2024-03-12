@@ -30,12 +30,12 @@ def main(build_dir):
 
     n_reps = N_REPS
     n_pulses = N_PULSES
-    n_subjects_space = N_SUBJECTS_SPACE
+    n_subjects_space = N_SUBJECTS_SPACE[1:]
 
-    draws_space = range(30)
+    draws_space = range(500)
 
     models = [
-        # NonHierarchicalBayesianModel,
+        NonHierarchicalBayesianModel,
         HierarchicalBayesianModel
     ]
 
@@ -135,7 +135,7 @@ def main(build_dir):
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"Prob: {prob.shape}")
 
-    nrows, ncols = 1, 2
+    nrows, ncols = 1, 1
     fig, axes = plt.subplots(
         nrows,
         ncols,
@@ -146,55 +146,31 @@ def main(build_dir):
 
     ax = axes[0, 0]
     for model_ind, model in enumerate(models):
-        # if model_ind == 3: continue
         x = n_subjects_space
         # Jitter x
-        # x = [model_ind / 100 + i for i in x]
-        y = mae[..., model_ind]
+        # x = [model_ind / 4 + i for i in x]
+        y = prob[..., model_ind] > .95 if model_ind == 1 else prob[..., model_ind] < .05
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
-        # ysd = y.std(axis=-1)
+        ysd = y.std(axis=-1)
         ax.errorbar(
-            x=x,
+            x=[model_ind / 3 + i for i in x],
             y=yme,
             yerr=ysem,
             marker="o",
             label=f"{model.NAME}",
             linestyle="--",
-            # ms=3,
+            ms=.5,
             # linewidth=1,
             # color=colors[model_ind]
         )
-        ax.set_xticks(x)
-        # ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
-        ax.set_xlabel("# Subjects")
-        ax.set_ylabel("MAE")
-
-    ax = axes[0, 1]
-    for model_ind, model in enumerate(models):
-        # if model_ind == 3: continue
-        x = n_subjects_space
-        # Jitter x
-        # x = [model_ind / 100 + i for i in x]
-        y = prob[..., model_ind] > .95
-        yme = y.mean(axis=-1)
-        # ysem = stats.sem(y, axis=-1)
-        ysd = y.std(axis=-1)
-        ax.errorbar(
-            x=x,
-            y=yme,
-            yerr=ysd,
-            marker="o",
-            label=f"{model.NAME}",
-            linestyle="--",
-            # ms=3,
-            # linewidth=1,
-            # color=colors[model_ind]
-        )
-        ax.set_xticks(x)
-        # ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
-        ax.set_xlabel("# Subjects")
-        ax.set_ylabel("Power (β)")
+    ax.axhline(y=.80, linestyle="--", color="black", linewidth=1)
+    ax.axhline(y=.05, linestyle="--", color="black", linewidth=1)
+    ax.set_xticks(x)
+    ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
+    ax.set_yticks([.20 * i for i in range(6)])
+    ax.set_xlabel("# Subjects")
+    ax.set_ylabel("Power (β)")
 
     dest = os.path.join(build_dir, "results.png")
     fig.savefig(dest, dpi=600)
@@ -213,5 +189,5 @@ if __name__ == "__main__":
     # Run for the experiments with effect
     main(EXPERIMENTS_DIR)
 
-    # # Run for the experiments without effect
-    # main(EXPERIMENTS_NO_EFFECT_DIR)
+    # Run for the experiments without effect
+    main(EXPERIMENTS_NO_EFFECT_DIR)
