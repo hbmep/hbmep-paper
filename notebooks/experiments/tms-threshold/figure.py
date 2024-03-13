@@ -49,9 +49,20 @@ def main():
         SVIHierarchicalBayesianModel,
         HierarchicalBayesianModel
     ]
+    labels = [
+        "Nelder-Mead Optimization",
+        "Maximum-Likelihood",
+        "Non-Hierarchical Bayesian",
+        "Hierarchical Bayesian (SVI)",
+        "Hierarchical Bayesian (NUTS)"
+    ]
+
     cmap = sns.color_palette("hls", 8)
     # colors = cmap(np.linspace(0, .7, 5 * len(models)))[::-1][::5]
-    colors = cmap[2:2+5]
+    colors = [cmap[-1]]
+    begin = 3
+    colors += cmap[begin:begin + 4]
+    colors = [colors[2], colors[1], colors[-1], colors[-2], colors[0]]
 
     src = os.path.join(NUMBER_OF_SUJECTS_DIR, "mae.npy")
     mae = np.load(src)
@@ -71,33 +82,21 @@ def main():
             y=yme,
             yerr=ysem,
             marker="o",
-            label=f"{model.NAME}",
+            label=labels[model_ind],
             linestyle="--",
-            ms=3,
+            ms=4,
             # linewidth=1,
             color=colors[model_ind]
         )
         ax.set_xticks(x)
-        # ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
         ax.set_xlabel("# Subjects")
         ax.set_ylabel("MAE")
 
     ax.set_ylim(bottom=0.)
     ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
-    ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
+    ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
 
     n_pulses_space = N_PULSES_SPACE
-    models = [
-        NelderMeadOptimization,
-        MaximumLikelihoodModel,
-        NonHierarchicalBayesianModel,
-        SVIHierarchicalBayesianModel,
-        HierarchicalBayesianModel
-    ]
-    cmap = sns.color_palette("hls", 8)
-    # colors = cmap(np.linspace(0, .7, 5 * len(models)))[::-1][::5]
-    colors = cmap[2:2+5]
-
     src = os.path.join(NUMBER_OF_PULSES_DIR, "mae.npy")
     mae = np.load(src)
 
@@ -116,9 +115,9 @@ def main():
             y=yme,
             yerr=ysem,
             marker="o",
-            label=f"{model.NAME}",
+            label=labels[model_ind],
             linestyle="--",
-            ms=3,
+            ms=4,
             # linewidth=1,
             color=colors[model_ind]
         )
@@ -129,7 +128,7 @@ def main():
 
     ax.set_ylim(bottom=0.)
     ax.set_xlabel("Number of Pulses", fontsize=axis_label_size)
-    ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
+    ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
 
     for i in range(ncols):
         ax = axes[0, i]
@@ -155,13 +154,23 @@ def main():
 
     ax = axes[0, 0]
     ax.sharey(axes[0, 1])
-    ax.set_ylabel("Mean Absolute Error $($% MSO$)$", fontsize=axis_label_size)
+    ax.set_ylabel("Mean Absolute Error\non Threshold $($% MSO$)$", fontsize=axis_label_size)
+    ax.legend(loc="upper right", fontsize=6)
+    handles, labels = ax.get_legend_handles_labels()
+    ax.get_legend().remove()
+    ax.legend(handles[:3], labels[:3], loc="upper right", fontsize=7, frameon=False)
 
     ax = axes[0, 1]
     ax.tick_params(labelleft=False)
+    ax.legend(handles[3:], labels[3:], loc="upper right", fontsize=7, frameon=False)
+    ax.set_ylim(top=10.5)
 
     fig.align_xlabels()
     fig.align_ylabels()
+
+    dest = os.path.join(BUILD_DIR, "results.svg")
+    fig.savefig(dest, dpi=600)
+    logger.info(f"Saved to {dest}")
 
     dest = os.path.join(BUILD_DIR, "results.png")
     fig.savefig(dest, dpi=600)
