@@ -4,9 +4,8 @@ build_directory = "/home/vishu/repos/hbmep-paper/reports/tms/"
 
 [variables]
 intensity = "TMSInt"
-# Set equal to [] for no features
 features = ["participant", "participant_condition"]
-response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
+response = ['PKPK_APB', 'PKPK_ECR', 'PKPK_FCR']
 
 [mcmc]
 num_chains = 4
