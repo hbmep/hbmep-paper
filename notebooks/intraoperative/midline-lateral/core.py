@@ -77,12 +77,13 @@ def main():
     inference_data = az.from_numpyro(mcmc)
     logger.info("Evaluating model ...")
     logger.info("LOO ...")
-    score = az.loo(inference_data)
+    score = az.loo(inference_data, var_name=site.obs)
     logger.info(score)
     logger.info("WAIC ...")
-    score = az.waic(inference_data)
+    score = az.waic(inference_data, var_name=site.obs)
     logger.info(score)
     vars_to_exclude = [site.mu, site.alpha, site.beta, site.obs]
+    vars_to_exclude += [site.q, site.bg_scale]
     vars_to_exclude = ["~" + var for var in vars_to_exclude]
     logger.info(az.summary(inference_data, var_names=vars_to_exclude).to_string())
 
