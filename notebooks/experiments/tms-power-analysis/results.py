@@ -22,7 +22,7 @@ from constants import (
 logger = logging.getLogger(__name__)
 
 
-def main(build_dir):
+def main(build_dir, draws_space):
     setup_logging(
         dir=build_dir,
         fname=os.path.basename(__file__)
@@ -31,8 +31,6 @@ def main(build_dir):
     n_reps = N_REPS
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE[1:]
-
-    draws_space = range(500)
 
     models = [
         NonHierarchicalBayesianModel,
@@ -135,59 +133,24 @@ def main(build_dir):
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"Prob: {prob.shape}")
 
-    nrows, ncols = 1, 1
-    fig, axes = plt.subplots(
-        nrows,
-        ncols,
-        figsize=(4.566, 2.65),
-        squeeze=False,
-        constrained_layout=True
-    )
-
-    ax = axes[0, 0]
-    for model_ind, model in enumerate(models):
-        x = n_subjects_space
-        # Jitter x
-        # x = [model_ind / 4 + i for i in x]
-        y = prob[..., model_ind] > .95 if model_ind == 1 else prob[..., model_ind] < .05
-        yme = y.mean(axis=-1)
-        ysem = stats.sem(y, axis=-1)
-        ysd = y.std(axis=-1)
-        ax.errorbar(
-            x=[model_ind / 3 + i for i in x],
-            y=yme,
-            yerr=ysem,
-            marker="o",
-            label=f"{model.NAME}",
-            linestyle="--",
-            ms=.5,
-            # linewidth=1,
-            # color=colors[model_ind]
-        )
-    ax.axhline(y=.80, linestyle="--", color="black", linewidth=1)
-    ax.axhline(y=.05, linestyle="--", color="black", linewidth=1)
-    ax.set_xticks(x)
-    ax.legend(bbox_to_anchor=(0., 1.2), loc="center", fontsize=6)
-    ax.set_yticks([.20 * i for i in range(6)])
-    ax.set_xlabel("# Subjects")
-    ax.set_ylabel("Power (β)")
-
-    dest = os.path.join(build_dir, "results.png")
-    fig.savefig(dest, dpi=600)
+    dest = os.path.join(build_dir, "mae.npy")
+    np.save(dest, mae)
     logger.info(f"Saved to {dest}")
-    # dest = os.path.join(BUILD_DIR, "mae.npy")
-    # np.save(dest, mae)
-    # logger.info(f"Saved to {dest}")
-    # dest = os.path.join(BUILD_DIR, "mse.npy")
-    # np.save(dest, mse)
-    # logger.info(f"Saved to {dest}")
+
+    dest = os.path.join(build_dir, "mse.npy")
+    np.save(dest, mse)
+    logger.info(f"Saved to {dest}")
+
+    dest = os.path.join(build_dir, "prob.npy")
+    np.save(dest, prob)
+    logger.info(f"Saved to {dest}")
 
     return
 
 
 if __name__ == "__main__":
     # Run for the experiments with effect
-    main(EXPERIMENTS_DIR)
+    main(EXPERIMENTS_DIR, range(500))
 
     # Run for the experiments without effect
-    main(EXPERIMENTS_NO_EFFECT_DIR)
+    main(EXPERIMENTS_NO_EFFECT_DIR, range(1000))
