@@ -4,7 +4,7 @@ import os
 TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/experiments/tms-power-analysis.toml"
 DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
 
-TOTAL_SUBJECTS = 16
+TOTAL_SUBJECTS = 32
 TOTAL_PULSES = 48
 TOTAL_REPS = 1
 
