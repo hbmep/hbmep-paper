@@ -14,7 +14,7 @@
     &\text{Observation model} \\
     &{y_i}^{p,m}\sim \text{Gamma}\left({\mu_i}^{p,m}\cdot{\beta_i}^{p,m}, {\beta_i}^{p,m}\right) \\
     &{\mu_i}^{p,m} \gets \mathcal{F}\left({x_i}^{p,m} \mid a^{p,m}, {\Omega}^{p,m}\right) \\
-    &{\beta_i}^{p,m} \gets {c_1}^{p,m} + \frac{{\mu_i}^{p,m}}{{c_2}^{p,m}}\\\\
+    &{\beta_i}^{p,m} \gets \frac{1}{{c_1}^{p,m}} + \frac{1}{{c_2}^{p,m}\cdot {\mu_i}^{p,m}}\\\\
     &\text{Participant specific parameters} \\
     &a^{p,m} \sim \text{TruncatedNormal}\left({\mu_a}^{m}, {\sigma_a}^{m}\right)\\
     &{\theta}^{p,m} \sim \text{HalfNormal}\left({\sigma_{\theta}}^{m}\right) \text{ for all } \theta^{p,m} \in {\Omega}^{p,m}\\\\

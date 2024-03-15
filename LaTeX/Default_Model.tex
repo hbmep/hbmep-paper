@@ -32,11 +32,11 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
 
         % % PRIORS
         % a, b, v
-        \node[latent,above=of obs,yshift=3cm,xshift=-1.5cm,fill,] (a) {$a^{p}$};
+        \node[latent,above=of obs,yshift=3cm,xshift=-1.05cm,fill,] (a) {$a^{p}$};
         \node[latent,right=of a,xshift=-.3cm,fill,] (b) {$b^{p}$};
-        \node[latent,right=of b,xshift=-.9cm,fill,] (v) {$v^{p}$};
+        % \node[latent,right=of b,xshift=-.9cm,fill,] (v) {$v^{p}$};
         % L, ell, H
-        % \node[latent,right=of v,xshift=-.9cm,fill,] (L) {$L^{p}$};
+        \node[latent,right=of b,xshift=-.9cm,fill,] (L) {$L^{p}$};
         \node[latent,right=of L,xshift=-.9cm,fill,] (ell) {$\ell^{p}$};
         \node[latent,right=of ell,xshift=-.9cm,fill,] (H) {$H^{p}$};
         % g1, g2
@@ -44,7 +44,7 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
         \node[latent,left=of g2,xshift=.9cm,fill,] (g1) {${c_1}^{p}$};
 
         % Participants plate
-        \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$\text{participant }p : 1, 2 \ldots N_P$};
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a)(b)(L)(H)(ell)(g1)(g2)(plate_obs)} {$\text{participant }p : 1, 2 \ldots N_P$};
 
         % % HYPER-PRIORS
         \node[latent,above=of a,xshift=-.43cm,fill,] (a_mean) {${\mu_a}$};
@@ -54,7 +54,7 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
         \node[latent,above=of g1,fill,] (g1_scale) {${\sigma_{c_1}}$};
         \node[latent,above=of L,fill,] (L_scale) {${\sigma_L}$};
         \node[latent,above=of H,fill,] (H_scale) {${\sigma_H}$};
-        \node[latent,above=of v,fill,] (v_scale) {${\sigma_v}$};
+        % \node[latent,above=of v,fill,] (v_scale) {${\sigma_v}$};
         \node[latent,above=of ell,fill,] (ell_scale) {${\sigma_\ell}$};
 
         % Edges from Hyper-priors to Priors
@@ -64,17 +64,18 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
         \edge {b_scale} {b}
         \edge {L_scale} {L}
         \edge {H_scale} {H}
-        \edge {v_scale} {v}
+        % \edge {v_scale} {v}
         \edge {ell_scale} {ell}
 
         % Edges from Priors to Deterministic
         \edge {g1, g2} {beta}
-        \edge {a, b, v, L, ell, H} {mu}
+        \edge {a, b, L, ell, H} {mu}
 
         % Edges to obs
         \edge {intensity} {beta, mu}
         \edge {beta,mu} {obs};
         \edge {mu} {beta};
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a_mean)(a_scale)(b_scale)(L_scale)(ell_scale)(H_scale)(plate_participant)} {$\text{muscle }m : 1, 2 \ldots N_M$};
     }
 \end{figure}
 
@@ -85,14 +86,14 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
     &{\beta_i}^{p} \gets \frac1{{c_1}^{p}} + \frac1{{c_2}^{p}\cdot{\mu_i}^{p}}\\\\
     &\text{Participant specific parameters} \\
     &a^{p} \sim \text{TruncatedNormal}\left({\mu_a}, {\sigma_a}\right)\\
-    &{\theta}^{p} \sim \text{HalfNormal}\left({\sigma_{\theta}}\right) \text{ for all } \theta^{p} \in {\Omega}^{p}\\\\
+    &{\theta}^{p} \sim \text{HalfNormal}\left({\sigma_{\theta}}\right) \forall \theta^{p} \in {\Omega}^{p}\\\\
     &\text{Priors} \\
     & {\mu_a} \sim \text{TruncatedNormal}\left(50, 20\right)\\
     &{\sigma_a} \sim \text{HalfNormal}\left(30\right)\\
     &{\sigma_L} \sim \text{HalfNormal}\left(0.05\right)\\
-    &{\sigma_\theta} \sim \text{HalfNormal}\left(5\right) \text{ for all } {\sigma_\theta}\in \Omega\\\\
-    &{\Omega}^{p} \gets \left\{{b}^{p}, {v}^{p}, {L}^{p}, {\ell}^{p}, {H}^{p}, {c_1}^{p}, {c_2}^{p}\right\}\\
-    &\Omega \gets \left\{{\sigma_{b}}, {\sigma_{v}},  {\sigma_{\ell}}, {\sigma_{H}}, {\sigma_{c_1}}, {\sigma_{c_2}}\right\}
+    &{\sigma_\theta} \sim \text{HalfNormal}\left(5\right) \forall {\sigma_\theta}\in \Omega\\\\
+    &{\Omega}^{p} \gets \left\{{b}^{p}, {L}^{p}, {\ell}^{p}, {H}^{p}, {c_1}^{p}, {c_2}^{p}\right\}\\
+    &\Omega \gets \left\{{\sigma_{b}},  {\sigma_{\ell}}, {\sigma_{H}}, {\sigma_{c_1}}, {\sigma_{c_2}}\right\}
 \end{align*}
 
 \end{document}
