@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 N_REPS = TOTAL_REPS
 N_PULSES = TOTAL_PULSES
-N_SUBJECTS_SPACE = [1, 2, 4, 8, 12, 16]
+N_SUBJECTS_SPACE = [1, 2, 4, 8, 12, 16, 20, 24]
 
 
 @timing
@@ -284,7 +284,7 @@ def main(simulation_data_dir, build_dir):
 
 
     # Experiment space
-    draws_space = range(0, 500)
+    draws_space = range(0, 1000)
     n_subjects_space = N_SUBJECTS_SPACE
     n_jobs = -1
 
@@ -295,7 +295,7 @@ def main(simulation_data_dir, build_dir):
     models = [HierarchicalBayesianModel]
 
     # # Run for Non-hierarchical Bayesian Model
-    # n_subjects_space = [16]
+    # n_subjects_space = [24]
     # models = [NonHierarchicalBayesianModel]
 
     # # Run for Maximum Likelihood Model
@@ -318,8 +318,8 @@ def main(simulation_data_dir, build_dir):
 
 
 if __name__ == "__main__":
-    # Run for simulation with effect
-    main(SIMULATE_DATA_DIR, EXPERIMENTS_DIR)
+    # # Run for simulation with effect
+    # main(SIMULATE_DATA_DIR, EXPERIMENTS_DIR)
 
-    # # Run for simulation without effect
-    # main(SIMULATE_DATA_NO_EFFECT_DIR, EXPERIMENTS_NO_EFFECT_DIR)
+    # Run for simulation without effect
+    main(SIMULATE_DATA_NO_EFFECT_DIR, EXPERIMENTS_NO_EFFECT_DIR)
