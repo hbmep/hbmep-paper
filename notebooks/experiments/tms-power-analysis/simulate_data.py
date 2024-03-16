@@ -30,6 +30,7 @@ from constants import (
 logger = logging.getLogger(__name__)
 
 POSTERIOR_PATH = os.path.join(LEARN_POSTERIOR_DIR, INFERENCE_FILE)
+MIN_VALID_DRAWS = 2000
 
 
 def main(a_random_mean, a_random_scale, build_dir):
@@ -117,6 +118,13 @@ def main(a_random_mean, a_random_scale, build_dir):
             posterior_samples=posterior_samples
         )
     logger.info(f"simulation_ppd: {sorted(list(simulation_ppd.keys()))}")
+
+    # Exclude invalid draws based on negative thresholds
+    flag_valid_draws = (simulation_ppd[site.a] > 0).all(axis=(1, 2, 3))
+    assert flag_valid_draws.sum() > MIN_VALID_DRAWS
+    logger.info(f"Valid draws: {flag_valid_draws.mean() * 100:.2f}%")
+    for u, v in simulation_ppd.items():
+        simulation_ppd[u] = v[flag_valid_draws, ...]
 
     # Shuffle draws
     logger.info(f"Shuffling draws ...")
