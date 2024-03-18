@@ -226,7 +226,7 @@ def main():
         kde = stats.gaussian_kde(samples)
         density = kde(x_grid)
         ins.plot(x_grid, density, color=colors[-(i + 1)])
-        ins.axvline(samples.mean(), color=colors[-(i + 1)], ymax=.8)
+        ins.axvline(samples.mean(), color="b", ymax=.8)
         ins.axvline(a_trues[n_reps].item(), color="red", ymax=.8)
         ins.set_xticks(xticks)
 
@@ -264,7 +264,7 @@ def main():
         n_reps = n_reps_space[-(i + 1)]
         posterior_samples = ps[n_reps]
         samples = posterior_samples[site.a][:, 0, 0]
-        ax.axvline(samples.mean(), color=colors[-(i + 1)], ymax=.3, label="Estimated Threshold")
+        ax.axvline(samples.mean(), color="b", ymax=.3, label="Estimated Threshold")
 
     ax = axes[0, 0]
     ax.legend(fontsize=6, loc="upper right")
