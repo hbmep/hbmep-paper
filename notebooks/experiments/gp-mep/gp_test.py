@@ -39,7 +39,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     t = np.linspace(0, 10, seq_length)  # Time points of the MEP response
 
     a_bio1, b_bio1, L_bio1 = 22, 1.50, 0.1
-    a_bio2, b_bio2 = 55, 2.0
+    a_bio2, b_bio2 = 66, 2.0
 
     b_art = 1.0
     # Generate a random Gaussian peak
@@ -91,15 +91,15 @@ def model(X, t, Y=None):
                                                                 covariance_matrix=kernel_bio1))
     b_bio1 = numpyro.sample("b_bio1", dist.HalfNormal(10))
     a_bio1 = numpyro.sample("a_bio1", dist.Normal(50, 100))
-    mu_bio1 = F.relu(X.flatten()[:, None], a_bio1, b_bio1, 0)
+    mu_bio1 = F.relu(X.flatten()[:, None], a_bio1, b_bio1, 0.1)   # you need +ve L or the obs model goes to nan I think
 
-    # c_1 = numpyro.sample('c_1', dist.HalfNormal(10))
-    # c_2 = numpyro.sample('c_2', dist.HalfNormal(10))
-    # beta = numpyro.deterministic('beta', rate(mu_bio1, c_1, c_2))
-    # alpha = numpyro.deterministic('alpha', concentration(mu_bio1, beta))
-    # draws_bio1 = numpyro.sample('draws_bio1', dist.Gamma(concentration=alpha, rate=beta))
+    c_1 = numpyro.sample('c_1', dist.HalfNormal(1.))
+    c_2 = numpyro.sample('c_2', dist.HalfNormal(1.))
+    beta = numpyro.deterministic('beta', rate(mu_bio1, c_1, c_2))
+    alpha = numpyro.deterministic('alpha', concentration(mu_bio1, beta))
+    draws_bio1 = numpyro.sample('draws_bio1', dist.Gamma(concentration=alpha, rate=beta))
 
-    scaled_bio1 = mu_bio1 * gp_bio1
+    scaled_bio1 = draws_bio1 * gp_bio1
 
     noise_bio2 = numpyro.sample("noise_bio2", dist.LogNormal(0.0, 10.0))
     length_bio2 = numpyro.sample("length_bio2", dist.LogNormal(0.0, 10.0))
@@ -128,7 +128,7 @@ def model(X, t, Y=None):
     numpyro.sample("Y", dist.Normal(scaled_response, obs_noise), obs=Y)
 
 rng_key = random.PRNGKey(0)
-N = 32  # Number of stimulation trials
+N = 64  # Number of stimulation trials
 T = 100  # Number of time points in the MEP time series
 np.random.seed(0)
 Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=2.0)
@@ -170,6 +170,18 @@ for ix_X in range(len(X)):
         plt.plot(t, y_bio1[:, ix], 'k')
         plt.plot(t, y_bio2[:, ix], 'b')
         plt.plot(t, y_art[:, ix], 'r')
+plt.show()
+
+plt.figure()
+y_bio1 = ps['gp_bio1']
+y_bio1 = y_bio1.transpose()
+y_bio2 = ps['gp_bio2']
+y_bio2 = y_bio2.transpose()
+y_art = ps['gp_art']
+y_art = y_art.transpose()
+plt.plot(t, y_bio1, 'k')
+plt.plot(t, y_bio2, 'b')
+plt.plot(t, y_art, 'r')
 plt.show()
 
 plt.figure()
