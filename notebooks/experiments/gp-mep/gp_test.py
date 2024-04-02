@@ -38,7 +38,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     x = np.linspace(0, 100, input_size).reshape(-1, 1)  # stim intensities
     t = np.linspace(0, 10, seq_length)  # Time points of the MEP response
 
-    a_bio1, b_bio1, L_bio1 = 22, 1.50, 0.1
+    a_bio1, b_bio1 = 22, 1.50
     a_bio2, b_bio2 = 66, 2.0
 
     b_art = 1.0
@@ -52,7 +52,10 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     s2 = s1 + (np.random.rand() - 0.5) * 2
     signal_bio1 = signal1 * s1 + signal2 * s2
     signal_bio1 = signal_bio1 / np.abs(signal_bio1).max()  # just to help interpretation
-    Y_bio1 = signal_bio1 * F.relu(x, a_bio1, b_bio1, L_bio1)
+    mu_bio1 = F.relu(x, a_bio1, b_bio1, 0)
+    sigma_bio1 = 0.05
+    Y_rc1 = mu_bio1 + mu_bio1 * np.random.randn(*x.shape) * sigma_bio1
+    Y_bio1 = signal_bio1 * Y_rc1
 
     peak_position_pre = peak_position - (s1_time + s2_time) * 1.33
     s1_pre_time = s1_time / 4
