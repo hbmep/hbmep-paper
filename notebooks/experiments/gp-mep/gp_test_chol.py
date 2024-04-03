@@ -55,7 +55,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     signal_bio1 = signal_bio1 / np.abs(signal_bio1).max()  # just to help interpretation
     mu_bio1 = F.relu(x, a_bio1, b_bio1, 0)
     mu_bio1 = np.array(mu_bio1)
-    sigma_bio1 = 0.5
+    sigma_bio1 = 0.1
     Y_rc1 = mu_bio1 + mu_bio1 * np.random.randn(*x.shape) * sigma_bio1
     Y_bio1 = signal_bio1 * Y_rc1
 
@@ -114,13 +114,13 @@ def model(X, t, Y=None):
 
     mu_bio1 = F.relu(X.flatten()[:, None], a_bio1, b_bio1, L)   # you need +ve L or the obs model goes to nan I think
 
-    c_1 = numpyro.sample('c_1', dist.HalfNormal(2.))
-    c_2 = numpyro.sample('c_2', dist.HalfNormal(2.))
-    beta = numpyro.deterministic('beta', rate(mu_bio1, c_1, c_2))
-    alpha = numpyro.deterministic('alpha', concentration(mu_bio1, beta))
-    draws_bio1 = numpyro.sample('draws_bio1', dist.Gamma(concentration=alpha, rate=beta))
+    # c_1 = numpyro.sample('c_1', dist.HalfNormal(2.))
+    # c_2 = numpyro.sample('c_2', dist.HalfNormal(2.))
+    # beta = numpyro.deterministic('beta', rate(mu_bio1, c_1, c_2))
+    # alpha = numpyro.deterministic('alpha', concentration(mu_bio1, beta))
+    # draws_bio1 = numpyro.sample('draws_bio1', dist.Gamma(concentration=alpha, rate=beta))
 
-    scaled_bio1 = draws_bio1 * gp_bio1
+    scaled_bio1 = mu_bio1 * gp_bio1
 
     scaled_response = scaled_bio1
 
@@ -134,7 +134,7 @@ T = 100  # Number of time points in the MEP time series
 np.random.seed(0)
 Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 
-framework = "SVI"
+framework = "MCMC"
 if framework == "MCMC":
     nuts_kernel = NUTS(model, init_strategy=init_to_feasible)
     mcmc = MCMC(nuts_kernel, num_samples=1000, num_warmup=1000)
@@ -159,20 +159,36 @@ else:
 k = 10.0
 plt.figure()
 plt.plot(t, (k * X + Y).transpose(), 'r')
-for ix_X in range(0, len(X), 4):
+for ix_X in range(0, len(X), 6):
     x = X[ix_X]
     offset = x * k
-    y_bio1 = offset + F.relu(x, ps['a_bio1'], ps['b_bio1'], ps['L']).reshape(-1, 1) * ps['gp_bio1']
+    y_bio1 = offset + F.relu(x, ps['a_bio1'], ps['b_bio1'], ps['L']).reshape(-1, 1) * ps['gp_bio1'].squeeze()
     y_bio1 = y_bio1.transpose()
 
-    for ix in range(10):
+    for ix in range(0, y_bio1.shape[1], 5):
         plt.plot(t, y_bio1[:, ix], 'k')
 
 plt.show()
 
 plt.figure()
-y_bio1 = ps['gp_bio1']
-y_bio1 = y_bio1.transpose()
-plt.plot(t, y_bio1, 'k')
+C_matrices = []
 
+for ix in range(ps['L_omega'].shape[0]):
+    # Compute L_Omega_scaled as before
+    L_Omega_scaled = jnp.matmul(jnp.diag(jnp.sqrt(ps['theta'][ix, :])), ps['L_omega'][ix, 0, :, :])
+    # Compute C as before
+    C = jnp.matmul(L_Omega_scaled, L_Omega_scaled.T)
+
+    # Zero out the diagonal
+    diagonal_mask = jnp.eye(C.shape[0], dtype=bool)
+    C = C.at[diagonal_mask].set(0)
+
+    # Append the computed C to the list
+    C_matrices.append(C)
+
+# Stack the collected C matrices along a new third dimension
+C_stacked = jnp.stack(C_matrices, axis=-1)
+
+C = jnp.mean(C_stacked, 2)
+plt.imshow(C)
 plt.show()
