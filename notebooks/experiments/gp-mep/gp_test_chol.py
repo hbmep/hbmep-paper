@@ -10,6 +10,7 @@ from jax import random
 from jax import jit
 from matplotlib import pyplot as plt
 from jax.scipy.signal import convolve
+from numpyro.infer import init_to_feasible
 
 def rate(mu, c_1, c_2):
     return (
@@ -23,7 +24,7 @@ def concentration(mu, beta):
 
 @jit
 def svi_step(svi_state, x, y, t):
-    svi_state, loss = svi.update(svi_state, x, y, t)
+    svi_state, loss = svi.stable_update(svi_state, x, y, t)
     return svi_state, loss
 
 
@@ -84,11 +85,28 @@ def kernel(X, Z, var, length, noise, jitter=1.0e-6, include_noise=True):
 
 
 def model(X, t, Y=None):
-    noise_bio1 = numpyro.sample("noise_bio1", dist.LogNormal(0.0, 50.0))
-    length_bio1 = numpyro.sample("length_bio1", dist.LogNormal(0.0, 50.0))
-    kernel_bio1 = kernel(t, t, 1.0, length_bio1, noise_bio1)
-    gp_bio1 = numpyro.sample("gp_bio1", dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]),
-                                                                covariance_matrix=kernel_bio1))
+    # noise_bio1 = numpyro.sample("noise_bio1", dist.LogNormal(0.0, 50.0))
+    # length_bio1 = numpyro.sample("length_bio1", dist.LogNormal(0.0, 50.0))
+    # kernel_bio1 = kernel(t, t, 1.0, length_bio1, noise_bio1)
+    # gp_bio1 = numpyro.sample("gp_bio1", dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]),
+    #                                                             covariance_matrix=kernel_bio1))
+
+    d = len(t)
+    theta = numpyro.sample("theta", dist.HalfCauchy(jnp.ones(d)))
+    con_chol = jnp.ones(1) * 0.5
+
+    L_omega = numpyro.sample("L_omega", dist.LKJCholesky(d, con_chol))
+    sigma = jnp.sqrt(theta)
+    L_Omega = jnp.matmul(jnp.diag(sigma), L_omega)
+    mu = jnp.zeros(d)
+    gp_bio1 = numpyro.sample("gp_bio1", dist.MultivariateNormal(mu, scale_tril=L_Omega))
+
+    # corr_mat = numpyro.sample("corr_mat", dist.LKJ(d, con_chol))
+    # sigma = jnp.sqrt(theta)
+    # cov_mat = jnp.matmul(jnp.matmul(jnp.diag(sigma), corr_mat), jnp.diag(sigma))
+    # mu = jnp.zeros(d)
+    # gp_bio1 = numpyro.sample("gp_bio1", dist.MultivariateNormal(mu, covariance_matrix=cov_mat))
+
     b_bio1 = numpyro.sample("b_bio1", dist.HalfNormal(10))
     a_bio1 = numpyro.sample("a_bio1", dist.Normal(50, 100))
 
@@ -118,7 +136,7 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 
 framework = "SVI"
 if framework == "MCMC":
-    nuts_kernel = NUTS(model)
+    nuts_kernel = NUTS(model, init_strategy=init_to_feasible)
     mcmc = MCMC(nuts_kernel, num_samples=1000, num_warmup=1000)
     mcmc.run(jax.random.PRNGKey(0), X, t, Y)
     ps = mcmc.get_samples()

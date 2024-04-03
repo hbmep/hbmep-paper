@@ -140,7 +140,7 @@ framework = "SVI"
 if framework == "MCMC":
     nuts_kernel = NUTS(model)
     mcmc = MCMC(nuts_kernel, num_samples=1000, num_warmup=1000)
-    mcmc.run(jax.random.PRNGKey(0), X, Y, t)
+    mcmc.run(jax.random.PRNGKey(0), X, t, Y)
     ps = mcmc.get_samples()
 
 elif framework == "SVI":
