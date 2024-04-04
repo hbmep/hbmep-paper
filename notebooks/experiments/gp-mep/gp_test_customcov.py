@@ -105,11 +105,18 @@ def model(X, t, Y=None):
 
     cov = jnp.outer(combined_basis, combined_basis)
     diag_indices = jnp.diag_indices_from(cov)
-    cov_with_constant = cov.at[diag_indices].add(1e-6)
+    cov_with_constant = cov.at[diag_indices].add(1e-9)
     gp_bio1 = numpyro.sample("gp_bio1_0", dist.MultivariateNormal(jnp.zeros(len(t)), covariance_matrix=cov_with_constant))
     # gp_bio1 = jnp.zeros((N, len(t)))  # Placeholder for the samples
+    # noise_bio1 = numpyro.sample("noise_bio1", dist.LogNormal(0.0, 10.0))
+    # length_bio1 = numpyro.sample("length_bio1", dist.LogNormal(0.0, 10.0))
+    # kernel_bio1 = kernel(t, t, 1.0, length_bio1, noise_bio1)
+    # mu = numpyro.sample("mu", dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]),
+    #                                                             covariance_matrix=kernel_bio1))
+    # mu = numpyro.sample("mu", dist.Normal(jnp.zeros(len(t)), jnp.ones(len(t))))
+    # mu = jnp.zeros(len(t))
     # for i in range(N):
-    #     gp_bio1 = gp_bio1.at[i].set(numpyro.sample(f"gp_bio1_{i}", dist.MultivariateNormal(jnp.zeros(len(t)), covariance_matrix=cov_with_constant)))
+    #     gp_bio1 = gp_bio1.at[i].set(numpyro.sample(f"gp_bio1_{i}", dist.MultivariateNormal(mu, covariance_matrix=cov_with_constant)))
 
     b_bio1 = numpyro.sample("b_bio1", dist.HalfNormal(10))
     a_bio1 = numpyro.sample("a_bio1", dist.Normal(50, 100))
