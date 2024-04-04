@@ -140,12 +140,13 @@ def model(X, t, Y=None):
 rng_key = random.PRNGKey(0)
 N = 32  # Number of stimulation trials
 T = 50  # Number of time points in the MEP time series
-time_range = jnp.array(np.arange(-5, 5 + 1, 1))
 
 np.random.seed(0)
 Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 # variance = 0.5  # n.b. this is a global
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
+time_range = jnp.array(np.arange(-10, 10 + 1, 1))
+# time_range = jnp.array(np.arange(-5, 5 + 1, np.median(np.diff(t))))
 
 framework = "SVI"
 num_samples = 1000
@@ -190,18 +191,13 @@ elif framework == "SVI":
             plt.show()
 
             plt.figure()
-            plt.plot(t, (k * X + Y).transpose(), 'r')
             for ix_X in range(0, len(X), 3):
                 x = X[ix_X]
-                offset = x * k
+                offset = x * 1 * 0.08
                 f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / ps['variance'][:])
                 f = f - jnp.mean(f)
                 for ix_draw in range(0, ps['shift'].shape[0], 5):
-                    # gp_bio1 = jnp.convolve(ps['gp_bio1_core'][ix_draw, :], f[:, ix_draw], mode='same')
-                    # y_bio1 = offset + F.relu(x, ps['a_bio1'][ix_draw], ps['gp_bio1_core'][ix_draw], ps['L'][ix_draw]) * gp_bio1
-                    # plt.plot(t, y_bio1, 'k')
-
-                    plt.plot(time_range, f[:, ix_draw])
+                    plt.plot(time_range, offset + f[:, ix_draw], color='blue')
             plt.show()
             print(1)
     print('SVI done.')
