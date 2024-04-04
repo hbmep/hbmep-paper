@@ -106,17 +106,17 @@ def model(X, t, Y=None):
     cov = jnp.outer(combined_basis, combined_basis)
     diag_indices = jnp.diag_indices_from(cov)
     cov_with_constant = cov.at[diag_indices].add(1e-6)
-    # gp_bio1 = numpyro.sample("gp_bio1", dist.MultivariateNormal(jnp.zeros(len(t)), covariance_matrix=cov_with_constant))
-    gp_bio1 = jnp.zeros((N, len(t)))  # Placeholder for the samples
-    for i in range(N):
-        gp_bio1 = gp_bio1.at[i].set(numpyro.sample(f"gp_bio1_{i}", dist.MultivariateNormal(jnp.zeros(len(t)), covariance_matrix=cov_with_constant)))
+    gp_bio1 = numpyro.sample("gp_bio1_0", dist.MultivariateNormal(jnp.zeros(len(t)), covariance_matrix=cov_with_constant))
+    # gp_bio1 = jnp.zeros((N, len(t)))  # Placeholder for the samples
+    # for i in range(N):
+    #     gp_bio1 = gp_bio1.at[i].set(numpyro.sample(f"gp_bio1_{i}", dist.MultivariateNormal(jnp.zeros(len(t)), covariance_matrix=cov_with_constant)))
 
     b_bio1 = numpyro.sample("b_bio1", dist.HalfNormal(10))
     a_bio1 = numpyro.sample("a_bio1", dist.Normal(50, 100))
     L = numpyro.sample("L", dist.HalfNormal(1))
 
     mu_bio1 = F.relu(X.flatten()[:, None], a_bio1, b_bio1, L)   # you need +ve L or the obs model goes to nan I think
-    scaled_bio1 = gp_bio1 * mu_bio1
+    scaled_bio1 = mu_bio1 * gp_bio1
     scaled_response = scaled_bio1
 
     obs_noise = numpyro.sample("obs_noise", dist.HalfNormal(scale=1))
@@ -124,8 +124,8 @@ def model(X, t, Y=None):
     numpyro.sample("Y", dist.Normal(scaled_response, obs_noise), obs=Y)
 
 rng_key = random.PRNGKey(0)
-N = 64  # Number of stimulation trials
-T = 100  # Number of time points in the MEP time series
+N = 32  # Number of stimulation trials
+T = 50  # Number of time points in the MEP time series
 
 np.random.seed(0)
 Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
@@ -143,32 +143,37 @@ elif framework == "SVI":
     optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
     guide = numpyro.infer.autoguide.AutoNormal(model)
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-    n_steps = int(1e4)
+    n_steps = int(1e6)
     svi_state = svi.init(rng_key, X, t, Y)
     print('SVI starting.')
     svi_state, loss = svi_step(svi_state, X, t, Y)  # single step for JIT
+    print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-    predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=1000)
-    ps = predictive(random.PRNGKey(1), X, t)
+        if step % 5000 == 0:
+            predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=1000)
+            ps = predictive(random.PRNGKey(1), X, t)
+            print(step)
+            k = 10.0
+            plt.figure()
+            plt.plot(t, (k * X + Y).transpose(), 'r')
+            for ix_X in range(0, len(X), 6):
+                x = X[ix_X]
+                offset = x * k
+                y_bio1 = offset + F.relu(x, ps['a_bio1'], ps['b_bio1'], ps['L']).reshape(-1, 1) * ps[
+                    f"gp_bio1_{ix_X}"].squeeze()
+                y_bio1 = y_bio1.transpose()
+
+                for ix in range(0, y_bio1.shape[1], 5):
+                    plt.plot(t, y_bio1[:, ix], 'k')
+
+            plt.show()
     print('SVI done.')
 
 else:
     raise Exception("?")
 
-k = 10.0
-plt.figure()
-plt.plot(t, (k * X + Y).transpose(), 'r')
-for ix_X in range(0, len(X), 6):
-    x = X[ix_X]
-    offset = x * k
-    y_bio1 = offset + F.relu(x, ps['a_bio1'], ps['b_bio1'], ps['L']).reshape(-1, 1) * ps['gp_bio1'].squeeze()
-    y_bio1 = y_bio1.transpose()
 
-    for ix in range(0, y_bio1.shape[1], 5):
-        plt.plot(t, y_bio1[:, ix], 'k')
-
-plt.show()
 
 # plt.figure()
 # C_matrices = []
