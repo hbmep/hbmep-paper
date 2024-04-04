@@ -99,50 +99,59 @@ def gaussian_basis_vectorized(time_range, means, variance):
 
 
 def model(X, t, Y=None):
-    basis_functions = gaussian_basis_vectorized(t, means, variance)
-    weights = numpyro.sample("weights", dist.Laplace(jnp.zeros(len(means)), jnp.ones(len(means))))
-    combined_basis = jnp.dot(basis_functions, weights)
+    noise_bio1 = numpyro.sample("noise_bio1", dist.LogNormal(0.0, 50.0))
+    length_bio1 = numpyro.sample("length_bio1", dist.LogNormal(0.0, 50.0))
+    kernel_bio1 = kernel(t, t, 1.0, length_bio1, noise_bio1)
+    gp_bio1_core = numpyro.sample("gp_bio1_core", dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio1))
+    gp_bio1 = jnp.zeros((N, len(t)))  # Placeholder for the samples
 
-    cov = jnp.outer(combined_basis, combined_basis)
-    diag_indices = jnp.diag_indices_from(cov)
-    cov_with_constant = cov.at[diag_indices].add(1e-9)
-    gp_bio1_0 = numpyro.sample("gp_bio1_0", dist.MultivariateNormal(jnp.zeros(len(t)), covariance_matrix=cov_with_constant))
-    # gp_bio1 = jnp.zeros((N, len(t)))  # Placeholder for the samples
-    # noise_bio1 = numpyro.sample("noise_bio1", dist.LogNormal(0.0, 10.0))
-    # length_bio1 = numpyro.sample("length_bio1", dist.LogNormal(0.0, 10.0))
-    # kernel_bio1 = kernel(t, t, 1.0, length_bio1, noise_bio1)
-    # mu = numpyro.sample("mu", dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]),
-    #                                                             covariance_matrix=kernel_bio1))
-    # mu = numpyro.sample("mu", dist.Normal(jnp.zeros(len(t)), jnp.ones(len(t))))
-    # mu = jnp.zeros(len(t))
-    # for i in range(N):
-    #     gp_bio1 = gp_bio1.at[i].set(numpyro.sample(f"gp_bio1_{i}", dist.MultivariateNormal(mu, covariance_matrix=cov_with_constant)))
-
+    noise_shift = numpyro.sample("noise_shift", dist.LogNormal(0.0, 10.0))
+    length_shift = numpyro.sample("length_shift", dist.LogNormal(0.0, 10.0))
+    variance_shift = numpyro.sample("variance_shift", dist.LogNormal(0.0, 10.0))
+    kernel_shift = kernel(X[:, 0], X[:, 0], variance_shift, length_shift, noise_shift)
+    shift = numpyro.sample("shift",
+                                  dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]), covariance_matrix=kernel_shift))
+    # shift = numpyro.sample("shift", dist.Normal(jnp.zeros(N), 1 * jnp.ones(N)))
+    variance = numpyro.sample("variance", dist.LogNormal(0.0, 1.0))
+    for i in range(N):
+        f = jnp.exp(-0.5 * (time_range[:] - shift[i]) ** 2 / variance)
+        f = f - jnp.mean(f)
+        gp_bio1 = gp_bio1.at[i].set(jnp.convolve(gp_bio1_core, f, mode='same'))
     b_bio1 = numpyro.sample("b_bio1", dist.HalfNormal(10))
     a_bio1 = numpyro.sample("a_bio1", dist.Normal(50, 100))
+
     L = numpyro.sample("L", dist.HalfNormal(1))
 
-    mu_bio1 = F.relu(X.flatten()[:, None], a_bio1, b_bio1, L)   # you need +ve L or the obs model goes to nan I think
-    scaled_bio1 = mu_bio1 * gp_bio1_0
+    mu_bio1 = F.relu(X.flatten()[:, None], a_bio1, b_bio1, L)  # you need +ve L or the obs model goes to nan I think
+
+    c_1 = numpyro.sample('c_1', dist.HalfNormal(2.))
+    c_2 = numpyro.sample('c_2', dist.HalfNormal(2.))
+    beta = numpyro.deterministic('beta', rate(mu_bio1, c_1, c_2))
+    alpha = numpyro.deterministic('alpha', concentration(mu_bio1, beta))
+    draws_bio1 = numpyro.sample('draws_bio1', dist.Gamma(concentration=alpha, rate=beta))
+
+    scaled_bio1 = draws_bio1 * gp_bio1
+
     scaled_response = scaled_bio1
 
     obs_noise = numpyro.sample("obs_noise", dist.HalfNormal(scale=1))
-
-    numpyro.sample("Y", dist.Normal(scaled_response, obs_noise), obs=Y)
+    Y = numpyro.sample("Y", dist.Normal(scaled_response, obs_noise), obs=Y)
 
 rng_key = random.PRNGKey(0)
 N = 32  # Number of stimulation trials
 T = 50  # Number of time points in the MEP time series
+time_range = jnp.array(np.arange(-5, 5 + 1, 1))
 
 np.random.seed(0)
 Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
-variance = 0.5  # n.b. this is a global
-means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
+# variance = 0.5  # n.b. this is a global
+# means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
 
 framework = "SVI"
+num_samples = 1000
 if framework == "MCMC":
     nuts_kernel = NUTS(model, init_strategy=init_to_feasible)
-    mcmc = MCMC(nuts_kernel, num_samples=1000, num_warmup=1000)
+    mcmc = MCMC(nuts_kernel, num_samples=num_samples, num_warmup=1000)
     mcmc.run(jax.random.PRNGKey(0), X, t, Y)
     ps = mcmc.get_samples()
 
@@ -150,31 +159,51 @@ elif framework == "SVI":
     optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
     guide = numpyro.infer.autoguide.AutoNormal(model)
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-    n_steps = int(1e6)
+    n_steps = int(1e5)
     svi_state = svi.init(rng_key, X, t, Y)
     print('SVI starting.')
     svi_state, loss = svi_step(svi_state, X, t, Y)  # single step for JIT
     print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-        if step % 5000 == 0:
-            predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=1000)
-            ps = predictive(random.PRNGKey(1), X, t)
+        if step % 2000 == 0:
+            predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=num_samples)
+            ps = predictive(rng_key, X, t)
+            predictive_obs = Predictive(model, ps, params=svi.get_params(svi_state), num_samples=num_samples)
+            ps_obs = predictive_obs(rng_key, X, t)
             print(step)
             k = 10.0
             plt.figure()
             plt.plot(t, (k * X + Y).transpose(), 'r')
-            for ix_X in range(0, len(X), 6):
+            for ix_X in range(0, len(X), 3):
                 x = X[ix_X]
                 offset = x * k
-                y_bio1 = offset + F.relu(x, ps['a_bio1'], ps['b_bio1'], ps['L']).reshape(-1, 1) * ps[
-                    f"gp_bio1_{ix_X}"].squeeze()
-                y_bio1 = y_bio1.transpose()
+                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / ps['variance'][:])
+                f = f - jnp.mean(f)
+                for ix_draw in range(0, ps['shift'].shape[0], 5):
+                    # gp_bio1 = jnp.convolve(ps['gp_bio1_core'][ix_draw, :], f[:, ix_draw], mode='same')
+                    # y_bio1 = offset + F.relu(x, ps['a_bio1'][ix_draw], ps['gp_bio1_core'][ix_draw], ps['L'][ix_draw]) * gp_bio1
+                    # plt.plot(t, y_bio1, 'k')
 
-                for ix in range(0, y_bio1.shape[1], 5):
-                    plt.plot(t, y_bio1[:, ix], 'k')
-
+                    plt.plot(t, offset + ps_obs['Y'][ix_draw, ix_X, :], color='green')
+            plt.plot(ps['shift'].transpose() + 2, X * k, color='blue')
             plt.show()
+
+            plt.figure()
+            plt.plot(t, (k * X + Y).transpose(), 'r')
+            for ix_X in range(0, len(X), 3):
+                x = X[ix_X]
+                offset = x * k
+                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / ps['variance'][:])
+                f = f - jnp.mean(f)
+                for ix_draw in range(0, ps['shift'].shape[0], 5):
+                    # gp_bio1 = jnp.convolve(ps['gp_bio1_core'][ix_draw, :], f[:, ix_draw], mode='same')
+                    # y_bio1 = offset + F.relu(x, ps['a_bio1'][ix_draw], ps['gp_bio1_core'][ix_draw], ps['L'][ix_draw]) * gp_bio1
+                    # plt.plot(t, y_bio1, 'k')
+
+                    plt.plot(time_range, f[:, ix_draw])
+            plt.show()
+            print(1)
     print('SVI done.')
 
 else:
