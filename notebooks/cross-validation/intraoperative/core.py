@@ -15,7 +15,7 @@ from models import (
     RectifiedLogistic,
     Logistic5,
     Logistic4,
-    RectifiedLinear
+    RectifiedLinear,
 )
 from constants import (
     DATA_PATH,
