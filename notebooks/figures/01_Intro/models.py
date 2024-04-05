@@ -58,6 +58,22 @@ class RectifiedLogistic(GammaModel):
                 c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                 c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
+        s50 = numpyro.deterministic(
+            "s50",
+            a
+            - jnp.true_divide(
+                jnp.log(jnp.multiply(
+                    jnp.true_divide(ell, H),
+                    - 1
+                    + jnp.true_divide(
+                        H + ell,
+                        jnp.true_divide(H, 2) + ell
+                    )
+                )),
+                b
+            )
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 # Model

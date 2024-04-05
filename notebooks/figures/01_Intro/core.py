@@ -178,7 +178,7 @@ def main(Model):
 
 
 if __name__ == "__main__":
-    Model = RectifiedLogistic
+    # Model = RectifiedLogistic
     Model = NelderMeadOptimization
     # Model = BestPest
     main(Model)

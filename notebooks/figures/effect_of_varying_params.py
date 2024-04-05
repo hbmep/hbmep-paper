@@ -13,7 +13,10 @@ from constants import BUILD_DIR
 
 logger = logging.getLogger(__name__)
 
-colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.2, 1, 3))
+colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 3))
+lineplot_kwargs = {
+    "linewidth": 1
+}
 
 
 def main():
@@ -35,7 +38,7 @@ def main():
             y = F.rectified_logistic(
                 x, param[site.a], param[site.b], param[site.L], param[site.ell], param[site.H]
             )
-            sns.lineplot(x=x, y=y, color=colors[j], ax=ax, label=f"{named_param}={value}")
+            sns.lineplot(x=x, y=y, color=colors[j], ax=ax, label=f"{named_param}={value}", **lineplot_kwargs)
         ax.set_xticks([0, 1, 10])
         ax.set_yticks(yticks[i])
         ax.legend(loc="lower right", fontsize=8)
@@ -44,7 +47,7 @@ def main():
     values = [(.3, .05), (.4, .05), (.5, .05)]
     for i, (b, ell) in enumerate(values):
         y = F.rectified_logistic(x, 1, b, 1, ell, 1)
-        sns.lineplot(x=x, y=y, color=colors[i], ax=ax, label=f"{site.b}={b}, {site.ell}={ell}")
+        sns.lineplot(x=x, y=y, color=colors[i], ax=ax, label=f"{site.b}={b}, {site.ell}={ell}", **lineplot_kwargs)
     ax.set_xticks([0, 1, 10])
     ax.set_yticks([1, 2])
     ax.legend(loc="upper left", fontsize=8)
