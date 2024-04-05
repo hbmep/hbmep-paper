@@ -103,23 +103,23 @@ def main():
         gc.collect()
 
 
-    # Run multiple models in parallel
-    n_jobs = -1
-    models = [
-        RectifiedLogistic,
-        Logistic5,
-        Logistic4,
-        RectifiedLinear,
-    ]
+    # # Run multiple models in parallel
+    # n_jobs = -1
+    # models = [
+    #     RectifiedLogistic,
+    #     Logistic5,
+    #     Logistic4,
+    #     RectifiedLinear,
+    # ]
 
-    with Parallel(n_jobs=n_jobs) as parallel:
-        parallel(
-            delayed(run_inference)(M) for M in models
-        )
+    # with Parallel(n_jobs=n_jobs) as parallel:
+    #     parallel(
+    #         delayed(run_inference)(M) for M in models
+    #     )
 
-    # # Run single model
-    # M = RectifiedLogistic
-    # run_inference(M)
+    # Run single model
+    M = RectifiedLogistic
+    run_inference(M)
 
     return
 
