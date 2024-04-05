@@ -1,10 +1,9 @@
 import os
 import logging
 
+import arviz as az
 import numpy as np
 from scipy import stats
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from hbmep_paper.utils import setup_logging
 from models import (
@@ -30,7 +29,7 @@ def main(build_dir, draws_space):
 
     n_reps = N_REPS
     n_pulses = N_PULSES
-    n_subjects_space = N_SUBJECTS_SPACE[1:]
+    n_subjects_space = N_SUBJECTS_SPACE
 
     models = [
         NonHierarchicalBayesianModel,
@@ -64,11 +63,16 @@ def main(build_dir, draws_space):
                         a_true = a_true.reshape(-1,)
 
                         a_random_mean = np.load(os.path.join(dir, "a_random_mean.npy"))
-                        pr = (a_random_mean < 0).mean()
+                        a_random_mean = a_random_mean[:, 0, 0]
 
-                    case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
+                        if n_subjects > 1:
+                            # pr = (a_random_mean < 0.).mean()
+                            hdi = az.hdi(a_random_mean, hdi_prob=.95)
+                            pr = hdi[-1]
+
+                    case "non_hierarchical_bayesian_model":
                         n_subjects_dir = f"n{n_subjects_space[-1]}"
-                        a_true, a_pred, diff = [], [], []
+                        a_true, a_pred = None, None
 
                         for subject in range(n_subjects):
                             sub_dir = f"subject{subject}"
@@ -81,40 +85,36 @@ def main(build_dir, draws_space):
                                 M.NAME,
                                 sub_dir
                             )
-                            a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
-                            a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
 
-                            a_pred_sub_map = a_pred_sub.mean(axis=0)
-                            a_true_sub = a_true_sub
+                            a_true_sub, a_pred_sub = None, None
 
-                            diff_sub = a_pred_sub_map[0, 1, 0] - a_pred_sub_map[0, 0, 0]
-                            diff.append(diff_sub)
+                            for intervention in range(2):
+                                intervention_dir = f"inter{intervention}"
+                                a_true_sub_inter = np.load(os.path.join(dir, intervention_dir, "a_true.npy"))
+                                a_pred_sub_inter = np.load(os.path.join(dir, intervention_dir, "a_pred.npy"))
 
-                            a_true += a_pred_sub_map.reshape(-1,).tolist()
-                            a_pred += a_true_sub.reshape(-1,).tolist()
+                                if a_true_sub is None:
+                                    a_true_sub = a_true_sub_inter
+                                    a_pred_sub = a_pred_sub_inter
+                                else:
+                                    a_true_sub = np.concatenate([a_true_sub, a_true_sub_inter], axis=-2)
+                                    a_pred_sub = np.concatenate([a_pred_sub, a_pred_sub_inter], axis=-2)
 
-                        a_true = np.array(a_true)
-                        a_pred = np.array(a_pred)
+                            if a_true is None:
+                                a_true = a_true_sub
+                                a_pred = a_pred_sub
+                            else:
+                                a_true = np.concatenate([a_true, a_true_sub], axis=-3)
+                                a_pred = np.concatenate([a_pred, a_pred_sub], axis=-3)
 
-                        pr = stats.wilcoxon(diff, alternative="less").pvalue
+                        a_pred_map = a_pred.mean(axis=0)
 
-                    case "nelder_mead_optimization":
-                        dir = os.path.join(
-                            build_dir,
-                            draw_dir,
-                            f"n{n_subjects_space[-1]}",
-                            n_reps_dir,
-                            n_pulses_dir,
-                            M.NAME
-                        )
-                        a_true = np.load(os.path.join(dir, "a_true.npy"))[:n_subjects, ...]
-                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))[:n_subjects, ...]
+                        if n_subjects > 1:
+                            pr = stats.wilcoxon(x=a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0], alternative="less").pvalue
+                            # pr = stats.ttest_1samp(a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0], alternative="less", popmean=0).pvalue
 
-                        diff = a_pred[:, 1, 0] - a_pred[:, 0, 0]
-                        pr = stats.wilcoxon(diff, alternative="less").pvalue
-
-                        a_pred = a_pred.reshape(-1,)
                         a_true = a_true.reshape(-1,)
+                        a_pred = a_pred_map.reshape(-1,)
 
                     case _:
                         raise ValueError(f"Invalid model {M.NAME}.")
@@ -123,11 +123,11 @@ def main(build_dir, draws_space):
                 curr_mse = np.square(a_true - a_pred).mean()
                 mae.append(curr_mae)
                 mse.append(curr_mse)
-                prob.append(pr)
+                if n_subjects > 1: prob.append(pr)
 
     mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
     mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
-    prob = np.array(prob).reshape(len(n_subjects_space), len(draws_space), len(models))
+    prob = np.array(prob).reshape(len(n_subjects_space) - 1, len(draws_space), len(models))
 
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
@@ -150,7 +150,7 @@ def main(build_dir, draws_space):
 
 if __name__ == "__main__":
     # Run for the experiments with effect
-    main(EXPERIMENTS_DIR, range(500))
+    main(EXPERIMENTS_DIR, range(2000))
 
     # Run for the experiments without effect
-    main(EXPERIMENTS_NO_EFFECT_DIR, range(1000))
+    main(EXPERIMENTS_NO_EFFECT_DIR, range(2000))
