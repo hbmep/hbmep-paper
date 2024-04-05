@@ -4,6 +4,7 @@ import logging
 
 import pandas as pd
 import numpy as np
+from pyparsing import line
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -28,6 +29,9 @@ logger = logging.getLogger(__name__)
 plt.rcParams["svg.fonttype"] = "none"
 
 NUM_POINTS = 5000
+markersize = 3
+linewidth = 1
+linestyle = "--"
 axis_label_size = 8
 colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.4, 1, 2))
 colors = ["k"] + colors[::-1].tolist()
@@ -123,9 +127,10 @@ def main():
             y=yme,
             yerr=ysem,
             marker="o",
-            label=f"{n_reps} Reps" if n_reps != 1 else "1 Rep",
-            linestyle="--",
-            ms=4,
+            label=f"{n_reps} reps" if n_reps != 1 else "1 rep",
+            linestyle=linestyle,
+            ms=markersize,
+            linewidth=linewidth,
             color=colors[n_reps_ind],
             zorder=5 if n_reps_ind == 0 else None
         )
@@ -134,7 +139,7 @@ def main():
         ax.set_ylabel("MAE")
 
     ax.set_ylim(bottom=0.)
-    ax.set_xlabel("Number of Intensities", fontsize=axis_label_size)
+    ax.set_xlabel("Number of intensities", fontsize=axis_label_size)
     ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
 
     ax = axes[0, 0]
@@ -155,12 +160,12 @@ def main():
         labelrotation=15,
         labelsize=8
     )
-    ax.grid(axis="y", linestyle="--", alpha=.25)
+    ax.grid(axis="y", linestyle=linestyle, alpha=.25)
     ax.set_ylabel("")
 
     ax.legend(loc="upper right", reverse=True, fontsize=8)
-    ax.set_ylabel("Mean Absolute Error on Threshold (% MSO)", fontsize=axis_label_size)
-    subfig.subplots_adjust(left=.09, right=.99, bottom=.15, top=.98, hspace=.4)
+    ax.set_ylabel("Mean absolute error\non threshold (% MSO)", fontsize=axis_label_size)
+    subfig.subplots_adjust(left=.15, right=.97, bottom=.15, top=.98, hspace=.4)
 
 
     subfig = subfigs.flat[0]
@@ -179,7 +184,7 @@ def main():
         sns.scatterplot(x=x, y=y, color=scatter_color, edgecolor=scatter_edgecolor, ax=ax)
         x = prediction_df[model.intensity].values
         y = ppd[site.obs].mean(axis=0)[..., 0]
-        sns.lineplot(x=x, y=y, color=colors[- (i + 1)], ax=ax)
+        sns.lineplot(x=x, y=y, color=colors[- (i + 1)], ax=ax, linewidth=linewidth)
         logger.info(obs_hpdis[n_reps][..., 0].shape)
         ax.fill_between(
             x,
@@ -214,20 +219,20 @@ def main():
                 xticks = [20, 32]
                 ytop = .5
             case 2:
-                x_grid = np.linspace(22, 34, 1000)
-                xticks = [25, 32]
+                x_grid = np.linspace(24, 34, 1000)
+                xticks = [27, 32]
                 ytop = .85
-            case 3:
-                x_grid = np.linspace(26, 33, 1000)
-                xticks = [28, 32]
-                ytop = .55
+            # case 3:
+            #     x_grid = np.linspace(26, 33, 1000)
+            #     xticks = [28, 32]
+            #     ytop = .55
 
         # x_grid = np.linspace(18, 40, 1000)
         kde = stats.gaussian_kde(samples)
         density = kde(x_grid)
-        ins.plot(x_grid, density, color=colors[-(i + 1)])
-        ins.axvline(samples.mean(), color="b", ymax=.8)
-        ins.axvline(a_trues[n_reps].item(), color="red", ymax=.8)
+        ins.plot(x_grid, density, color=colors[-(i + 1)], linewidth=linewidth)
+        ins.axvline(samples.mean(), color="g", ymax=.8, linestyle=linestyle, linewidth=linewidth)
+        ins.axvline(a_trues[n_reps].item(), color="red", ymax=.8, linestyle=linestyle, linewidth=linewidth)
         ins.set_xticks(xticks)
 
     for i, ax in enumerate(axes.flat):
@@ -255,16 +260,25 @@ def main():
     ax.set_xticks([0, 50, 100])
     ax.set_yticks([0, 2.5, 5.])
     ax.tick_params(axis="x", labelbottom=True)
-    ax.set_xlabel("Stimulation Intensity (% MSO)", fontsize=axis_label_size)
-    ax.set_ylabel("$\mathregular{MEP}$ $\mathregular{Size}_\mathregular{pk-pk}$ (mV)", fontsize=axis_label_size)
-    ax.set_ylabel("$\mathregular{MEP}$ $\mathregular{Size}_\mathregular{pk-pk}$ (mV)", fontsize=axis_label_size)
+    ax.set_xlabel("Stimulation intensity (% MSO)", fontsize=axis_label_size)
+    # ax.set_ylabel("$\mathregular{MEP}$ $\mathregular{Size}_\mathregular{pk-pk}$ (mV)", fontsize=axis_label_size)
+    ax.set_ylabel("pk-pk (mV)", fontsize=axis_label_size)
 
     for i, ax in enumerate(axes.flat):
-        ax.axvline(a_trues[n_reps].item(), color="red", ymax=.3, label="True Threshold")
+        ax.axvline(a_trues[n_reps].item(), color="red", ymax=.3, label="True Threshold", linestyle=linestyle, linewidth=linewidth)
         n_reps = n_reps_space[-(i + 1)]
         posterior_samples = ps[n_reps]
         samples = posterior_samples[site.a][:, 0, 0]
-        ax.axvline(samples.mean(), color="b", ymax=.3, label="Estimated Threshold")
+        ax.axvline(samples.mean(), color="g", ymax=.3, label="Estimated Threshold", linestyle=linestyle, linewidth=linewidth)
+
+    pos = (33, 5.5)
+    text_kwargs = {"fontsize": 7}
+    ax = axes[0, 0]
+    ax.text(*pos, "8 reps", **text_kwargs)
+    ax = axes[1, 0]
+    ax.text(*pos, "4 reps", **text_kwargs)
+    ax = axes[2, 0]
+    ax.text(*pos, "1 rep", **text_kwargs)
 
     ax = axes[0, 0]
     ax.legend(fontsize=6, loc="upper right")
@@ -274,11 +288,11 @@ def main():
     fig.align_ylabels()
     fig.align_labels()
 
-    dest = os.path.join(BUILD_DIR, "results.svg")
+    dest = os.path.join(BUILD_DIR, "reps.svg")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
 
-    dest = os.path.join(BUILD_DIR, "results.png")
+    dest = os.path.join(BUILD_DIR, "reps.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
 
