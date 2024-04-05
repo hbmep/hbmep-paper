@@ -2,6 +2,7 @@ import os
 import pickle
 import logging
 
+import numpy as np
 import pandas as pd
 import arviz as az
 
@@ -13,24 +14,22 @@ from models import RectifiedLogistic
 from constants import (
     TOML_PATH,
     DATA_PATH,
-    LEARN_POSTERIOR_RECTIFIED_LOGISTIC_DIR as LEARN_POSTERIOR_DIR,
-    INFERENCE_FILE
+    INFERENCE_FILE,
+    BUILD_DIR
 )
 
 logger = logging.getLogger(__name__)
 
-BUILD_DIR = LEARN_POSTERIOR_DIR
-
 
 def main():
     # Build model
+    M = RectifiedLogistic
     config = Config(toml_path=TOML_PATH)
-    config.BUILD_DIR = BUILD_DIR
-    config.MCMC_PARAMS["num_warmup"] = 4000
-    config.MCMC_PARAMS["num_samples"] = 4000
-    config.MCMC_PARAMS["thinning"] = 4
-
-    model = RectifiedLogistic(config=config)
+    config.BUILD_DIR = os.path.join(
+        BUILD_DIR,
+        M.NAME
+    )
+    model = M(config=config)
 
     # Set up logging
     model._make_dir(model.build_dir)
@@ -38,25 +37,20 @@ def main():
         dir=model.build_dir,
         fname=os.path.basename(__file__)
     )
-    for u, v in model.mcmc_params.items():
-        logger.info(f"{u}: {v}")
 
     # Load data
     df = pd.read_csv(DATA_PATH)
-    df, encoder_dict = model.load(df=df)
 
     # Run inference
+    df, encoder_dict = model.load(df=df)
+    logger.info(f"Running inference for {model.NAME} with {df.shape[0]} samples ...")
     mcmc, posterior_samples = model.run_inference(df=df)
 
-    # Save inference data
-    dest = os.path.join(model.build_dir, INFERENCE_FILE)
-    with open(dest, "wb") as f:
-        pickle.dump((model, mcmc, posterior_samples), f)
-    logger.info(f"Saved inference data: {dest}")
-
-    # Predict and plot recruitment curves
+    # Predictions and recruitment curves
     prediction_df = model.make_prediction_dataset(df=df)
-    posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
+    posterior_predictive = model.predict(
+        df=prediction_df, posterior_samples=posterior_samples
+    )
     model.render_recruitment_curves(
         df=df,
         encoder_dict=encoder_dict,
@@ -71,15 +65,24 @@ def main():
         posterior_predictive=posterior_predictive
     )
 
+    # Save posterior
+    dest = os.path.join(model.build_dir, INFERENCE_FILE)
+    with open(dest, "wb") as f:
+        pickle.dump((model, mcmc, posterior_samples,), f)
+    logger.info(f"Saved inference data to {dest}")
+
     # Model evaluation
-    logger.info("Evaluating model ...")
     inference_data = az.from_numpyro(mcmc)
-    logger.info(az.loo(inference_data, var_name=site.obs))
+    logger.info("Evaluating model ...")
+    logger.info("LOO ...")
+    score = az.loo(inference_data)
+    logger.info(score)
+    logger.info("WAIC ...")
+    score = az.waic(inference_data)
+    logger.info(score)
     vars_to_exclude = [site.mu, site.alpha, site.beta, site.obs]
     vars_to_exclude = ["~" + var for var in vars_to_exclude]
     logger.info(az.summary(inference_data, var_names=vars_to_exclude).to_string())
-
-    return
 
 
 if __name__ == "__main__":

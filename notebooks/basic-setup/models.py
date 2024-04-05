@@ -1,10 +1,11 @@
 import numpy as np
+import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
 
 from hbmep.config import Config
+from hbmep.nn import functional as F
 from hbmep.model import GammaModel
-from hbmep.model import functional as F
 from hbmep.model.utils import Site as site
 
 
@@ -14,21 +15,17 @@ class RectifiedLogistic(GammaModel):
     def __init__(self, config: Config):
         super(RectifiedLogistic, self).__init__(config=config)
 
-    def _model(self, features, intensity, response_obs=None):
-        features, n_features = features
-        intensity, n_data = intensity
-        intensity = intensity.reshape(-1, 1)
-        intensity = np.tile(intensity, (1, self.n_response))
-
-        feature0 = features[0].reshape(-1,)
+    def _model(self, intensity, features, response_obs=None):
+        n_data = intensity.shape[0]
+        n_features = np.max(features, axis=0) + 1
+        feature0 = features[..., 0]
 
         with numpyro.plate(site.n_response, self.n_response):
-            """ Hyper-priors """
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 20., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+            # Hyper Priors
+            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
+            a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
 
             b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-            v_scale = numpyro.sample("v_scale", dist.HalfNormal(5.))
 
             L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
             ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
@@ -38,31 +35,38 @@ class RectifiedLogistic(GammaModel):
             c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
 
             with numpyro.plate(site.n_features[0], n_features[0]):
-                """ Priors """
+                # Priors
                 a = numpyro.sample(
                     site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
                 )
 
-                b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
-                v = numpyro.sample(site.v, dist.HalfNormal(v_scale))
+                b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
+                b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
 
-                L = numpyro.sample(site.L, dist.HalfNormal(L_scale))
-                ell = numpyro.sample(site.ell, dist.HalfNormal(ell_scale))
-                H = numpyro.sample(site.H, dist.HalfNormal(H_scale))
+                L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
+                L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
 
-                c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
-                c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
+                ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
+
+                H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
+                H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
+
+                c_1_raw = numpyro.sample("c_1_raw", dist.HalfNormal(scale=1))
+                c_1 = numpyro.deterministic(site.c_1, jnp.multiply(c_1_scale, c_1_raw))
+
+                c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
+                c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
-                """ Model """
+                # Model
                 mu = numpyro.deterministic(
                     site.mu,
                     F.rectified_logistic(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
-                        v=v[feature0],
                         L=L[feature0],
                         ell=ell[feature0],
                         H=H[feature0]
@@ -81,7 +85,7 @@ class RectifiedLogistic(GammaModel):
                     self.concentration(mu, beta)
                 )
 
-                """ Observation """
+                # Observation
                 numpyro.sample(
                     site.obs,
                     dist.Gamma(concentration=alpha, rate=beta),
