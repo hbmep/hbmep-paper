@@ -10,6 +10,7 @@ import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
 from jax import random
+from jax import vmap
 jax.config.update("jax_enable_x64", True)
 
 
@@ -18,6 +19,11 @@ def rate(mu, c_1, c_2):
             c_1 + jnp.true_divide(c_2, mu)
     )
 
+def convolve_wrapper(gp_bio1_core, f):
+    return jnp.convolve(gp_bio1_core, f, mode='same')
+
+
+convolve_vectorized = vmap(convolve_wrapper, in_axes=(None, 0))
 
 def concentration(mu, beta):
     return jnp.multiply(mu, beta)
@@ -28,6 +34,14 @@ def svi_step(svi_state, x, y, t):
     svi_state, loss = svi.stable_update(svi_state, x, y, t)
     return svi_state, loss
 
+
+def generate_filter_stack(time_range, shift, variance):
+    filter_stack = jnp.exp(-0.5 * (time_range - shift) ** 2 / variance).T
+    filter_stack = filter_stack - jnp.mean(filter_stack, axis=1, keepdims=True)  # Subtract the mean from each 'f'
+    # k = 2  # Example shape parameter; adjust based on desired peakiness
+    # sigma = jnp.sqrt(variance)  # Width parameter derived from variance
+    # filter_stack = jnp.exp(-((time_range - shift) / sigma) ** (2 * k)).T
+    return filter_stack
 
 def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     x = np.linspace(0, 100, input_size).reshape(-1, 1)  # stim intensities
@@ -91,23 +105,21 @@ def model(X, t, Y=None):
     length_bio1 = numpyro.sample("length_bio1", dist.LogNormal(0.0, 50.0))
     kernel_bio1 = kernel(t, t, 1.0, length_bio1, noise_bio1)
     gp_bio1_core = numpyro.sample("gp_bio1_core", dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio1))
-    gp_bio1 = jnp.zeros((N, len(t)))  # Placeholder for the samples
 
     noise_shift = numpyro.sample("noise_shift", dist.LogNormal(0.0, 10.0))
     length_shift = numpyro.sample("length_shift", dist.LogNormal(0.0, 10.0))
     variance_shift = numpyro.sample("variance_shift", dist.LogNormal(0.0, 10.0))
+    # kernel_shift = kernel(X[:-1, 0], X[:-1, 0], variance_shift, length_shift, noise_shift)
     kernel_shift = kernel(X[:, 0], X[:, 0], variance_shift, length_shift, noise_shift)
-    shift = numpyro.sample("shift",
-                                  dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]), covariance_matrix=kernel_shift))
-    # shift = numpyro.sample("shift", dist.Normal(jnp.zeros(N), 1 * jnp.ones(N)))
-    # variance = numpyro.sample("variance", dist.Laplace(0.0, 100))
-    # variance = numpyro.sample("variance", dist.LogNormal(0.0, 0.2))
-    variance = numpyro.deterministic('variance', v_global)
+    shift = numpyro.sample("shift", dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]),
+                                                                    covariance_matrix=kernel_shift))
+    # shift = numpyro.deterministic('shift', jnp.concatenate([jnp.array([0]), shift_core]))  # at end
 
-    for i in range(N):
-        f = jnp.exp(-0.5 * (time_range[:] - shift[i]) ** 2 / variance)
-        f = f - jnp.mean(f)
-        gp_bio1 = gp_bio1.at[i].set(jnp.convolve(gp_bio1_core, f, mode='same'))
+    # maybe fix the shift at highest stim intensity to 0?
+    variance = numpyro.deterministic('variance', v_global)
+    filter_stack = generate_filter_stack(time_range[:, None], shift, variance)
+    gp_bio1 = convolve_vectorized(gp_bio1_core, filter_stack)
+
     b_bio1 = numpyro.sample("b_bio1", dist.HalfNormal(10))
     a_bio1 = numpyro.sample("a_bio1", dist.Normal(50, 100))
 
@@ -139,7 +151,7 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 time_range = jnp.array(np.arange(-10, 10 + 1, 1))
 dt = np.median(np.diff(t))
 time_range = jnp.array(np.arange(-dt * 15, dt * 15 + dt, dt))
-v_global = 0.1
+v_global = dt / 3
 
 framework = "SVI"
 num_samples = 200
@@ -153,16 +165,18 @@ elif framework == "SVI":
     optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
     guide = numpyro.infer.autoguide.AutoNormal(model)
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-    n_steps = int(1e5)
+    n_steps = int(4e4)
     svi_state = svi.init(rng_key, X, t, Y)
     print('SVI starting.')
     svi_state, loss = svi_step(svi_state, X, t, Y)  # single step for JIT
     print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-        if step % 2000 == 0:
+        if step % 5000 == 0:
             predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=num_samples)
             ps = predictive(rng_key, X, t)
+            # zero_row = jnp.zeros((ps['shift_core'].shape[0], 1))
+            # ps['shift'] = jnp.concatenate([zero_row, ps['shift_core']], axis=1)
             predictive_obs = Predictive(model, ps, params=svi.get_params(svi_state), num_samples=num_samples)
             ps_obs = predictive_obs(rng_key, X, t)
             print(step)
@@ -174,10 +188,9 @@ elif framework == "SVI":
                 offset = x * k
                 variance_local = v_global
                 # variance_local = ps['variance'][:]
-                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / variance_local)
-                f = f - jnp.mean(f)
-                if np.array(jnp.any(jnp.isinf(f))):
-                    continue
+
+                # if np.array(jnp.any(jnp.isinf(f))):
+                #     continue
                 for ix_draw in range(0, ps['shift'].shape[0], 5):
                     # gp_bio1 = jnp.convolve(ps['gp_bio1_core'][ix_draw, :], f[:, ix_draw], mode='same')
                     # y_bio1 = offset + F.relu(x, ps['a_bio1'][ix_draw], ps['gp_bio1_core'][ix_draw], ps['L'][ix_draw]) * gp_bio1
@@ -193,10 +206,9 @@ elif framework == "SVI":
                 offset = x * 1 * 0.08
                 variance_local = v_global
                 # variance_local = ps['variance'][:]
-                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / variance_local)
-                f = f - jnp.mean(f)
+                filter_stack = generate_filter_stack(time_range[:, None], ps['shift'][:, ix_X], variance_local)
                 for ix_draw in range(0, ps['shift'].shape[0], 5):
-                    plt.plot(time_range, offset + f[:, ix_draw], color='blue')
+                    plt.plot(time_range, offset + filter_stack[ix_draw, :], color='blue')
             plt.show()
             print(1)
     print('SVI done.')
