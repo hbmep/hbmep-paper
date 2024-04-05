@@ -16,7 +16,7 @@ from models import (
     RectifiedLogistic,
     Logistic5,
     Logistic4,
-    RectifiedLinear
+    RectifiedLinear,
 )
 from constants import (
     DATA_PATH,
@@ -105,7 +105,7 @@ def main():
         gc.collect()
 
 
-    # # Run multiple models in parallel
+    # Run multiple models in parallel
     n_jobs = -1
     models = [
         RectifiedLogistic,
