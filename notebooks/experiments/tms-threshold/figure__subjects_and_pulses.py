@@ -28,6 +28,9 @@ logger = logging.getLogger(__name__)
 plt.rcParams["svg.fonttype"] = "none"
 
 BUILD_DIR = EXPERIMENTS_DIR
+markersize = 3
+linewidth = 1
+linestyle = "--"
 axis_label_size = 8
 
 
@@ -49,12 +52,19 @@ def main():
         SVIHierarchicalBayesianModel,
         HierarchicalBayesianModel
     ]
+    # labels = [
+    #     "Nelder-Mead Optimization",
+    #     "Maximum-Likelihood",
+    #     "Non-Hierarchical Bayesian",
+    #     "Hierarchical Bayesian (SVI)",
+    #     "Hierarchical Bayesian (NUTS)"
+    # ]
     labels = [
-        "Nelder-Mead Optimization",
-        "Maximum-Likelihood",
-        "Non-Hierarchical Bayesian",
+        "Nelder-Mead optimization",
+        "Maximum likelihood estimation",
+        "Non-hierarchical Bayesian",
         "Hierarchical Bayesian (SVI)",
-        "Hierarchical Bayesian (NUTS)"
+        "Hierarchical Bayesian"
     ]
 
     cmap = sns.color_palette("hls", 8)
@@ -69,7 +79,7 @@ def main():
 
     ax = axes[0, 0]
     for model_ind, model in enumerate(models):
-        # if model_ind == 3: continue
+        if model_ind == 3: continue
         x = n_subjects_space
         # Jitter x
         # x = [model_ind / 100 + i for i in x]
@@ -83,9 +93,9 @@ def main():
             yerr=ysem,
             marker="o",
             label=labels[model_ind],
-            linestyle="--",
-            ms=4,
-            # linewidth=1,
+            linestyle=linestyle,
+            ms=markersize,
+            linewidth=linewidth,
             color=colors[model_ind]
         )
         ax.set_xticks(x)
@@ -93,7 +103,7 @@ def main():
         ax.set_ylabel("MAE")
 
     ax.set_ylim(bottom=0.)
-    ax.set_xlabel("Number of Participants", fontsize=axis_label_size)
+    ax.set_xlabel("Number of participants", fontsize=axis_label_size)
     ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
 
     n_pulses_space = N_PULSES_SPACE
@@ -102,7 +112,7 @@ def main():
 
     ax = axes[0, 1]
     for model_ind, model in enumerate(models):
-        # if model_ind == 3: continue
+        if model_ind == 3: continue
         x = n_pulses_space
         # Jitter x
         # x = [model_ind / 100 + i for i in x]
@@ -116,9 +126,9 @@ def main():
             yerr=ysem,
             marker="o",
             label=labels[model_ind],
-            linestyle="--",
-            ms=4,
-            # linewidth=1,
+            linestyle=linestyle,
+            ms=markersize,
+            linewidth=linewidth,
             color=colors[model_ind]
         )
         ax.set_xticks(x)
@@ -127,7 +137,7 @@ def main():
         ax.set_ylabel("MAE")
 
     ax.set_ylim(bottom=0.)
-    ax.set_xlabel("Number of Intensities", fontsize=axis_label_size)
+    ax.set_xlabel("Number of intensities", fontsize=axis_label_size)
     ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
 
     for i in range(ncols):
@@ -149,30 +159,31 @@ def main():
             labelrotation=15,
             labelsize=8
         )
-        ax.grid(axis="y", linestyle="--", alpha=.25)
+        ax.grid(axis="y", linestyle=linestyle, alpha=.25)
         ax.set_ylabel("")
 
     ax = axes[0, 0]
     ax.sharey(axes[0, 1])
-    ax.set_ylabel("Mean Absolute Error on Threshold\n$($% MSO$)$", fontsize=axis_label_size)
+    ax.set_ylabel("Mean absolute error\non threshold $($% MSO$)$", fontsize=axis_label_size)
     ax.legend(loc="upper right", fontsize=6)
     handles, labels = ax.get_legend_handles_labels()
     ax.get_legend().remove()
-    ax.legend(handles[:3], labels[:3], loc="upper right", fontsize=6, frameon=True)
+    split_at = 2
+    ax.legend(handles[:split_at], labels[:split_at], loc="upper right", fontsize=6, frameon=True)
 
     ax = axes[0, 1]
     ax.tick_params(labelleft=False)
-    ax.legend(handles[3:], labels[3:], loc="upper right", fontsize=6, frameon=True)
+    ax.legend(handles[split_at:], labels[split_at:], loc="upper right", fontsize=6, frameon=True)
     ax.set_ylim(top=10.5)
 
     fig.align_xlabels()
     fig.align_ylabels()
 
-    dest = os.path.join(BUILD_DIR, "results.svg")
+    dest = os.path.join(BUILD_DIR, "subjects_and_pulses.svg")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
 
-    dest = os.path.join(BUILD_DIR, "results.png")
+    dest = os.path.join(BUILD_DIR, "subjects_and_pulses.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
 
