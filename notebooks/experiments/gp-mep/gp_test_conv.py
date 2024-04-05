@@ -1,16 +1,17 @@
 import numpy as np
-import jax.numpy as jnp
-import numpyro
-import numpyro.distributions as dist
 from numpyro.infer import MCMC, NUTS
 from hbmep.model import functional as F
 from numpyro.infer import Predictive, SVI, Trace_ELBO
 import jax
-from jax import random
 from jax import jit
 from matplotlib import pyplot as plt
-from jax.scipy.signal import convolve
 from numpyro.infer import init_to_feasible
+import jax.numpy as jnp
+import numpyro
+import numpyro.distributions as dist
+from jax import random
+jax.config.update("jax_enable_x64", True)
+
 
 def rate(mu, c_1, c_2):
     return (
@@ -27,13 +28,6 @@ def svi_step(svi_state, x, y, t):
     svi_state, loss = svi.stable_update(svi_state, x, y, t)
     return svi_state, loss
 
-
-# def return_samples(model, guide, params, x, t):
-#     predictive = Predictive(guide, params=params, num_samples=1000)
-#     posterior_samples = predictive(random.PRNGKey(1), x, t)
-#     predictive = Predictive(model, posterior_samples, params=params, num_samples=1000)
-#     samples = predictive(random.PRNGKey(1), x, t)
-#     return samples
 
 def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     x = np.linspace(0, 100, input_size).reshape(-1, 1)  # stim intensities
@@ -84,12 +78,6 @@ def kernel(X, Z, var, length, noise, jitter=1.0e-6, include_noise=True):
     return k
 
 
-import jax.numpy as jnp
-import numpyro
-import numpyro.distributions as dist
-from jax import random
-
-
 def gaussian_basis_vectorized(time_range, means, variance):
     # Expand dimensions for broadcasting
     # time_range: [T] -> [T, 1]
@@ -112,7 +100,10 @@ def model(X, t, Y=None):
     shift = numpyro.sample("shift",
                                   dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]), covariance_matrix=kernel_shift))
     # shift = numpyro.sample("shift", dist.Normal(jnp.zeros(N), 1 * jnp.ones(N)))
-    variance = numpyro.sample("variance", dist.LogNormal(0.0, 1.0))
+    # variance = numpyro.sample("variance", dist.Laplace(0.0, 100))
+    # variance = numpyro.sample("variance", dist.LogNormal(0.0, 0.2))
+    variance = numpyro.deterministic('variance', v_global)
+
     for i in range(N):
         f = jnp.exp(-0.5 * (time_range[:] - shift[i]) ** 2 / variance)
         f = f - jnp.mean(f)
@@ -146,10 +137,12 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 # variance = 0.5  # n.b. this is a global
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
 time_range = jnp.array(np.arange(-10, 10 + 1, 1))
-# time_range = jnp.array(np.arange(-5, 5 + 1, np.median(np.diff(t))))
+dt = np.median(np.diff(t))
+time_range = jnp.array(np.arange(-dt * 15, dt * 15 + dt, dt))
+v_global = 0.1
 
 framework = "SVI"
-num_samples = 1000
+num_samples = 200
 if framework == "MCMC":
     nuts_kernel = NUTS(model, init_strategy=init_to_feasible)
     mcmc = MCMC(nuts_kernel, num_samples=num_samples, num_warmup=1000)
@@ -179,8 +172,12 @@ elif framework == "SVI":
             for ix_X in range(0, len(X), 3):
                 x = X[ix_X]
                 offset = x * k
-                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / ps['variance'][:])
+                variance_local = v_global
+                # variance_local = ps['variance'][:]
+                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / variance_local)
                 f = f - jnp.mean(f)
+                if np.array(jnp.any(jnp.isinf(f))):
+                    continue
                 for ix_draw in range(0, ps['shift'].shape[0], 5):
                     # gp_bio1 = jnp.convolve(ps['gp_bio1_core'][ix_draw, :], f[:, ix_draw], mode='same')
                     # y_bio1 = offset + F.relu(x, ps['a_bio1'][ix_draw], ps['gp_bio1_core'][ix_draw], ps['L'][ix_draw]) * gp_bio1
@@ -194,7 +191,9 @@ elif framework == "SVI":
             for ix_X in range(0, len(X), 3):
                 x = X[ix_X]
                 offset = x * 1 * 0.08
-                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / ps['variance'][:])
+                variance_local = v_global
+                # variance_local = ps['variance'][:]
+                f = jnp.exp(-0.5 * ((time_range[:, None] - ps['shift'][:, ix_X]) ** 2) / variance_local)
                 f = f - jnp.mean(f)
                 for ix_draw in range(0, ps['shift'].shape[0], 5):
                     plt.plot(time_range, offset + f[:, ix_draw], color='blue')
