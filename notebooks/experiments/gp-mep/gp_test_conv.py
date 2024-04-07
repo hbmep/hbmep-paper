@@ -47,7 +47,8 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     x = np.linspace(0, 100, input_size).reshape(-1, 1)  # stim intensities
     t = np.linspace(0, 10, seq_length)  # Time points of the MEP response
 
-    a_bio1, b_bio1 = 11, 2.50
+    a_bio1, b_bio1 = 15, 0.150
+    v_bio1, ell_bio1, H_bio1 = 1, 1, 100
     a_bio2, b_bio2 = 66, 2.0
 
     b_art = 1.0
@@ -62,6 +63,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     signal_bio1 = signal1 * s1 + signal2 * s2
     signal_bio1 = signal_bio1 / np.abs(signal_bio1).max()  # just to help interpretation
     mu_bio1 = F.relu(x, a_bio1, b_bio1, 0)
+    mu_bio1 = F.rectified_logistic(x, a_bio1, b_bio1, v_bio1, 0, ell_bio1, H_bio1)
     mu_bio1 = np.array(mu_bio1)
     sigma_bio1 = 0.1
     Y_rc1 = mu_bio1 + mu_bio1 * np.random.randn(*x.shape) * sigma_bio1
@@ -161,7 +163,7 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
 time_range = jnp.array(np.arange(-10, 10 + 1, 1))
 dt = np.median(np.diff(t))
-n_bio = 2
+n_bio = 1
 time_range = jnp.array(np.arange(-dt * 15, dt * 15 + dt, dt))
 v_global = dt / 3
 
