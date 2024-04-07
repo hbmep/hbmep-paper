@@ -117,6 +117,8 @@ def model(X, t, Y=None):
         kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
         gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
                                      dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
+        gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
+        # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
 
         noise_shift = numpyro.sample(f"noise_shift{i}", dist.LogNormal(0.0, 10.0))
         length_shift = numpyro.sample(f"length_shift{i}", dist.LogNormal(0.0, 10.0))
@@ -134,8 +136,12 @@ def model(X, t, Y=None):
         # b_bio = numpyro.sample(f"b_bio{i}", truncated_laplace, sample_shape=(X.shape[1],))
 
         a_bio = numpyro.sample(f"a_bio{i}", dist.Normal(50, 100))
-        L = numpyro.sample(f"L{i}", dist.HalfNormal(1))
-        mu_bio = F.relu(X.flatten()[:, None], a_bio, b_bio, L)
+        # L = numpyro.sample(f"L{i}", dist.HalfNormal(1))
+        # mu_bio = F.relu(X.flatten()[:, None], a_bio, b_bio, 1e-6)
+        v_bio = numpyro.sample(f"v_bio{i}", dist.HalfNormal(10))
+        ell_bio = numpyro.sample(f"ell_bio{i}", dist.HalfNormal(10))
+        H_bio = numpyro.sample(f"H_bio{i}", dist.HalfNormal(10))
+        mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, v_bio, 1e-6, ell_bio, H_bio)
 
         c_1 = numpyro.sample(f'c_1_{i}', dist.HalfNormal(2.))
         c_2 = numpyro.sample(f'c_2_{i}', dist.HalfNormal(2.))
@@ -161,11 +167,10 @@ np.random.seed(0)
 Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 # variance = 0.5  # n.b. this is a global
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
-time_range = jnp.array(np.arange(-10, 10 + 1, 1))
 dt = np.median(np.diff(t))
 n_bio = 1
-time_range = jnp.array(np.arange(-dt * 15, dt * 15 + dt, dt))
-v_global = dt / 3
+time_range = jnp.array(np.arange(-dt * 20, dt * 20 + dt, dt))
+v_global = np.square(dt * 1.5)
 
 cmap = plt.cm.get_cmap('viridis', n_bio)
 colors = [cmap(i) for i in range(n_bio)]
@@ -182,14 +187,14 @@ elif framework == "SVI":
     optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
     guide = numpyro.infer.autoguide.AutoNormal(model)
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
-    n_steps = int(4e4)
+    n_steps = int(5e4)
     svi_state = svi.init(rng_key, X, t, Y)
     print('SVI starting.')
     svi_state, loss = svi_step(svi_state, X, t, Y)  # single step for JIT
     print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-        if step % 5000 == 0:
+        if step % 10000 == 0:
             predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=num_samples)
             ps = predictive(rng_key, X, t)
             # zero_row = jnp.zeros((ps['shift_core'].shape[0], 1))
