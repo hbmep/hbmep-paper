@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-import arviz as az
+#import arviz as az
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -70,19 +70,6 @@ def main():
     with open(dest, "wb") as f:
         pickle.dump((model, mcmc, posterior_samples,), f)
     logger.info(f"Saved inference data to {dest}")
-
-    # Model evaluation
-    inference_data = az.from_numpyro(mcmc)
-    logger.info("Evaluating model ...")
-    logger.info("LOO ...")
-    score = az.loo(inference_data)
-    logger.info(score)
-    logger.info("WAIC ...")
-    score = az.waic(inference_data)
-    logger.info(score)
-    vars_to_exclude = [site.mu, site.alpha, site.beta, site.obs]
-    vars_to_exclude = ["~" + var for var in vars_to_exclude]
-    logger.info(az.summary(inference_data, var_names=vars_to_exclude).to_string())
 
 
 if __name__ == "__main__":

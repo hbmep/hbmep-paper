@@ -1,7 +1,12 @@
-BUILD_DIR = "/home/vishu/hbmep-paper/reports/basic-setup"
+import os
 
-TOML_PATH = "/home/vishu/hbmep-paper/configs/basic-setup/config.toml"
-DATA_PATH = "/home/vishu/hbmep-paper/reports/basic-setup/data.csv"
+
+PAPER_DIR = "C:\\Users\\TDT\\Local\\gitprojects\\hbmep-paper"
+
+TOML_PATH = os.path.join(PAPER_DIR, "configs", "basic-setup", "config.toml")
+DATA_PATH = os.path.join(PAPER_DIR, "notebooks", "basic-setup", "sample_data.csv")
+
+BUILD_DIR = os.path.join(PAPER_DIR, "reports", "basic-setup")
 
 INFERENCE_FILE = "inference.pkl"
 NETCODE_FILE = "inference_data.nc"
