@@ -48,7 +48,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     t = np.linspace(0, 10, seq_length)  # Time points of the MEP response
 
     a_bio1, b_bio1 = 15, 0.150
-    v_bio1, ell_bio1, H_bio1 = 1, 1, 100
+    v_bio1, ell_bio1, H_bio1 = 1, 1, 50
     a_bio2, b_bio2 = 66, 2.0
 
     b_art = 1.0
@@ -114,17 +114,17 @@ def model(X, t, Y=None):
     for i in range(0, n_bio):
         # Sample core GP for each bio component
         # need to think about why you need the noise in these GPs..
-        noise_bio = numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 50.0))
-        length_bio = numpyro.sample(f"length_bio{i}", dist.LogNormal(0.0, 50.0))
+        noise_bio = numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 5.0))
+        length_bio = numpyro.sample(f"length_bio{i}", dist.LogNormal(0.0, 5.0))
         kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
         gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
                                      dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
         gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
         # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
 
-        noise_shift = numpyro.sample(f"noise_shift{i}", dist.LogNormal(0.0, 10.0))
-        length_shift = numpyro.sample(f"length_shift{i}", dist.LogNormal(0.0, 10.0))
-        variance_shift = numpyro.sample(f"variance_shift{i}", dist.LogNormal(0.0, 10.0))
+        noise_shift = numpyro.sample(f"noise_shift{i}", dist.LogNormal(0.0, 25.0))
+        length_shift = numpyro.sample(f"length_shift{i}", dist.LogNormal(0.0, 25.0))
+        variance_shift = numpyro.sample(f"variance_shift{i}", dist.LogNormal(0.0, 5.0))
         kernel_shift = kernel(X[:, 0], X[:, 0], variance_shift, length_shift, noise_shift)
         shift = numpyro.sample(f"shift{i}", dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]),
                                                                 covariance_matrix=kernel_shift))
@@ -170,7 +170,7 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 # variance = 0.5  # n.b. this is a global
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
 dt = np.median(np.diff(t))
-n_bio = 1
+n_bio = 2
 time_range = jnp.array(np.arange(-dt * 20, dt * 20 + dt, dt))
 v_global = np.square(dt * 1.5)
 
@@ -187,8 +187,10 @@ if framework == "MCMC":
 
 elif framework == "SVI":
     optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
+    # guide = numpyro.infer.autoguide.AutoMultivariateNormal(model)
+    # guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(model)
     guide = numpyro.infer.autoguide.AutoNormal(model)
-    svi = SVI(model, guide, optimizer, loss=Trace_ELBO())
+    svi = SVI(model, guide, optimizer, loss=Trace_ELBO(num_particles=12))
     n_steps = int(5e4)
     svi_state = svi.init(rng_key, X, t, Y)
     print('SVI starting.')
@@ -196,7 +198,7 @@ elif framework == "SVI":
     print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-        if step % 10000 == 0:
+        if step % 5000 == 0:
             predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=num_samples)
             ps = predictive(rng_key, X, t)
             # zero_row = jnp.zeros((ps['shift_core'].shape[0], 1))
@@ -204,12 +206,12 @@ elif framework == "SVI":
             predictive_obs = Predictive(model, ps, params=svi.get_params(svi_state), num_samples=num_samples)
             ps_obs = predictive_obs(rng_key, X, t)
             print(step)
+            for ix_bio in range(0, n_bio):
+                print(f"b{ix_bio}:{np.mean(ps[f'b_bio{ix_bio}'])}")
+                print(f"H{ix_bio}:{np.mean(ps[f'H_bio{ix_bio}'])}")
             k = 10.0
             plt.figure()
             plt.plot(t, (k * X + Y).transpose(), 'r')
-            for ix_bio in range(0, n_bio):
-                print(f'b{ix_bio}:')
-                print(np.mean(ps[f'b_bio{ix_bio}']))
             for ix_X in range(0, len(X), 3):
                 x = X[ix_X]
                 offset = x * k
@@ -220,11 +222,13 @@ elif framework == "SVI":
                 #     continue
                 for ix_bio in range(0, n_bio):
                     for ix_draw in range(0, ps[f"shift{ix_bio}"].shape[0], 5):
-                        # gp_bio1 = jnp.convolve(ps['gp_bio1_core'][ix_draw, :], f[:, ix_draw], mode='same')
-                        # y_bio1 = offset + F.relu(x, ps['a_bio1'][ix_draw], ps['gp_bio1_core'][ix_draw], ps['L'][ix_draw]) * gp_bio1
-                        # plt.plot(t, y_bio1, 'k')
                         plt.plot(t, offset + ps_obs['Y'][ix_draw, ix_X, :], color='green')
                     plt.plot(ps[f"shift{ix_bio}"].transpose() + 2, X * k, color=colors[ix_bio])
+            plt.show()
+
+            plt.figure()
+            for ix_bio in range(0, n_bio):
+                plt.plot(X, ps[f"draws_bio{ix_bio}"].squeeze().transpose(), 'o', color=colors[ix_bio])
             plt.show()
 
             plt.figure()
