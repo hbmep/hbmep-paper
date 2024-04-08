@@ -62,7 +62,6 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     s2 = s1 + (np.random.rand() - 0.5) * 2
     signal_bio1 = signal1 * s1 + signal2 * s2
     signal_bio1 = signal_bio1 / np.abs(signal_bio1).max()  # just to help interpretation
-    mu_bio1 = F.relu(x, a_bio1, b_bio1, 0)
     mu_bio1 = F.rectified_logistic(x, a_bio1, b_bio1, v_bio1, 0, ell_bio1, H_bio1)
     mu_bio1 = np.array(mu_bio1)
     sigma_bio1 = 0.1
@@ -122,9 +121,9 @@ def model(X, t, Y=None):
         gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
         # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
 
-        noise_shift = numpyro.sample(f"noise_shift{i}", dist.LogNormal(0.0, 0.1))
-        length_shift = numpyro.sample(f"length_shift{i}", dist.LogNormal(0.0, 15.0))
-        variance_shift = numpyro.sample(f"variance_shift{i}", dist.LogNormal(0.0, 2.5))
+        noise_shift = numpyro.sample(f"noise_shift{i}", dist.HalfNormal(0.01))
+        length_shift = numpyro.sample(f"length_shift{i}", dist.HalfNormal(0.1))
+        variance_shift = numpyro.sample(f"variance_shift{i}", dist.HalfNormal(5.0))
         kernel_shift = kernel(X[:, 0], X[:, 0], variance_shift, length_shift, noise_shift)
         shift = numpyro.sample(f"shift{i}", dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]),
                                                                 covariance_matrix=kernel_shift))
@@ -173,7 +172,7 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=3.0)
 # variance = 0.5  # n.b. this is a global
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
 dt = np.median(np.diff(t))
-n_bio = 2
+n_bio = 1
 time_range = jnp.array(np.arange(-dt * 20, dt * 20 + dt, dt))
 v_global = np.square(dt * 1.5)
 
