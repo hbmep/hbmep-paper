@@ -4,7 +4,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-#import arviz as az
+import arviz as az
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -13,9 +13,7 @@ from hbmep_paper.utils import setup_logging
 from models import RectifiedLogistic
 from constants import (
     TOML_PATH,
-    DATA_PATH,
     INFERENCE_FILE,
-    BUILD_DIR
 )
 
 logger = logging.getLogger(__name__)
@@ -26,7 +24,7 @@ def main():
     M = RectifiedLogistic
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = os.path.join(
-        BUILD_DIR,
+        config.BUILD_DIR,
         M.NAME
     )
     model = M(config=config)
@@ -39,7 +37,9 @@ def main():
     )
 
     # Load data
-    df = pd.read_csv(DATA_PATH)
+    # src = os.path.join(model.csv_path, "sample_data.csv")
+    src = model.csv_path
+    df = pd.read_csv(src)
 
     # Run inference
     df, encoder_dict = model.load(df=df)
