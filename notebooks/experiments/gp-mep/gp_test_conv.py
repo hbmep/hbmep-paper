@@ -109,6 +109,8 @@ def gaussian_basis_vectorized(time_range, means, variance):
 
 def model(X, t, Y=None):
     scaled_bios = jnp.zeros_like(t.shape[0])
+    b_bio_parent = numpyro.sample(f"b_bio_parent", dist.Gamma(2, 1))
+    H_bio_parent = numpyro.sample(f"H_bio_parent", dist.Gamma(2, 0.25))
     for i in range(0, n_bio):
         # Sample core GP for each bio component
         # need to think about why you need the noise in these GPs..
@@ -131,7 +133,7 @@ def model(X, t, Y=None):
         gp_bio = convolve_vectorized(gp_bio_core, filter_stack)
 
         # Scale each gp_bio component
-        b_bio = numpyro.sample(f"b_bio{i}", dist.Exponential(rate=5.0))
+        b_bio = numpyro.sample(f"b_bio{i}", dist.Gamma(0.25, b_bio_parent))
         # truncated_laplace = dist.LeftTruncatedDistribution(dist.Laplace(loc=0.0, scale=5.0), low=0.0)
         # b_bio = numpyro.sample(f"b_bio{i}", truncated_laplace, sample_shape=(X.shape[1],))
 
@@ -140,7 +142,7 @@ def model(X, t, Y=None):
         # mu_bio = F.relu(X.flatten()[:, None], a_bio, b_bio, 1e-6)
         v_bio = numpyro.sample(f"v_bio{i}", dist.HalfNormal(10))
         ell_bio = numpyro.sample(f"ell_bio{i}", dist.HalfNormal(10))
-        H_bio = numpyro.sample(f"H_bio{i}", dist.HalfNormal(10))
+        H_bio = numpyro.sample(f"H_bio{i}", dist.Gamma(0.25, H_bio_parent))
         mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, v_bio, 1e-6, ell_bio, H_bio)
 
         c_1 = numpyro.sample(f'c_1_{i}', dist.HalfNormal(2.))
