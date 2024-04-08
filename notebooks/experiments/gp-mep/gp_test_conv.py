@@ -114,17 +114,17 @@ def model(X, t, Y=None):
     for i in range(0, n_bio):
         # Sample core GP for each bio component
         # need to think about why you need the noise in these GPs..
-        noise_bio = numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 5.0))
-        length_bio = numpyro.sample(f"length_bio{i}", dist.LogNormal(0.0, 5.0))
+        noise_bio = numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 50.0))
+        length_bio = numpyro.sample(f"length_bio{i}", dist.LogNormal(0.0, 25.0))
         kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
         gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
                                      dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
         gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
         # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
 
-        noise_shift = numpyro.sample(f"noise_shift{i}", dist.LogNormal(0.0, 25.0))
-        length_shift = numpyro.sample(f"length_shift{i}", dist.LogNormal(0.0, 25.0))
-        variance_shift = numpyro.sample(f"variance_shift{i}", dist.LogNormal(0.0, 5.0))
+        noise_shift = numpyro.sample(f"noise_shift{i}", dist.LogNormal(0.0, 0.1))
+        length_shift = numpyro.sample(f"length_shift{i}", dist.LogNormal(0.0, 15.0))
+        variance_shift = numpyro.sample(f"variance_shift{i}", dist.LogNormal(0.0, 2.5))
         kernel_shift = kernel(X[:, 0], X[:, 0], variance_shift, length_shift, noise_shift)
         shift = numpyro.sample(f"shift{i}", dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]),
                                                                 covariance_matrix=kernel_shift))
@@ -133,6 +133,7 @@ def model(X, t, Y=None):
         gp_bio = convolve_vectorized(gp_bio_core, filter_stack)
 
         # Scale each gp_bio component
+        # b_bio = numpyro.sample(f"b_bio{i}", dist.HalfNormal(5))
         b_bio = numpyro.sample(f"b_bio{i}", dist.Gamma(0.25, b_bio_parent))
         # truncated_laplace = dist.LeftTruncatedDistribution(dist.Laplace(loc=0.0, scale=5.0), low=0.0)
         # b_bio = numpyro.sample(f"b_bio{i}", truncated_laplace, sample_shape=(X.shape[1],))
@@ -143,8 +144,10 @@ def model(X, t, Y=None):
         v_bio = numpyro.sample(f"v_bio{i}", dist.HalfNormal(10))
         ell_bio = numpyro.sample(f"ell_bio{i}", dist.HalfNormal(10))
         H_bio = numpyro.sample(f"H_bio{i}", dist.Gamma(0.25, H_bio_parent))
-        mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, v_bio, 1e-6, ell_bio, H_bio)
+        mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, v_bio, 1e-9, ell_bio, H_bio)
 
+        # I am not sure if this noise model still makes sense when L is force to 0
+        # it may be what is allowing the draws to break the recruitment curve
         c_1 = numpyro.sample(f'c_1_{i}', dist.HalfNormal(2.))
         c_2 = numpyro.sample(f'c_2_{i}', dist.HalfNormal(2.))
         beta = numpyro.deterministic(f'beta_{i}', rate(mu_bio, c_1, c_2))
@@ -188,8 +191,8 @@ if framework == "MCMC":
 elif framework == "SVI":
     optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
     # guide = numpyro.infer.autoguide.AutoMultivariateNormal(model)
-    # guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(model)
-    guide = numpyro.infer.autoguide.AutoNormal(model)
+    guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(model)
+    # guide = numpyro.infer.autoguide.AutoNormal(model)
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO(num_particles=12))
     n_steps = int(5e4)
     svi_state = svi.init(rng_key, X, t, Y)
