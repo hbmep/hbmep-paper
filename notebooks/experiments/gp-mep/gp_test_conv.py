@@ -231,18 +231,18 @@ if framework == "MCMC":
 
 elif framework == "SVI":
     optimizer = numpyro.optim.ClippedAdam(step_size=0.01)
-    guide = numpyro.infer.autoguide.AutoMultivariateNormal(model)
-    # guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(model)
+    # guide = numpyro.infer.autoguide.AutoMultivariateNormal(model)
+    guide = numpyro.infer.autoguide.AutoLowRankMultivariateNormal(model)
     # guide = numpyro.infer.autoguide.AutoNormal(model)
     svi = SVI(model, guide, optimizer, loss=Trace_ELBO(num_particles=12))
-    n_steps = int(1e5)
+    n_steps = int(2e5)
     svi_state = svi.init(rng_key, X, t, Y)
     print('SVI starting.')
     svi_state, loss = svi_step(svi_state, X, t, Y)  # single step for JIT
     print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-        if ((step % int(10e4) == 0) or (step == 5)) and not (step == 0):
+        if ((step % int(10e3) == 0) or (step == 5)) and not (step == 0):
             predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=num_samples)
             ps = predictive(rng_key, X, t)
             # zero_row = jnp.zeros((ps['shift_core'].shape[0], 1))
