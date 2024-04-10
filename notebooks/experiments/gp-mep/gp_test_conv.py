@@ -14,6 +14,12 @@ from jax import vmap
 jax.config.update("jax_enable_x64", True)
 
 
+@jit
+def apply_svd(X):
+    U, _, _ = jnp.linalg.svd(X, full_matrices=False)
+    return U
+
+
 def rate(mu, c_1, c_2):
     return (
             c_1 + jnp.true_divide(c_2, mu)
@@ -139,6 +145,7 @@ def model(X, t, Y=None):
     # H_bio_parent = numpyro.sample(f"H_bio_parent", dist.Gamma(2, 5.0))
     b_bio_parent = numpyro.sample(f"b_bio_parent", dist.HalfNormal(2.0))
     H_bio_parent = numpyro.sample(f"H_bio_parent", dist.HalfNormal(10.0))
+    gp_bio_stacked = jnp.zeros((t.shape[0], n_bio))
     for i in range(0, n_bio):
         # Sample core GP for each bio component
         # need to think about why you need the noise in these GPs..
@@ -147,9 +154,25 @@ def model(X, t, Y=None):
         kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
         gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
                                      dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
-        gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
+        gp_bio_stacked = gp_bio_stacked.at[:, i].set(gp_bio_core)
+        # gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
         # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
 
+    str_orth = "none"
+    if str_orth == "svd":
+        gp_bio_stacked_ = apply_svd(gp_bio_stacked)
+    elif str_orth == "cost":
+        I = np.eye(n_bio)  # Identity matrix of size N
+        G = np.dot(gp_bio_stacked.T, gp_bio_stacked)  # Gram matrix
+        penalty = np.linalg.norm(G - I, 'fro') ** 2
+        lambda_ = 1.0  # This is a hyperparameter to be tuned
+        numpyro.factor("orthogonality_penalty", -lambda_ * penalty)
+        gp_bio_stacked_ = gp_bio_stacked
+    elif str_orth == "none":
+        gp_bio_stacked_ = gp_bio_stacked
+
+    for i in range(0, n_bio):
+        gp_bio_core = gp_bio_stacked_[:, i]
         use_gp_shift = True
         if use_gp_shift:
             noise_shift = 1e-9  # numpyro.sample(f"noise_shift{i}", dist.HalfNormal(1e-6))
