@@ -6,6 +6,7 @@ import jax
 from jax import jit
 from matplotlib import pyplot as plt
 from numpyro.infer import init_to_feasible
+from numpyro import handlers
 import jax.numpy as jnp
 import numpyro
 import numpyro.distributions as dist
@@ -158,14 +159,15 @@ def model(X, t, Y=None):
         # gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
         # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
 
-    str_orth = "none"
+    ## TODO: consider looking at the impact of the mean subtraction on the filtering operation
+    str_orth = "cost"
     if str_orth == "svd":
         gp_bio_stacked_ = apply_svd(gp_bio_stacked)
     elif str_orth == "cost":
-        I = np.eye(n_bio)  # Identity matrix of size N
-        G = np.dot(gp_bio_stacked.T, gp_bio_stacked)  # Gram matrix
-        penalty = np.linalg.norm(G - I, 'fro') ** 2
-        lambda_ = 1.0  # This is a hyperparameter to be tuned
+        I = jnp.eye(n_bio)  # Identity matrix of size N
+        G = jnp.dot(gp_bio_stacked.T, gp_bio_stacked)  # Gram matrix
+        penalty = jnp.linalg.norm(G - I, 'fro') ** 2
+        lambda_ = 5.0  # This is a hyperparameter to be tuned
         numpyro.factor("orthogonality_penalty", -lambda_ * penalty)
         gp_bio_stacked_ = gp_bio_stacked
     elif str_orth == "none":
@@ -230,7 +232,7 @@ def model(X, t, Y=None):
 
 rng_key = random.PRNGKey(0)
 N = 32  # Number of stimulation trials
-T = 50  # Number of time points in the MEP time series
+T = 100  # Number of time points in the MEP time series
 
 np.random.seed(0)
 Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=0.1)
@@ -273,7 +275,8 @@ elif framework == "SVI":
             predictive_obs = Predictive(model, ps, params=svi.get_params(svi_state), num_samples=num_samples)
             ps_obs = predictive_obs(rng_key, X, t)
             k = 1.0
-            print(step)
+            print(step, loss)
+            print(f"penalty: {ps_obs['orthogonality_penalty']}")
             for ix_bio in range(0, n_bio):
                 print(f"b{ix_bio}:{np.mean(ps[f'b_bio{ix_bio}'])}")
                 print(f"H{ix_bio}:{np.mean(ps[f'H_bio{ix_bio}'])}")
@@ -289,9 +292,22 @@ elif framework == "SVI":
                 variance_local = v_global
                 # if np.array(jnp.any(jnp.isinf(f))):
                 #     continue
+                # for ix_bio in range(0, n_bio):
+                for ix_draw in range(0, ps[f"shift{0}"].shape[0], 5):
+                    plt.plot(t, offset + ps_obs['Y'][ix_draw, ix_X, :], color='green')
+            plt.show()
+
+            plt.figure()
+            plt.plot(t, (k * X + Y).transpose(), 'r')
+            for ix_X in range(0, len(X), 3):
+                x = X[ix_X]
+                offset = x * k
+                variance_local = v_global
+                # if np.array(jnp.any(jnp.isinf(f))):
+                #     continue
                 for ix_bio in range(0, n_bio):
                     for ix_draw in range(0, ps[f"shift{ix_bio}"].shape[0], 5):
-                        plt.plot(t, offset + ps_obs['Y'][ix_draw, ix_X, :], color='green')
+                        plt.plot(t, offset + ps_obs[f"scaled_bio{ix_bio}"][ix_draw, ix_X, :], color=colors[ix_bio])
             plt.show()
 
             plt.figure()
