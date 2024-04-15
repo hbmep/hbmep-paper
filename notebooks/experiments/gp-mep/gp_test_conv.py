@@ -98,20 +98,22 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     Y_bio2 = signal_bio2 * Y_rc2
     Y_art = signal_art * Y_rcart
 
-    for ix in range(input_size):
-        d_max = 6
-        sat = 80.
-        if x[ix][0] > sat:
-            d = int(d_max)
-        else:
-            d = int(np.round((x[ix][0]/sat) * d_max))
-        Y_rolled_row = np.roll(Y_bio1[ix, :], -d, axis=0)
-        # if np.random.rand() > 0.5:
-        #     Y_rolled_row = np.roll(Y_rolled_row, -np.random.randint(10), axis=0)
-        # if np.random.rand() > 0.5:
-        #     Y_rolled_row = - Y_rolled_row
+    shift_bio1 = True
+    if shift_bio1:
+        for ix in range(input_size):
+            d_max = 6
+            sat = 80.
+            if x[ix][0] > sat:
+                d = int(d_max)
+            else:
+                d = int(np.round((x[ix][0]/sat) * d_max))
+            Y_rolled_row = np.roll(Y_bio1[ix, :], -d, axis=0)
+            # if np.random.rand() > 0.5:
+            #     Y_rolled_row = np.roll(Y_rolled_row, -np.random.randint(10), axis=0)
+            # if np.random.rand() > 0.5:
+            #     Y_rolled_row = - Y_rolled_row
 
-        Y_bio1[ix, :] = Y_rolled_row
+            Y_bio1[ix, :] = Y_rolled_row
 
     Y_noiseless = Y_bio1 + Y_bio2 # + Y_art
     plt.figure()
@@ -175,20 +177,22 @@ def model(X, t, Y=None):
 
     for i in range(0, n_bio):
         gp_bio_core = gp_bio_stacked_[:, i]
-        use_gp_shift = True
-        if use_gp_shift:
+        shift_type = 'none'
+        if shift_type == 'gp':
             noise_shift = 1e-9  # numpyro.sample(f"noise_shift{i}", dist.HalfNormal(1e-6))
             length_shift = numpyro.sample(f"length_shift{i}", dist.HalfNormal(1.0))
             variance_shift = numpyro.sample(f"variance_shift{i}", dist.HalfNormal(1.0))
             kernel_shift = kernel(X[:, 0], X[:, 0], variance_shift, length_shift, noise_shift)
             shift = numpyro.sample(f"shift{i}", dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]),
-                                                                covariance_matrix=kernel_shift))
-        else:
+                                                                        covariance_matrix=kernel_shift))
+        elif shift_type == "relu":
             a_shift = numpyro.sample(f"a_shift{i}", dist.TruncatedNormal(50, 100, low=0))
             b_shift = numpyro.sample(f"b_shift{i}", dist.HalfNormal(1))
             sigma_shift = numpyro.sample(f"sigma_shift{i}", dist.HalfNormal(1))
             mu_shift = F.relu(X.flatten(), a_shift, b_shift, 1e-9)
             shift = numpyro.sample(f"shift{i}", dist.Normal(mu_shift, sigma_shift * jnp.ones(X.shape[0])))
+        elif shift_type == "none":
+            shift = numpyro.deterministic(f"shift{i}", jnp.zeros(X.shape[0]))
 
         variance = numpyro.deterministic(f'variance{i}', v_global)
         filter_stack = generate_filter_stack(time_range[:, None], shift, variance)
@@ -204,16 +208,16 @@ def model(X, t, Y=None):
             H_bio = numpyro.sample(f"H_bio{i}", dist.HalfNormal(H_bio_parent))
 
         a_bio = numpyro.sample(f"a_bio{i}", dist.TruncatedNormal(50, 100, low=0))
-        v_bio = numpyro.sample(f"v_bio{i}", dist.HalfNormal(10))
-        ell_bio = numpyro.sample(f"ell_bio{i}", dist.HalfNormal(10))
+        v_bio = numpyro.sample(f"v_bio{i}", dist.HalfNormal(2))
+        ell_bio = numpyro.sample(f"ell_bio{i}", dist.HalfNormal(5))
         mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, v_bio, 1e-9, ell_bio, H_bio)
 
         # I am not sure if this noise model still makes sense when L is force to 0
         # it may be what is allowing the draws to break the recruitment curve
-        c_1 = numpyro.sample(f'c_1_{i}', dist.HalfNormal(2.))
-        use_gamma_obs = True
+        c_1 = numpyro.sample(f'c_1_{i}', dist.HalfNormal(1e-6))
+        use_gamma_obs = False
         if use_gamma_obs:
-            c_2 = numpyro.sample(f'c_2_{i}', dist.HalfNormal(1.))
+            c_2 = numpyro.sample(f'c_2_{i}', dist.HalfNormal(2))
             beta = numpyro.deterministic(f'beta_{i}', rate(mu_bio, c_1, c_2))
             alpha = numpyro.deterministic(f'alpha_{i}', concentration(mu_bio, beta))
             draws_bio = numpyro.sample(f'draws_bio{i}', dist.Gamma(concentration=alpha, rate=beta))
@@ -231,7 +235,7 @@ def model(X, t, Y=None):
     numpyro.sample("Y", dist.Normal(scaled_response, obs_noise), obs=Y)
 
 rng_key = random.PRNGKey(0)
-N = 32  # Number of stimulation trials
+N = 64  # Number of stimulation trials
 T = 100  # Number of time points in the MEP time series
 
 np.random.seed(0)
@@ -284,7 +288,8 @@ elif framework == "SVI":
             for ix_X in range(0, len(X), 3):
                 x = X[ix_X]
                 for ix_bio in range(0, n_bio):
-                    plt.plot(ps[f"shift{ix_bio}"].transpose() + 2, X * k, color=colors[ix_bio])
+                    if "shift0" in ps.keys():
+                        plt.plot(ps[f"shift{ix_bio}"].transpose() + 2, X * k, color=colors[ix_bio])
             plt.plot(t, (k * X + Y).transpose(), 'r')
             for ix_X in range(0, len(X), 3):
                 x = X[ix_X]
@@ -293,7 +298,7 @@ elif framework == "SVI":
                 # if np.array(jnp.any(jnp.isinf(f))):
                 #     continue
                 # for ix_bio in range(0, n_bio):
-                for ix_draw in range(0, ps[f"shift{0}"].shape[0], 5):
+                for ix_draw in range(0, num_samples, 5):
                     plt.plot(t, offset + ps_obs['Y'][ix_draw, ix_X, :], color='green')
             plt.show()
 
@@ -306,7 +311,7 @@ elif framework == "SVI":
                 # if np.array(jnp.any(jnp.isinf(f))):
                 #     continue
                 for ix_bio in range(0, n_bio):
-                    for ix_draw in range(0, ps[f"shift{ix_bio}"].shape[0], 5):
+                    for ix_draw in range(0, num_samples, 5):
                         plt.plot(t, offset + ps_obs[f"scaled_bio{ix_bio}"][ix_draw, ix_X, :], color=colors[ix_bio])
             plt.show()
 
@@ -322,9 +327,10 @@ elif framework == "SVI":
                 variance_local = v_global
                 # variance_local = ps['variance'][:]
                 for ix_bio in range(0, n_bio):
-                    filter_stack = generate_filter_stack(time_range[:, None], ps[f"shift{ix_bio}"][:, ix_X], variance_local)
-                    for ix_draw in range(0, ps[f"shift{ix_bio}"].shape[0], 5):
-                        plt.plot(time_range, offset + filter_stack[ix_draw, :], color=colors[ix_bio])
+                    if "shift0" in ps.keys():
+                        filter_stack = generate_filter_stack(time_range[:, None], ps[f"shift{ix_bio}"][:, ix_X], variance_local)
+                        for ix_draw in range(0, num_samples, 5):
+                            plt.plot(time_range, offset + filter_stack[ix_draw, :], color=colors[ix_bio])
             plt.show()
             print(1)
     print('SVI done.')
