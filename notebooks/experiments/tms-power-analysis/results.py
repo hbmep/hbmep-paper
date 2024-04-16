@@ -39,6 +39,8 @@ def main(build_dir, draws_space):
     mae = []
     mse = []
     prob = []
+    norm = []
+
     for n_subjects in n_subjects_space:
         for draw in draws_space:
             for M in models:
@@ -113,6 +115,10 @@ def main(build_dir, draws_space):
                             pr = stats.wilcoxon(x=a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0], alternative="less").pvalue
                             # pr = stats.ttest_1samp(a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0], alternative="less", popmean=0).pvalue
 
+                        if n_subjects > 2:
+                            norm_test = stats.shapiro(a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0])
+                            norm.append(norm_test.pvalue)
+
                         a_true = a_true.reshape(-1,)
                         a_pred = a_pred_map.reshape(-1,)
 
@@ -128,10 +134,12 @@ def main(build_dir, draws_space):
     mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
     mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
     prob = np.array(prob).reshape(len(n_subjects_space) - 1, len(draws_space), len(models))
+    norm = np.array(norm).reshape(len(n_subjects_space) - 2, len(draws_space), len(models) - 1)
 
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"Prob: {prob.shape}")
+    logger.info(f"Norm: {norm.shape}")
 
     dest = os.path.join(build_dir, "mae.npy")
     np.save(dest, mae)
@@ -144,6 +152,13 @@ def main(build_dir, draws_space):
     dest = os.path.join(build_dir, "prob.npy")
     np.save(dest, prob)
     logger.info(f"Saved to {dest}")
+
+    dest = os.path.join(build_dir, "norm.npy")
+    np.save(dest, norm)
+    logger.info(f"Saved to {dest}")
+
+    not_normal = (norm < .05)[-1, :, 0].mean()
+    logger.info(f"{not_normal * 100}% of the draws (threshold differences estimated by Non hier. Bayes model) are not normal.")
 
     return
 
