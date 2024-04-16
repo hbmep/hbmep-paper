@@ -148,22 +148,55 @@ def model(X, t, Y=None):
     # H_bio_parent = numpyro.sample(f"H_bio_parent", dist.Gamma(2, 5.0))
     b_bio_parent = numpyro.sample(f"b_bio_parent", dist.HalfNormal(2.0))
     H_bio_parent = numpyro.sample(f"H_bio_parent", dist.HalfNormal(10.0))
-    gp_bio_stacked = jnp.zeros((t.shape[0], n_bio))
-    for i in range(0, n_bio):
-        # Sample core GP for each bio component
-        # need to think about why you need the noise in these GPs..
-        noise_bio = 1e-9  # numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 1e-6))
-        length_bio = numpyro.sample(f"length_bio{i}", dist.HalfNormal(1.0))
-        kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
-        gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
-                                     dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
-        gp_bio_stacked = gp_bio_stacked.at[:, i].set(gp_bio_core)
-        # gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
-        # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
+    str_mep_shape = 'basis1'
+    if str_mep_shape == "gp":
+        gp_bio_stacked = jnp.zeros((t.shape[0], n_bio))
+        for i in range(0, n_bio):
+            # Sample core GP for each bio component
+            # need to think about why you need the noise in these GPs ...
+            noise_bio = 1e-9  # numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 1e-6))
+            length_bio = numpyro.sample(f"length_bio{i}", dist.HalfNormal(1.0))
+            kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
+            gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
+                                         dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
+            gp_bio_stacked = gp_bio_stacked.at[:, i].set(gp_bio_core)
+            # gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
+            # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
+    elif str_mep_shape == "basis1":
+        basis_functions = gaussian_basis_vectorized(t, basis_means, basis_variance)
+        gp_bio_stacked = jnp.zeros((t.shape[0], n_bio))
+        weights = numpyro.sample(f"weights",
+                                 dist.Laplace(jnp.zeros((len(basis_means), n_bio)), jnp.ones((len(basis_means), n_bio))))
+        I = jnp.eye(n_bio)  # Identity matrix of size N
+        G = jnp.dot(weights.T, weights)  # Gram matrix
+        penalty = jnp.linalg.norm(G - I, 'fro') ** 2
+        lambda_ = 5.0  # This is a hyperparameter to be tuned
+        numpyro.factor("orthogonality_penalty", -lambda_ * penalty)
+
+        for i in range(0, n_bio):
+            combined_basis = jnp.dot(basis_functions, weights[:, i])
+            gp_bio_stacked = gp_bio_stacked.at[:, i].set(combined_basis)
+
+    elif str_mep_shape == "basis2":
+        # this is an old version - that I should maybe revisit. Each MEP is a draw from a MV gaussian.
+        # it doesn't work currently with subsequent code because gp_bio_stacked is of dimensions time x n_bio and doesn't
+        # have an intensity index
+        basis_functions = gaussian_basis_vectorized(t, basis_means, basis_variance)
+        gp_bio_stacked = jnp.zeros((t.shape[0], n_bio))
+        for i in range(0, n_bio):
+            weights = numpyro.sample(f"weights{i}", dist.Laplace(jnp.zeros(len(basis_means)), jnp.ones(len(basis_means))))
+            combined_basis = jnp.dot(basis_functions, weights)
+            cov = jnp.outer(combined_basis, combined_basis)
+            diag_indices = jnp.diag_indices_from(cov)
+            cov_with_constant = cov.at[diag_indices].add(1e-6)
+            for ix in range(N):
+                numpyro.sample(f"gp_bio1_{ix}", dist.MultivariateNormal(jnp.zeros(len(t)),
+                                                                                               covariance_matrix=cov_with_constant))
 
     ## TODO: consider looking at the impact of the mean subtraction on the filtering operation
-    str_orth = "cost"
+    str_orth = "none"
     if str_orth == "svd":
+        # this really does not seem to work
         gp_bio_stacked_ = apply_svd(gp_bio_stacked)
     elif str_orth == "cost":
         I = jnp.eye(n_bio)  # Identity matrix of size N
@@ -246,6 +279,8 @@ dt = np.median(np.diff(t))
 n_bio = 2
 time_range = jnp.array(np.arange(-dt * 20, dt * 20 + dt, dt))
 v_global = np.square(dt * 1.5)
+basis_variance = 0.2  # n.b. this is a global
+basis_means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(basis_variance))))  # n.b. this is a global
 
 cmap = plt.cm.get_cmap('viridis', n_bio)
 colors = [cmap(i) for i in range(n_bio)]
@@ -280,7 +315,7 @@ elif framework == "SVI":
             ps_obs = predictive_obs(rng_key, X, t)
             k = 1.0
             print(step, loss)
-            print(f"penalty: {ps_obs['orthogonality_penalty']}")
+            # print(f"penalty: {ps_obs['orthogonality_penalty']}")
             for ix_bio in range(0, n_bio):
                 print(f"b{ix_bio}:{np.mean(ps[f'b_bio{ix_bio}'])}")
                 print(f"H{ix_bio}:{np.mean(ps[f'H_bio{ix_bio}'])}")
