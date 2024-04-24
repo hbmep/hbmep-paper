@@ -167,9 +167,8 @@ def main():
                 del a_true, a_pred
                 gc.collect()
 
-            # Non-hierarchical methods like Non Hierarchical Bayesian Model and
-            # Maximum Likelihood Model need to be run separately on individual subjects
-            # otherwise, there are convergence issues when the number of subjects is large
+            # Non-hierarchical models: non-hierarchical Bayesian
+            # and Maximum Likelihood
             case  "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
                 for subject in range(n_subjects):
                     sub_dir = f"subject{subject}"
@@ -239,7 +238,7 @@ def main():
                     gc.collect()
 
             # This is also a non-hierarchical method. Internally, it will
-            # run separately on individual subjects
+            # run separately on individual recruitment curves
             case "nelder_mead_optimization":
                 # Load data
                 ind = (
@@ -308,15 +307,15 @@ def main():
 
 
     # Experiment space
-    draws_space = range(1370, 2000)
+    draws_space = range(2000)
     n_pulses_space = N_PULSES_SPACE
     n_jobs = -1
 
     models = [
         HierarchicalBayesianModel,
-        # NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel,
-        # NelderMeadOptimization,
+        NonHierarchicalBayesianModel,
+        MaximumLikelihoodModel,
+        NelderMeadOptimization,
         SVIHierarchicalBayesianModel
     ]
 

@@ -7,7 +7,7 @@ DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2023-11-28.csv"
 TOTAL_SUBJECTS = 16
 
 TOTAL_PULSES = 64
-N_PULSES_SPACE = [32, 40, 48, 56, 64]
+N_PULSES_SPACE = [16, 24, 32, 40, 48, 56, 64]
 
 TOTAL_REPS = 8
 N_REPS_PER_PULSE_SPACE = [1, 2, 4, 8]

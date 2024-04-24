@@ -33,7 +33,6 @@ from constants import (
 
 logger = logging.getLogger(__name__)
 
-
 SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR, SIMULATION_DF)
 SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR, INFERENCE_FILE)
 BUILD_DIR = NUMBER_OF_SUJECTS_DIR
@@ -168,9 +167,8 @@ def main():
                 del a_true, a_pred
                 gc.collect()
 
-            # Non-hierarchical methods like Non Hierarchical Bayesian Model and
-            # Maximum Likelihood Model need to be run separately on individual subjects
-            # otherwise, there are convergence issues when the number of subjects is large
+            # Non-hierarchical models: non-hierarchical Bayesian
+            # and Maximum Likelihood
             case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
                 for subject in range(n_subjects):
                     sub_dir = f"subject{subject}"
@@ -240,7 +238,7 @@ def main():
                     gc.collect()
 
             # This is also a non-hierarchical method. Internally, it will
-            # run separately on individual subjects
+            # run separately on individual recruitment curves
             case "nelder_mead_optimization":
                 # Load data
                 ind = (
@@ -309,26 +307,29 @@ def main():
 
 
     # Experiment space
-    draws_space = range(2000, 2500)
+    draws_space = range(2000)
     n_jobs = -1
 
     ## Uncomment the following to run
     ## experiment for different models
 
-    # Run for Hierarchical Bayesian Model /
-    # SVI Hierarchical Bayesian Model
-    # models = [HierarchicalBayesianModel, SVIHierarchicalBayesianModel]
+    # Run hierarchical models
+    n_subjects_space = N_SUBJECTS_SPACE
+    models = [
+        HierarchicalBayesianModel,
+        SVIHierarchicalBayesianModel
+    ]
 
-    # Run for Non-hierarchical Bayesian Model
-    n_subjects_space = [16]
-    models = [NonHierarchicalBayesianModel, MaximumLikelihoodModel]
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     MaximumLikelihoodModel
+    # ]
 
-    # # Run for Maximum Likelihood Model
-    # n_subjects_space = [16]
-    # models = [MaximumLikelihoodModel]
-
-    # # Run for Nelder-Mead Optimization
-    # n_subjects_space = [16]
+    # # Run non-hierarchical Nelder-Mead optimization
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [NelderMeadOptimization]
 
     with Parallel(n_jobs=n_jobs) as parallel:
@@ -340,11 +341,6 @@ def main():
             for n_subjects in n_subjects_space
             for M in models
         )
-
-    # Model = SVIHierarchicalBayesianModel
-    # draw = 228
-    # n_subjects = 16
-    # run_experiment(N_REPS, N_PULSES, n_subjects, draw, Model)
 
 
 if __name__ == "__main__":
