@@ -15,7 +15,9 @@ from hbmep_paper.utils import setup_logging
 from models import (
     Simulator,
     HierarchicalBayesianModel,
-    NonHierarchicalBayesianModel
+    NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization
 )
 from constants import (
     TOML_PATH,
@@ -145,10 +147,9 @@ def main(simulation_data_dir, build_dir):
                 del a_random_mean, a_random_scale
                 gc.collect()
 
-            # Non-hierarchical methods like Non Hierarchical Bayesian Model and
-            # Maximum Likelihood Model need to be run separately on individual subjects
-            # otherwise, there are convergence issues when the number of subjects is large
-            case "non_hierarchical_bayesian_model":
+            # Non-hierarchical models: non-hierarchical Bayesian
+            # and Maximum Likelihood
+            case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
                 for subject in range(n_subjects):
                     for intervention in range(2):
                         sub_dir = f"subject{subject}"
@@ -221,6 +222,69 @@ def main(simulation_data_dir, build_dir):
                         del a_true, a_pred
                         gc.collect()
 
+            # This is also a non-hierarchical method. Internally, it will
+            # run separately on individual recruitment curves
+            case "nelder_mead_optimization":
+                # Load data
+                ind = (
+                    (simulation_df[simulator.features[0]] == subject) &
+                    (simulation_df[simulator.features[1]] == intervention) &
+                    (simulation_df[REP] < n_reps)
+                )
+                df = simulation_df[ind].reset_index(drop=True).copy()
+                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
+                ind = df[simulator.response[0]] > 0
+                df = df[ind].reset_index(drop=True).copy()
+
+                # Build model
+                config = Config(toml_path=TOML_PATH)
+                config.BUILD_DIR = os.path.join(
+                    build_dir,
+                    draw_dir,
+                    n_subjects_dir,
+                    n_reps_dir,
+                    n_pulses_dir,
+                    M.NAME
+                )
+                model = M(config=config)
+
+                # Set up logging
+                model._make_dir(model.build_dir)
+                setup_logging(
+                    dir=model.build_dir,
+                    fname="logs"
+                )
+
+                # Run inference
+                df, encoder_dict = model.load(df=df)
+                params = model.run_inference(df=df)
+
+                # Predictions and recruitment curves
+                prediction_df = model.make_prediction_dataset(df=df)
+                prediction_df = model.predict(df=prediction_df, params=params)
+                model.render_recruitment_curves(
+                    df=df,
+                    encoder_dict=encoder_dict,
+                    params=params,
+                    prediction_df=prediction_df,
+                )
+
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = params[site.a]
+                assert a_pred.shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
+                model, params = None, None
+                a_true, a_pred = None, None
+                del config, df, prediction_df, encoder_dict, _
+                del model, params
+                del a_true, a_pred
+                gc.collect()
+
             case _:
                 raise ValueError(f"Invalid model {M.NAME}.")
 
@@ -228,19 +292,29 @@ def main(simulation_data_dir, build_dir):
 
 
     # Experiment space
-    draws_space = range(860, 2000)
-    n_subjects_space = N_SUBJECTS_SPACE
+    draws_space = range(2000)
     n_jobs = -1
 
     ## Uncomment the following to run
     ## experiment for different models
 
-    # # Run for Hierarchical Bayesian Model /
-    # models = [HierarchicalBayesianModel]
+    # # Run hierarchical models
+    # n_subjects_space = N_SUBJECTS_SPACE
+    # models = [
+    #     HierarchicalBayesianModel
+    # ]
 
-    # Run for Non-hierarchical Bayesian Model
-    n_subjects_space = [24]
-    models = [NonHierarchicalBayesianModel]
+    # Run non-hierarchical models including
+    # non-hierarchical Bayesian and Maximum Likelihood
+    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    models = [
+        NonHierarchicalBayesianModel,
+        MaximumLikelihoodModel
+    ]
+
+    # # Run non-hierarchical Nelder-Mead optimization
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [NelderMeadOptimization]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
