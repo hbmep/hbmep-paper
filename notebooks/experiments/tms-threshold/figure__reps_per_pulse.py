@@ -33,7 +33,7 @@ markersize = 3
 linewidth = 1
 linestyle = "--"
 axis_label_size = 8
-colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.4, 1, 2))
+colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.2, 1, 3))
 colors = ["k"] + colors[::-1].tolist()
 
 # fill_colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.25, 1, 4))[::-1]
@@ -45,13 +45,13 @@ scatter_edgecolor = (255 / max_color, 255 / max_color, 255 / max_color, 100 / ma
 
 def main():
     # n_reps_space = N_REPS_PER_PULSE_SPACE
-    n_reps_space = [1, 4, 8]
-    n_pulses_space = N_PULSES_SPACE
+    n_reps_space = [1, 2, 4, 8]
+    n_pulses_space = N_PULSES_SPACE[2:]
     M = HierarchicalBayesianModel
 
     src = os.path.join(NUMBER_OF_REPS_PER_PULSE_DIR, "mae.npy")
     mae = np.load(src)
-    mae = mae[[0, 2, 3], ...]
+    # mae = mae[[0, 2, 3], ...]
 
     logger.info(f"mae: {mae.shape}")
 
@@ -102,7 +102,7 @@ def main():
         obs_hpdis[n_reps] = hpdi(ppds[n_reps][site.obs][:, :, 0], 0.95)
         logger.info(obs_hpdis[n_reps].shape)
 
-    fig = plt.figure(figsize=(4.566, 2.65))
+    fig = plt.figure(figsize=(4.566, 3.))
     # fig = plt.figure(figsize=(5.5, 4.))
     subfigs = fig.subfigures(1, 2)
 
@@ -122,6 +122,8 @@ def main():
         y = mae[n_reps_ind, ...]
         yme = y.mean(axis=-1)
         ysem = stats.sem(y, axis=-1)
+        logger.info(f"x.shape: {len(x)}")
+        logger.info(f"yme.shape: {yme.shape}")
         ax.errorbar(
             x=x,
             y=yme,
@@ -164,9 +166,8 @@ def main():
     ax.set_ylabel("")
 
     ax.legend(loc="upper right", reverse=True, fontsize=8)
-    ax.set_ylabel("Mean absolute error\non threshold (% MSO)", fontsize=axis_label_size)
+    ax.set_ylabel("Mean absolute error on threshold\n(% MSO)", fontsize=axis_label_size)
     subfig.subplots_adjust(left=.15, right=.97, bottom=.15, top=.98, hspace=.4)
-
 
     subfig = subfigs.flat[0]
     axes = subfig.subplots(
@@ -222,10 +223,10 @@ def main():
                 x_grid = np.linspace(24, 34, 1000)
                 xticks = [27, 32]
                 ytop = .85
-            # case 3:
-            #     x_grid = np.linspace(26, 33, 1000)
-            #     xticks = [28, 32]
-            #     ytop = .55
+            case 3:
+                x_grid = np.linspace(26, 33, 1000)
+                xticks = [28, 32]
+                ytop = .55
 
         # x_grid = np.linspace(18, 40, 1000)
         kde = stats.gaussian_kde(samples)
@@ -246,7 +247,7 @@ def main():
             bottom=True,
             right=False,
             top=False,
-            labelleft=True,
+            labelleft=False,
             labelbottom=False,
             labelright=False,
             labeltop=False,
@@ -257,6 +258,13 @@ def main():
         ax.set_xlabel("")
 
     ax = axes[-1, 0]
+    ax.tick_params(
+        axis='both',
+        which='both',
+        labelleft=True,
+        labelrotation=15,
+        labelsize=8
+    )
     ax.set_xticks([0, 50, 100])
     ax.set_yticks([0, 2.5, 5.])
     ax.tick_params(axis="x", labelbottom=True)
@@ -278,11 +286,13 @@ def main():
     ax = axes[1, 0]
     ax.text(*pos, "4 reps", **text_kwargs)
     ax = axes[2, 0]
+    ax.text(*pos, "2 reps", **text_kwargs)
+    ax = axes[3, 0]
     ax.text(*pos, "1 rep", **text_kwargs)
 
     ax = axes[0, 0]
     ax.legend(fontsize=6, loc="upper right")
-    subfig.subplots_adjust(left=.21, right=.90, bottom=.16, top=.98, hspace=.25)
+    subfig.subplots_adjust(left=.21, right=.90, bottom=.15, top=.98, hspace=.25)
 
     fig.align_xlabels()
     fig.align_ylabels()

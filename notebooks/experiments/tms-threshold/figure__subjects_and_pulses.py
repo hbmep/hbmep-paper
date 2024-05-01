@@ -31,15 +31,17 @@ BUILD_DIR = EXPERIMENTS_DIR
 markersize = 3
 linewidth = 1
 linestyle = "--"
-axis_label_size = 8
+axis_label_size = 12
+inside_text_size = 8
 
 
 def main():
+    const = 1.25
     nrows, ncols = 1, 2
     fig, axes = plt.subplots(
         nrows,
         ncols,
-        figsize=(4.566, 2.65),
+        figsize=(const * 4.566, const * 2.65),
         squeeze=False,
         constrained_layout=True
     )
@@ -60,19 +62,20 @@ def main():
     #     "Hierarchical Bayesian (NUTS)"
     # ]
     labels = [
-        "Nelder-Mead optimization",
+        "Nelder-Mead method",
         "Maximum likelihood estimation",
         "Non-hierarchical Bayesian",
         "Hierarchical Bayesian (SVI)",
         "Hierarchical Bayesian"
     ]
 
-    cmap = sns.color_palette("hls", 8)
-    # colors = cmap(np.linspace(0, .7, 5 * len(models)))[::-1][::5]
-    colors = [cmap[-1]]
-    begin = 3
-    colors += cmap[begin:begin + 4]
-    colors = [colors[2], colors[1], colors[-2], colors[0], "k"]
+    # cmap = sns.color_palette("hls", 8)
+    # # colors = cmap(np.linspace(0, .7, 5 * len(models)))[::-1][::5]
+    # colors = [cmap[-1]]
+    # begin = 3
+    # colors += cmap[begin:begin + 4]
+    # colors = [colors[2], colors[1], colors[-2], colors[0], "k"]
+    colors = ["#00ced1", "#ffa500", "#0000ff", "#ff1493", "k"]
 
     src = os.path.join(NUMBER_OF_SUJECTS_DIR, "mae.npy")
     mae = np.load(src)
@@ -105,6 +108,8 @@ def main():
     ax.set_ylim(bottom=0.)
     ax.set_xlabel("Number of participants", fontsize=axis_label_size)
     ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
+
+    # ax.text(16, 14, "Number of intensities = 48", va="bottom", ha="right", fontsize=6)
 
     n_pulses_space = N_PULSES_SPACE
     src = os.path.join(NUMBER_OF_PULSES_DIR, "mae.npy")
@@ -152,29 +157,33 @@ def main():
             bottom=True,
             right=False,
             top=False,
-            labelleft=True,
+            labelleft=True if i == 0 else False,
             labelbottom=True,
             labelright=False,
             labeltop=False,
             labelrotation=15,
-            labelsize=8
+            labelsize=10
         )
         ax.grid(axis="y", linestyle=linestyle, alpha=.25)
         ax.set_ylabel("")
 
+    # ax.text(64, 14, "Number of participants = 8", va="bottom", ha="right", fontsize=6)
+
     ax = axes[0, 0]
     ax.sharey(axes[0, 1])
-    ax.set_ylabel("Mean absolute error\non threshold $($% MSO$)$", fontsize=axis_label_size)
-    ax.legend(loc="upper right", fontsize=6)
-    handles, labels = ax.get_legend_handles_labels()
-    ax.get_legend().remove()
-    split_at = 2
-    ax.legend(handles[:split_at], labels[:split_at], loc="upper right", fontsize=6, frameon=True)
+    ax.legend(loc="upper right", fontsize=inside_text_size)
 
-    ax = axes[0, 1]
-    ax.tick_params(labelleft=False)
-    ax.legend(handles[split_at:], labels[split_at:], loc="upper right", fontsize=6, frameon=True)
-    ax.set_ylim(top=10.5)
+    ax = axes[0, 0]
+    ax.set_ylabel("Mean absolute error on threshold\n$($% MSO$)$", fontsize=axis_label_size)
+    # handles, labels = ax.get_legend_handles_labels()
+    # ax.get_legend().remove()
+    # split_at = 2
+    # ax.legend(handles[:split_at], labels[:split_at], loc="upper right", fontsize=6, frameon=True)
+
+    # ax = axes[0, 0]
+    # ax.tick_params(labelleft=False)
+    # ax.legend(handles[split_at:], labels[split_at:], loc="upper right", fontsize=6, frameon=True)
+    # ax.set_ylim(top=10.5)
 
     fig.align_xlabels()
     fig.align_ylabels()
