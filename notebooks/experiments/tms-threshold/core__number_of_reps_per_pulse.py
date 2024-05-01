@@ -147,11 +147,11 @@ def main():
 
 
     # Experiment space
-    draws_space = range(235, 1000)
+    draws_space = range(2000)
     n_pulses_space = N_PULSES_SPACE
     n_reps_space = N_REPS_PER_PULSE_SPACE
     M = HierarchicalBayesianModel
-    n_jobs = 6
+    n_jobs = -1
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
