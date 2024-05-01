@@ -15,7 +15,8 @@ from models import (
     RectifiedLogistic,
     Logistic5,
     Logistic4,
-    RectifiedLinear
+    RectifiedLinear,
+    MixtureModel
 )
 from constants import (
     DATA_PATH,
@@ -55,6 +56,10 @@ def main():
         df, encoder_dict = model.load(df=data)
         logger.info(f"Running inference for {model.NAME} with {df.shape[0]} samples ...")
         mcmc, posterior_samples = model.run_inference(df=df)
+
+        # Turn off mixture distribution
+        if site.outlier_prob in posterior_samples:
+            posterior_samples[site.outlier_prob] = 0 * posterior_samples[site.outlier_prob]
 
         # Predictions and recruitment curves
         prediction_df = model.make_prediction_dataset(df=df)
@@ -110,6 +115,7 @@ def main():
     #     Logistic5,
     #     Logistic4,
     #     RectifiedLinear,
+    #     MixtureModel
     # ]
 
     # with Parallel(n_jobs=n_jobs) as parallel:
@@ -118,7 +124,7 @@ def main():
     #     )
 
     # Run single model
-    M = RectifiedLogistic
+    M = MixtureModel
     run_inference(M)
 
     return
