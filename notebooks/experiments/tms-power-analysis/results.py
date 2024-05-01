@@ -72,7 +72,6 @@ def main(build_dir, draws_space):
                         a_random_mean = a_random_mean[:, 0, 0]
 
                         if n_subjects > 1:
-                            # pr = (a_random_mean < 0.).mean()
                             hdi = az.hdi(a_random_mean, hdi_prob=.95)
                             pr = hdi[-1]
 
@@ -213,5 +212,5 @@ if __name__ == "__main__":
     # Run for the experiments with effect
     main(EXPERIMENTS_DIR, range(2000))
 
-    # # Run for the experiments without effect
-    # main(EXPERIMENTS_NO_EFFECT_DIR, range(2000))
+    # Run for the experiments without effect
+    main(EXPERIMENTS_NO_EFFECT_DIR, range(2000))
