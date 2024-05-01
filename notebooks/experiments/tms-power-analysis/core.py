@@ -227,8 +227,7 @@ def main(simulation_data_dir, build_dir):
             case "nelder_mead_optimization":
                 # Load data
                 ind = (
-                    (simulation_df[simulator.features[0]] == subject) &
-                    (simulation_df[simulator.features[1]] == intervention) &
+                    (simulation_df[simulator.features[0]] < n_subjects) &
                     (simulation_df[REP] < n_reps)
                 )
                 df = simulation_df[ind].reset_index(drop=True).copy()
@@ -304,17 +303,17 @@ def main(simulation_data_dir, build_dir):
     #     HierarchicalBayesianModel
     # ]
 
-    # Run non-hierarchical models including
-    # non-hierarchical Bayesian and Maximum Likelihood
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    models = [
-        NonHierarchicalBayesianModel,
-        MaximumLikelihoodModel
-    ]
-
-    # # Run non-hierarchical Nelder-Mead optimization
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # models = [NelderMeadOptimization]
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     MaximumLikelihoodModel
+    # ]
+
+    # Run non-hierarchical Nelder-Mead optimization
+    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    models = [NelderMeadOptimization]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(

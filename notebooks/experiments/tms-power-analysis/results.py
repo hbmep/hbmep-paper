@@ -8,7 +8,9 @@ from scipy import stats
 from hbmep_paper.utils import setup_logging
 from models import (
     HierarchicalBayesianModel,
-    NonHierarchicalBayesianModel
+    NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization
 )
 from core import (
     N_REPS, N_PULSES, N_SUBJECTS_SPACE
@@ -32,8 +34,10 @@ def main(build_dir, draws_space):
     n_subjects_space = N_SUBJECTS_SPACE
 
     models = [
+        NelderMeadOptimization,
+        MaximumLikelihoodModel,
         NonHierarchicalBayesianModel,
-        HierarchicalBayesianModel
+        HierarchicalBayesianModel,
     ]
 
     mae = []
@@ -72,7 +76,7 @@ def main(build_dir, draws_space):
                             hdi = az.hdi(a_random_mean, hdi_prob=.95)
                             pr = hdi[-1]
 
-                    case "non_hierarchical_bayesian_model":
+                    case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
                         n_subjects_dir = f"n{n_subjects_space[-1]}"
                         a_true, a_pred = None, None
 
@@ -112,15 +116,54 @@ def main(build_dir, draws_space):
                         a_pred_map = a_pred.mean(axis=0)
 
                         if n_subjects > 1:
-                            pr = stats.wilcoxon(x=a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0], alternative="less").pvalue
-                            # pr = stats.ttest_1samp(a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0], alternative="less", popmean=0).pvalue
+                            pr = (
+                                stats.wilcoxon(
+                                    x=a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0],
+                                    alternative="less"
+                                )
+                                .pvalue
+                            )
 
                         if n_subjects > 2:
-                            norm_test = stats.shapiro(a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0])
+                            norm_test = stats.shapiro(
+                                a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0]
+                            )
                             norm.append(norm_test.pvalue)
 
                         a_true = a_true.reshape(-1,)
                         a_pred = a_pred_map.reshape(-1,)
+
+                    case "nelder_mead_optimization":
+                        n_subjects_dir = f"n{n_subjects_space[-1]}"
+
+                        dir = os.path.join(
+                            build_dir,
+                            draw_dir,
+                            n_subjects_dir,
+                            n_reps_dir,
+                            n_pulses_dir,
+                            M.NAME
+                        )
+                        a_true = np.load(os.path.join(dir, "a_true.npy"))[:n_subjects, ...]
+                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))[:n_subjects, ...]
+
+                        if n_subjects > 1:
+                            pr = (
+                                stats.wilcoxon(
+                                    x=a_pred[:, 1, 0] - a_pred[:, 0, 0],
+                                    alternative="less"
+                                )
+                                .pvalue
+                            )
+
+                        if n_subjects > 2:
+                            norm_test = stats.shapiro(
+                                a_pred[:, 1, 0] - a_pred[:, 0, 0]
+                            )
+                            norm.append(norm_test.pvalue)
+
+                        a_pred = a_pred.reshape(-1,)
+                        a_true = a_true.reshape(-1,)
 
                     case _:
                         raise ValueError(f"Invalid model {M.NAME}.")
@@ -157,8 +200,11 @@ def main(build_dir, draws_space):
     np.save(dest, norm)
     logger.info(f"Saved to {dest}")
 
-    not_normal = (norm < .05)[-1, :, 0].mean()
-    logger.info(f"{not_normal * 100}% of the draws (threshold differences estimated by Non hier. Bayes model) are not normal.")
+    for model_ind, model in enumerate(models[:-1]):
+        not_normal = (norm < .05)[-1, :, model_ind].mean()
+        logger.info(
+            f"{not_normal * 100}% of the draws (threshold differences estimated by {model.NAME}) are not normal."
+        )
 
     return
 
@@ -167,5 +213,5 @@ if __name__ == "__main__":
     # Run for the experiments with effect
     main(EXPERIMENTS_DIR, range(2000))
 
-    # Run for the experiments without effect
-    main(EXPERIMENTS_NO_EFFECT_DIR, range(2000))
+    # # Run for the experiments without effect
+    # main(EXPERIMENTS_NO_EFFECT_DIR, range(2000))
