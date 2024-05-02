@@ -97,21 +97,6 @@ def main():
         )
     logger.info(f"simulation_ppd: {sorted(list(simulation_ppd.keys()))}")
 
-    # # Filter valid draws
-    # alpha = simulation_ppd[site.alpha]
-    # alpha = alpha.reshape(alpha.shape[0], TOTAL_REPS, TOTAL_SUBJECTS, TOTAL_PULSES, 1)
-    # alpha = alpha[:, 0, ...]
-    # invalid_draws = (
-    #     (1 / alpha).min(axis=-2) > .6
-    # ).any(axis=(-1, -2))
-    # valid_draws = ~invalid_draws
-    # num_valid_draws = valid_draws.sum()
-    # logger.info(f"Valid draws: shape {valid_draws.shape}, total {num_valid_draws}")
-    # assert num_valid_draws >= MIN_VALID_DRAWS
-    # simulation_ppd = {
-    #     u: v[valid_draws, ...] for u, v in simulation_ppd.items()
-    # }
-
     # Shuffle draws
     logger.info(f"Shuffling draws ...")
     ind = np.arange(0, simulation_ppd[site.a].shape[0], 1)
@@ -121,11 +106,6 @@ def main():
     simulation_ppd = {
         u: v[ind, ...] for u, v in simulation_ppd.items()
     }
-
-    # # Keep only MIN_VALID_DRAWS draws
-    # simulation_ppd = {
-    #     u: v[:MIN_VALID_DRAWS, ...] for u, v in simulation_ppd.items()
-    # }
 
     # Save simulation dataframe and posterior predictive
     dest = os.path.join(simulator.build_dir, SIMULATION_DF)
