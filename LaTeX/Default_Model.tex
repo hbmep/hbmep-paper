@@ -13,9 +13,9 @@ The simplest form of a standard 3-stage hierarchical Bayesian model in the conte
 
 The first stage of hierarchy is the \textit{participant-level} and specifies parametric model $P\left({y_i}^p \mid {x_i}^p, \theta^p\right)$ for each of the $N_P$ participants and models the MEP size ${y_i}^p$ as a function of stimulus intensity ${x_i}^p$ and participant-specific parameters $\theta^p$. In the second stage, $\theta_1, \theta_2 \ldots \theta^P$ are assumed to be exchangeable and generated from a common distribution $P\left(\theta^p \mid \gamma\right)$ with hyper-parameters $\gamma$. In the third stage, the hyper-parameters $\gamma$ are assumed to be unknown and assigned \textit{weakly-informative} prior, also called hyperprior-density $P\left(\gamma\right)$.
 \begin{align*}
-{y_i}^p \mid {x_i}^p, \theta^p, \gamma &\sim P\left({y_i}^p \mid {x_i}^p, \theta^p, \gamma\right) \tag{4.3.1} \\
-\theta^p \mid \gamma &\sim P\left(\theta^p \mid \gamma\right) \tag{4.3.2} \\
-\gamma &\sim P\left(\gamma\right) \tag{4.3.3}
+{y_i}^p \mid {x_i}^p, \theta^p, \gamma &\sim P\left({y_i}^p \mid {x_i}^p, \theta^p, \gamma\right) \tag{4.2.1} \\
+\theta^p \mid \gamma &\sim P\left(\theta^p \mid \gamma\right) \tag{4.2.2} \\
+\gamma &\sim P\left(\gamma\right) \tag{4.2.3}
 \end{align*}
 Figure $4.3.1$ shows the graphical representation of the default hierarchical model implemented by hbmep for fitting recruitment-curves on TMS data [ref.] in [ref. to function comparison fig.].\\
 \begin{figure}[H]
@@ -32,7 +32,7 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
 
         % % PRIORS
         % a, b, v
-        \node[latent,above=of obs,yshift=3cm,xshift=-1.05cm,fill,] (a) {$a^{p}$};
+        \node[latent,above=of obs,yshift=3cm,xshift=-1cm,fill,] (a) {$a^{p}$};
         \node[latent,right=of a,xshift=-.3cm,fill,] (b) {$b^{p}$};
         % \node[latent,right=of b,xshift=-.9cm,fill,] (v) {$v^{p}$};
         % L, ell, H
@@ -75,7 +75,7 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
         \edge {intensity} {beta, mu}
         \edge {beta,mu} {obs};
         \edge {mu} {beta};
-        \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a_mean)(a_scale)(b_scale)(L_scale)(ell_scale)(H_scale)(plate_participant)} {$\text{muscle }m : 1, 2 \ldots N_M$};
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_muscle} {(a_mean)(a_scale)(b_scale)(L_scale)(ell_scale)(H_scale)(plate_participant)} {$\text{muscle }m : 1, 2 \ldots N_M$};
     }
 \end{figure}
 

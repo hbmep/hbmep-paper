@@ -22,18 +22,18 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[obs,fill] (obs) {$y$};%
 
         % Deterministic mu, beta
-        \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill] (beta) {$\beta$}; %
-        \node[det,above=of obs,xshift=1.2cm,yshift=0cm,fill] (mu) {$\mu$}; %
+        \node[det,above=of obs,xshift=-1.4cm,yshift=-.5cm,fill] (beta) {$\beta$}; %
+        \node[det,above=of obs,xshift=1.4cm,yshift=0cm,fill] (mu) {$\mu$}; %
         \node[obs,above=of obs,xshift=-.8cm,yshift=1cm,fill] (intensity) {$x$};%
-        \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$i: 1, 2 \ldots n(p)$};
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$\text{intensity } i: 1, 2 \ldots n(p)$};
 
         % % PRIORS
         % a, b, v
-        \node[latent,above=of obs,yshift=2.2cm,xshift=-1.3cm,fill] (a) {$a$};
+        \node[latent,above=of obs,yshift=2.2cm,xshift=-.9cm,fill] (a) {$a$};
         \node[latent,right=of a,xshift=-.4cm,fill] (b) {$b$};
-        \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v$};
+        % \node[latent,right=of b,xshift=-.9cm,fill] (v) {$v$};
         % L, ell, H
-        \node[latent,right=of v,xshift=-.9cm,fill] (L) {$L$};
+        \node[latent,right=of b,xshift=-.9cm,fill] (L) {$L$};
         \node[latent,right=of L,xshift=-.9cm,fill] (ell) {$\ell$};
         \node[latent,right=of ell,xshift=-.9cm,fill] (H) {$H$};
         % g1, g2
@@ -41,7 +41,7 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[latent,left=of g2,xshift=.9cm,fill] (g1) {${c_1}$};
 
         % Participants plate
-        \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(v)(ell)(g1)(g2)(plate_obs)} {$p:1, 2 \ldots N(g)$};
+        \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(ell)(g1)(g2)(plate_obs)} {$\text{participant } p:1, 2 \ldots n(g)$};
 
         % % HYPER-PRIORS
         \node[latent,above=of a,xshift=-.4cm,fill] (a_mean) {$\mu_a$};
@@ -51,11 +51,11 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{c_1}$};
         \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
         \node[latent,above=of H,fill] (H_scale) {$\sigma_H$};
-        \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
+        % \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
         \node[latent,above=of ell,fill] (ell_scale) {$\sigma_\ell$};
 
         % Groups plate
-        \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(a_mean)(a_scale)(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(v_scale)(ell_scale)(plate_participant)} {$g: 1, 2 \ldots N_G$};
+        \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(a_mean)(a_scale)(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(ell_scale)(plate_participant)} {$\text{group } g: 1, 2 \ldots N_G$};
 
         % GLOBAL PRIORS
         \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{c_2}}$};
@@ -63,7 +63,7 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \node[latent,above=of b_scale,fill] (b_scale_global_scale) {$\sigma_{\sigma_{b}}$};
         \node[latent,above=of L_scale,fill] (L_scale_global_scale) {$\sigma_{\sigma_L}$};
         \node[latent,above=of H_scale,fill] (H_scale_global_scale) {$\sigma_{\sigma_H}$};
-        \node[latent,above=of v_scale,fill] (v_scale_global_scale) {$\sigma_{\sigma_v}$};
+        % \node[latent,above=of v_scale,fill] (v_scale_global_scale) {$\sigma_{\sigma_v}$};
         \node[latent,above=of ell_scale,fill] (ell_scale_global_scale) {$\sigma_{\sigma_\ell}$};
 
         % Edges from Global-priors to Priors
@@ -72,7 +72,7 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \edge {b_scale_global_scale} {b_scale}
         \edge {L_scale_global_scale} {L_scale}
         \edge {H_scale_global_scale} {H_scale}
-        \edge {v_scale_global_scale} {v_scale}
+        % \edge {v_scale_global_scale} {v_scale}
         \edge {ell_scale_global_scale} {ell_scale}
 
         % Edges from Hyper-priors to Priors
@@ -82,17 +82,20 @@ Fig. 4.3.2 shows the graphical representation of group model implemented by hbme
         \edge {b_scale} {b}
         \edge {L_scale} {L}
         \edge {H_scale} {H}
-        \edge {v_scale} {v}
+        % \edge {v_scale} {v}
         \edge {ell_scale} {ell}
 
         % Edges from Priors to Deterministic
         \edge {g1, g2} {beta}
-        \edge {a, b, v, L, ell, H} {mu}
+        \edge {a, b, L, ell, H} {mu}
 
         % Edges to obs
         \edge {intensity} {beta, mu}
         \edge {beta,mu} {obs};
         \edge {mu} {beta};
+
+        % Muscles plate
+        \plate[inner sep=.1cm, yshift=.05cm] {plate_muscle} {(g1_scale_global_scale)(g2_scale_global_scale)(b_scale_global_scale)(L_scale_global_scale)(ell_scale_global_scale)(H_scale_global_scale)(plate_group)} {$\text{muscle } m: 1, 2 \ldots N_M$};
     }
 \end{figure}
 
