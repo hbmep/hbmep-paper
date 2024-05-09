@@ -63,9 +63,9 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     a_bio2, b_bio2 = 40, 0.25
     ell_bio2, H_bio2 = 2, 3.0
     sigma_bio2 = 0.05
-    shift_2 = 3.0
+    shift_2 = 1.5
 
-    b_art = 1.0
+    b_art = 0.25
 
     # Generate a random Gaussian peak
     peak_position = int(0.25 * seq_length) + np.random.randint(seq_length - int(0.5 * seq_length))
@@ -117,7 +117,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
 
             Y_bio1[ix, :] = Y_rolled_row
 
-    Y_noiseless = Y_bio1  #+ Y_bio2 # + Y_art
+    Y_noiseless = Y_bio1 + Y_bio2 # + Y_art
     plt.figure()
     plt.plot(x, Y_rc1, 'o')
     plt.plot(x, Y_rc2, 'ro')
@@ -157,7 +157,7 @@ def model(X, t, Y=None):
             # Sample core GP for each bio component
             # need to think about why you need the noise in these GPs ...
             noise_bio = 1e-2  # numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 1e-6))
-            length_bio = 1.0  # numpyro.sample(f"length_bio{i}", dist.HalfNormal(1.0))
+            length_bio = 1  # numpyro.sample(f"length_bio{i}", dist.HalfNormal(1.0))
             kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
             gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
                                          dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
@@ -196,16 +196,14 @@ def model(X, t, Y=None):
                                                                                                covariance_matrix=cov_with_constant))
 
     ## TODO: consider looking at the impact of the mean subtraction on the filtering operation
-    ## TODO: one main issue is that the H0 is exploding - somewhere I have a scaling varibale free I think...
-    str_orth = "none"
+    str_orth = "cost"
     if str_orth == "svd":
-        # this really does not seem to work
         gp_bio_stacked_ = apply_svd(gp_bio_stacked)
     elif str_orth == "cost":
         I = jnp.eye(n_bio)  # Identity matrix of size N
         G = jnp.dot(gp_bio_stacked.T, gp_bio_stacked)  # Gram matrix
         penalty = jnp.linalg.norm(G - I, 'fro') ** 2
-        lambda_ = 5.0  # This is a hyperparameter to be tuned
+        lambda_ = 1.0  # This is a hyperparameter to be tuned
         numpyro.factor("orthogonality_penalty", -lambda_ * penalty)
         gp_bio_stacked_ = gp_bio_stacked
     elif str_orth == "none":
@@ -235,17 +233,12 @@ def model(X, t, Y=None):
         gp_bio = convolve_vectorized(gp_bio_core, filter_stack)
 
         # Scale each gp_bio component
-        use_gamma_for_bH = False
-        if use_gamma_for_bH:
-            b_bio = numpyro.sample(f"b_bio{i}", dist.Gamma(1.0, b_bio_parent))
-            H_bio = numpyro.sample(f"H_bio{i}", dist.Gamma(1.0, H_bio_parent))
-        else:
-            b_bio = numpyro.sample(f"b_bio{i}", dist.HalfNormal(b_bio_parent))
-            H_bio = numpyro.sample(f"H_bio{i}", dist.HalfNormal(H_bio_parent))
+        b_bio = numpyro.sample(f"b_bio{i}", dist.HalfNormal(b_bio_parent))
+        H_bio = numpyro.sample(f"H_bio{i}", dist.HalfNormal(H_bio_parent))
 
         a_bio = numpyro.sample(f"a_bio{i}", dist.TruncatedNormal(50, 100, low=0))
         ell_bio = numpyro.sample(f"ell_bio{i}", dist.HalfNormal(5))
-        mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, 1e-9, ell_bio, H_bio)
+        mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, 1e-6, ell_bio, H_bio)
 
         # I am not sure if this noise model still makes sense when L is force to 0
         # it may be what is allowing the draws to break the recruitment curve
@@ -286,7 +279,7 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=0.1)
 # variance = 0.5  # n.b. this is a global
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
 dt = np.median(np.diff(t))
-n_bio = 1
+n_bio = 2
 time_range = jnp.array(np.arange(-dt * 20, dt * 20 + dt, dt))
 v_global = np.square(dt * 1.5)
 basis_variance = 0.2  # n.b. this is a global
@@ -316,7 +309,7 @@ elif framework == "SVI":
     print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-        if ((step % int(250) == 0) or (step == 5)) and not (step == 0):
+        if ((step % int(500) == 0) or (step == 10)) and not (step == 0):
             predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=num_samples)
             ps = predictive(rng_key, X, t)
             # zero_row = jnp.zeros((ps['shift_core'].shape[0], 1))
