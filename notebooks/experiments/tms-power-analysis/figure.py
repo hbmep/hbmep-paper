@@ -159,7 +159,7 @@ def main():
     ax.text(2, .051, "5% Significance level", va="bottom", ha="left", fontsize=inside_text_size)
 
     ax = axes[0, 1]
-    ax.legend(loc="upper right", fontsize=inside_text_size, labelspacing=1.1)
+    ax.legend(loc="upper right", fontsize=inside_text_size, labelspacing=1.1, reverse=True)
 
     fig.align_xlabels()
     fig.align_ylabels()
