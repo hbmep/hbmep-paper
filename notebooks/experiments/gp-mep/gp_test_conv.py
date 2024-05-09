@@ -1,6 +1,6 @@
 import numpy as np
 from numpyro.infer import MCMC, NUTS
-from hbmep.model import functional as F
+from hbmep.nn import functional as F
 from numpyro.infer import Predictive, SVI, Trace_ELBO
 import jax
 from jax import jit
