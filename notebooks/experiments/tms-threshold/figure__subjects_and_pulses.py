@@ -171,7 +171,7 @@ def main():
 
     ax = axes[0, 0]
     ax.sharey(axes[0, 1])
-    ax.legend(loc="upper right", fontsize=inside_text_size)
+    ax.legend(loc="upper right", fontsize=inside_text_size, reverse=True, labelspacing=1.1)
 
     ax = axes[0, 0]
     ax.set_ylabel("Mean absolute error on threshold\n$($% MSO$)$", fontsize=axis_label_size)
