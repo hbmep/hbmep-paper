@@ -23,8 +23,10 @@ def apply_svd(X):
 
 def rate(mu, c_1, c_2):
     return (
-            c_1 + jnp.true_divide(c_2, mu)
+        jnp.true_divide(1, c_1)
+        + jnp.true_divide(1, jnp.multiply(c_2, mu))
     )
+
 
 def convolve_wrapper(gp_bio1_core, f):
     return jnp.convolve(gp_bio1_core, f, mode='same')
@@ -55,11 +57,11 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     t = np.linspace(0, 10, seq_length)  # Time points of the MEP response
 
     a_bio1, b_bio1 = 15, 0.075
-    v_bio1, ell_bio1, H_bio1 = 1, 5, 5.0
+    ell_bio1, H_bio1 = 5, 5.0
     sigma_bio1 = 0.05
 
     a_bio2, b_bio2 = 40, 0.25
-    v_bio2, ell_bio2, H_bio2 = 2, 2, 3.0
+    ell_bio2, H_bio2 = 2, 3.0
     sigma_bio2 = 0.05
     shift_2 = 3.0
 
@@ -75,7 +77,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     s2 = s1 + (np.random.rand() - 0.5) * 2
     signal_bio1 = signal1 * s1 + signal2 * s2
     signal_bio1 = signal_bio1 / np.abs(signal_bio1).max()  # just to help interpretation
-    mu_bio1 = F.rectified_logistic(x, a_bio1, b_bio1, v_bio1, 0, ell_bio1, H_bio1)
+    mu_bio1 = F.rectified_logistic(x, a_bio1, b_bio1, 0, ell_bio1, H_bio1)
     mu_bio1 = np.array(mu_bio1)
     Y_rc1 = mu_bio1 + mu_bio1 * np.random.randn(*x.shape) * sigma_bio1
 
@@ -88,11 +90,11 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     s2_pre = s1_pre + (np.random.rand() - 0.5) * 2
     signal_bio2 = signal1 * s1_pre + signal2 * s2_pre
     signal_bio2 = signal_bio2 / np.abs(signal_bio2).max()  # just to help interpretation
-    mu_bio2 = F.rectified_logistic(x, a_bio2, b_bio2, v_bio2, 0, ell_bio2, H_bio2)
+    mu_bio2 = F.rectified_logistic(x, a_bio2, b_bio2, 0, ell_bio2, H_bio2)
     Y_rc2 = mu_bio2 + mu_bio2 * np.random.randn(*x.shape) * sigma_bio2
 
     signal_art = + np.exp(-(np.arange(seq_length) - 2) ** 2 / (2 * 1 ** 2))
-    Y_rcart = F.relu(x, 0, b_art, 0)
+    Y_rcart = F.rectified_linear(x, 0, b_art, 0)
 
     Y_bio1 = signal_bio1 * Y_rc1
     Y_bio2 = signal_bio2 * Y_rc2
@@ -115,7 +117,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
 
             Y_bio1[ix, :] = Y_rolled_row
 
-    Y_noiseless = Y_bio1 + Y_bio2 # + Y_art
+    Y_noiseless = Y_bio1  #+ Y_bio2 # + Y_art
     plt.figure()
     plt.plot(x, Y_rc1, 'o')
     plt.plot(x, Y_rc2, 'ro')
@@ -147,15 +149,15 @@ def model(X, t, Y=None):
     # b_bio_parent = numpyro.sample(f"b_bio_parent", dist.Gamma(2, 1))
     # H_bio_parent = numpyro.sample(f"H_bio_parent", dist.Gamma(2, 5.0))
     b_bio_parent = numpyro.sample(f"b_bio_parent", dist.HalfNormal(2.0))
-    H_bio_parent = numpyro.sample(f"H_bio_parent", dist.HalfNormal(10.0))
-    str_mep_shape = 'basis1'
+    H_bio_parent = numpyro.sample(f"H_bio_parent", dist.HalfNormal(5.0))
+    str_mep_shape = 'gp'
     if str_mep_shape == "gp":
         gp_bio_stacked = jnp.zeros((t.shape[0], n_bio))
         for i in range(0, n_bio):
             # Sample core GP for each bio component
             # need to think about why you need the noise in these GPs ...
-            noise_bio = 1e-9  # numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 1e-6))
-            length_bio = numpyro.sample(f"length_bio{i}", dist.HalfNormal(1.0))
+            noise_bio = 1e-2  # numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 1e-6))
+            length_bio = 1.0  # numpyro.sample(f"length_bio{i}", dist.HalfNormal(1.0))
             kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
             gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
                                          dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio))
@@ -170,7 +172,7 @@ def model(X, t, Y=None):
         I = jnp.eye(n_bio)  # Identity matrix of size N
         G = jnp.dot(weights.T, weights)  # Gram matrix
         penalty = jnp.linalg.norm(G - I, 'fro') ** 2
-        lambda_ = 5.0  # This is a hyperparameter to be tuned
+        lambda_ = 0.0  # This is a hyperparameter to be tuned (>0 to have effect)
         numpyro.factor("orthogonality_penalty", -lambda_ * penalty)
 
         for i in range(0, n_bio):
@@ -194,6 +196,7 @@ def model(X, t, Y=None):
                                                                                                covariance_matrix=cov_with_constant))
 
     ## TODO: consider looking at the impact of the mean subtraction on the filtering operation
+    ## TODO: one main issue is that the H0 is exploding - somewhere I have a scaling varibale free I think...
     str_orth = "none"
     if str_orth == "svd":
         # this really does not seem to work
@@ -210,19 +213,19 @@ def model(X, t, Y=None):
 
     for i in range(0, n_bio):
         gp_bio_core = gp_bio_stacked_[:, i]
-        shift_type = 'none'
+        shift_type = 'gp'
         if shift_type == 'gp':
-            noise_shift = 1e-9  # numpyro.sample(f"noise_shift{i}", dist.HalfNormal(1e-6))
-            length_shift = numpyro.sample(f"length_shift{i}", dist.HalfNormal(1.0))
-            variance_shift = numpyro.sample(f"variance_shift{i}", dist.HalfNormal(1.0))
+            noise_shift = 1e-4  # numpyro.sample(f"noise_shift{i}", dist.HalfNormal(1e-4))
+            length_shift = 100  # numpyro.sample(f"length_shift{i}", dist.HalfNormal(100))
+            variance_shift = 1  # numpyro.sample(f"variance_shift{i}", dist.HalfNormal(1e-1))
             kernel_shift = kernel(X[:, 0], X[:, 0], variance_shift, length_shift, noise_shift)
             shift = numpyro.sample(f"shift{i}", dist.MultivariateNormal(loc=jnp.zeros(X.shape[0]),
                                                                         covariance_matrix=kernel_shift))
-        elif shift_type == "relu":
+        elif shift_type == "rectified_linear":
             a_shift = numpyro.sample(f"a_shift{i}", dist.TruncatedNormal(50, 100, low=0))
             b_shift = numpyro.sample(f"b_shift{i}", dist.HalfNormal(1))
             sigma_shift = numpyro.sample(f"sigma_shift{i}", dist.HalfNormal(1))
-            mu_shift = F.relu(X.flatten(), a_shift, b_shift, 1e-9)
+            mu_shift = F.rectified_linear(X.flatten(), a_shift, b_shift, 1e-9)
             shift = numpyro.sample(f"shift{i}", dist.Normal(mu_shift, sigma_shift * jnp.ones(X.shape[0])))
         elif shift_type == "none":
             shift = numpyro.deterministic(f"shift{i}", jnp.zeros(X.shape[0]))
@@ -241,18 +244,25 @@ def model(X, t, Y=None):
             H_bio = numpyro.sample(f"H_bio{i}", dist.HalfNormal(H_bio_parent))
 
         a_bio = numpyro.sample(f"a_bio{i}", dist.TruncatedNormal(50, 100, low=0))
-        v_bio = numpyro.sample(f"v_bio{i}", dist.HalfNormal(2))
         ell_bio = numpyro.sample(f"ell_bio{i}", dist.HalfNormal(5))
-        mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, v_bio, 1e-9, ell_bio, H_bio)
+        mu_bio = F.rectified_logistic(X.flatten()[:, None], a_bio, b_bio, 1e-9, ell_bio, H_bio)
 
         # I am not sure if this noise model still makes sense when L is force to 0
         # it may be what is allowing the draws to break the recruitment curve
-        c_1 = numpyro.sample(f'c_1_{i}', dist.HalfNormal(1e-6))
-        use_gamma_obs = False
+        c_1 = numpyro.sample(f'c_1_{i}', dist.HalfNormal(5))
+        use_gamma_obs = True
         if use_gamma_obs:
-            c_2 = numpyro.sample(f'c_2_{i}', dist.HalfNormal(2))
-            beta = numpyro.deterministic(f'beta_{i}', rate(mu_bio, c_1, c_2))
-            alpha = numpyro.deterministic(f'alpha_{i}', concentration(mu_bio, beta))
+            c_2 = numpyro.sample(f'c_2_{i}', dist.HalfNormal(5))
+            beta = numpyro.deterministic(f'beta_{i}',
+                rate(
+                    mu_bio,
+                    c_1,
+                    c_2
+                )
+            )
+            alpha = numpyro.deterministic(f'alpha_{i}',
+                concentration(mu_bio, beta)
+            )
             draws_bio = numpyro.sample(f'draws_bio{i}', dist.Gamma(concentration=alpha, rate=beta))
         else:
             draws_bio = numpyro.sample(f'draws_bio{i}', dist.TruncatedNormal(mu_bio, 1e-6 + mu_bio * c_1))
@@ -276,7 +286,7 @@ Y, X, t, Y_noiseless = generate_synthetic_data(T, N, noise_level=0.1)
 # variance = 0.5  # n.b. this is a global
 # means = np.linspace(t[0], t[-1], int(np.round((t[-1] - t[0]) / np.sqrt(variance))))  # n.b. this is a global
 dt = np.median(np.diff(t))
-n_bio = 2
+n_bio = 1
 time_range = jnp.array(np.arange(-dt * 20, dt * 20 + dt, dt))
 v_global = np.square(dt * 1.5)
 basis_variance = 0.2  # n.b. this is a global
@@ -306,7 +316,7 @@ elif framework == "SVI":
     print('JIT compile done.')
     for step in range(n_steps):
         svi_state, loss = svi_step(svi_state, X, t, Y)
-        if ((step % int(10e3) == 0) or (step == 5)) and not (step == 0):
+        if ((step % int(250) == 0) or (step == 5)) and not (step == 0):
             predictive = Predictive(guide, params=svi.get_params(svi_state), num_samples=num_samples)
             ps = predictive(rng_key, X, t)
             # zero_row = jnp.zeros((ps['shift_core'].shape[0], 1))

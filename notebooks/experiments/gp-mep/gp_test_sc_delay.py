@@ -52,7 +52,7 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
     s2 = s1 + (np.random.rand() - 0.5) * 2
     signal_bio1 = signal1 * s1 + signal2 * s2
     signal_bio1 = signal_bio1 / np.abs(signal_bio1).max()  # just to help interpretation
-    mu_bio1 = F.relu(x, a_bio1, b_bio1, 0)
+    mu_bio1 = F.rectified_linear(x, a_bio1, b_bio1, 0)
     mu_bio1 = np.array(mu_bio1)
     sigma_bio1 = 0.5
     Y_rc1 = mu_bio1 + mu_bio1 * np.random.randn(*x.shape) * sigma_bio1
@@ -94,7 +94,7 @@ def model(X, t, Y=None):
 
     L = numpyro.sample("L", dist.HalfNormal(1))
 
-    mu_bio1 = F.relu(X.flatten()[:, None], a_bio1, b_bio1, L)   # you need +ve L or the obs model goes to nan I think
+    mu_bio1 = F.rectified_linear(X.flatten()[:, None], a_bio1, b_bio1, L)   # you need +ve L or the obs model goes to nan I think
 
     c_1 = numpyro.sample('c_1', dist.HalfNormal(2.))
     c_2 = numpyro.sample('c_2', dist.HalfNormal(2.))
@@ -144,7 +144,7 @@ plt.plot(t, (k * X + Y).transpose(), 'r')
 for ix_X in range(0, len(X), 4):
     x = X[ix_X]
     offset = x * k
-    y_bio1 = offset + F.relu(x, ps['a_bio1'], ps['b_bio1'], ps['L']).reshape(-1, 1) * ps['gp_bio1']
+    y_bio1 = offset + F.rectified_linear(x, ps['a_bio1'], ps['b_bio1'], ps['L']).reshape(-1, 1) * ps['gp_bio1']
     y_bio1 = y_bio1.transpose()
 
     for ix in range(10):
