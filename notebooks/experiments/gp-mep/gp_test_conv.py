@@ -114,6 +114,15 @@ def generate_synthetic_data(seq_length, input_size, noise_level=0.25):
             #     Y_rolled_row = np.roll(Y_rolled_row, -np.random.randint(10), axis=0)
             # if np.random.rand() > 0.5:
             #     Y_rolled_row = - Y_rolled_row
+            p = np.random.rand() * 2 * np.pi
+            f = 200 # * np.random.rand() * 200
+            y = np.sin(2 * np.pi * f * t - p)
+            y = Y_rolled_row * y
+            # plt.plot(y)
+            # plt.plot(Y_rolled_row)
+            # plt.plot(y* 0.5 + Y_rolled_row)
+            # plt.show()
+            Y_rolled_row = y * 0.25 + Y_rolled_row  # introduce some shape noise - this can break it if too high
 
             Y_bio1[ix, :] = Y_rolled_row
 
