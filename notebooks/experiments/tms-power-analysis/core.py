@@ -132,19 +132,19 @@ def main(simulation_data_dir, build_dir):
                 np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                 np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                a_random_mean = posterior_samples["a_random_mean"]
+                a_random_loc = posterior_samples["a_random_loc"]
                 a_random_scale = posterior_samples["a_random_scale"]
-                np.save(os.path.join(model.build_dir, "a_random_mean.npy"), a_random_mean)
+                np.save(os.path.join(model.build_dir, "a_random_loc.npy"), a_random_loc)
                 np.save(os.path.join(model.build_dir, "a_random_scale.npy"), a_random_scale)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
                 a_true, a_pred = None, None
-                a_random_mean, a_random_scale = None, None
+                a_random_loc, a_random_scale = None, None
                 del config, df, prediction_df, encoder_dict, _
                 del model, posterior_samples, posterior_predictive
                 del a_true, a_pred
-                del a_random_mean, a_random_scale
+                del a_random_loc, a_random_scale
                 gc.collect()
 
             # Non-hierarchical models: non-hierarchical Bayesian
