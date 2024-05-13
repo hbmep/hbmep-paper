@@ -24,36 +24,36 @@ class LearnPosterior(GammaModel):
         n_fixed = 1
         # n_random = n_features[1] - 1
 
-        # Fixed Effects (Baseline)
+        # Fixed
+        a_fixed_loc = numpyro.sample(
+            "a_fixed_loc", dist.TruncatedNormal(50., 20., low=0)
+        )
+        a_fixed_scale = numpyro.sample(
+            "a_fixed_scale", dist.HalfNormal(30.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_fixed", n_fixed):
-                a_fixed_mean = numpyro.sample(
-                    "a_fixed_mean", dist.TruncatedNormal(50., 20., low=0)
-                )
-                a_fixed_scale = numpyro.sample(
-                    "a_fixed_scale", dist.HalfNormal(30.)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_fixed = numpyro.sample(
                         "a_fixed", dist.TruncatedNormal(
-                            a_fixed_mean, a_fixed_scale, low=0
+                            a_fixed_loc, a_fixed_scale, low=0
                         )
                     )
 
-        # # Random Effects (Delta)
+        # # Delta
+        # a_random_loc = numpyro.sample(
+        #     "a_random_loc", dist.Normal(0., 20.)
+        # )
+        # a_random_scale = numpyro.sample(
+        #     "a_random_scale", dist.HalfNormal(30.)
+        # )
+
         # with numpyro.plate(site.n_response, self.n_response):
         #     with numpyro.plate("n_random", n_random):
-        #         a_random_mean = numpyro.sample(
-        #             "a_random_mean", dist.Normal(0., 20.)
-        #         )
-        #         a_random_scale = numpyro.sample(
-        #             "a_random_scale", dist.HalfNormal(30.)
-        #         )
-
         #         with numpyro.plate(site.n_features[0], n_features[0]):
         #             a_random = numpyro.sample(
-        #                 "a_random", dist.Normal(a_random_mean, a_random_scale)
+        #                 "a_random", dist.Normal(a_random_loc, a_random_scale)
         #             )
 
         #             # Penalty for negative a
@@ -64,52 +64,30 @@ class LearnPosterior(GammaModel):
         #                 "penalty_for_negative_a", -penalty_for_negative_a
         #             )
 
+        # Hyper-priors
+        b_scale = numpyro.sample(
+            "b_scale", dist.HalfNormal(5.)
+        )
+
+        L_scale = numpyro.sample(
+            "L_scale", dist.HalfNormal(.5)
+        )
+        ell_scale = numpyro.sample(
+            "ell_scale", dist.HalfNormal(10.)
+        )
+        H_scale = numpyro.sample(
+            "H_scale", dist.HalfNormal(5.)
+        )
+
+        c_1_scale = numpyro.sample(
+            "c_1_scale", dist.HalfNormal(5.)
+        )
+        c_2_scale = numpyro.sample(
+            "c_2_scale", dist.HalfNormal(5.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Global Priors
-            b_scale_global_scale = numpyro.sample(
-                "b_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            L_scale_global_scale = numpyro.sample(
-                "L_scale_global_scale", dist.HalfNormal(.5)
-            )
-            ell_scale_global_scale = numpyro.sample(
-                "ell_scale_global_scale", dist.HalfNormal(10.)
-            )
-            H_scale_global_scale = numpyro.sample(
-                "H_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            c_1_scale_global_scale = numpyro.sample(
-                "c_1_scale_global_scale", dist.HalfNormal(5.)
-            )
-            c_2_scale_global_scale = numpyro.sample(
-                "c_2_scale_global_scale", dist.HalfNormal(5.)
-            )
-
             with numpyro.plate(site.n_features[1], n_features[1]):
-                # Hyper-priors
-                b_scale = numpyro.sample(
-                    "b_scale", dist.HalfNormal(b_scale_global_scale)
-                )
-
-                L_scale = numpyro.sample(
-                    "L_scale", dist.HalfNormal(L_scale_global_scale)
-                )
-                ell_scale = numpyro.sample(
-                    "ell_scale", dist.HalfNormal(ell_scale_global_scale)
-                )
-                H_scale = numpyro.sample(
-                    "H_scale", dist.HalfNormal(H_scale_global_scale)
-                )
-
-                c_1_scale = numpyro.sample(
-                    "c_1_scale", dist.HalfNormal(c_1_scale_global_scale)
-                )
-                c_2_scale = numpyro.sample(
-                    "c_2_scale", dist.HalfNormal(c_2_scale_global_scale)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     # Priors
                     # a = numpyro.deterministic(
@@ -165,9 +143,9 @@ class LearnPosterior(GammaModel):
 class Simulator(GammaModel):
     NAME = "simulator"
 
-    def __init__(self, config: Config, a_random_mean, a_random_scale):
+    def __init__(self, config: Config, a_random_loc, a_random_scale):
         super(Simulator, self).__init__(config=config)
-        self.a_random_mean = a_random_mean
+        self.a_random_loc = a_random_loc
         self.a_random_scale = a_random_scale
 
     def _model(self, intensity, features, response_obs=None):
@@ -179,38 +157,31 @@ class Simulator(GammaModel):
         n_fixed = 1
         n_random = n_features[1] - 1
 
-        # Fixed Effects (Baseline)
+        # Fixed
+        a_fixed_loc = numpyro.sample(
+            "a_fixed_loc", dist.TruncatedNormal(50., 20., low=0)
+        )
+        a_fixed_scale = numpyro.sample(
+            "a_fixed_scale", dist.HalfNormal(30.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_fixed", n_fixed):
-                a_fixed_mean = numpyro.sample(
-                    "a_fixed_mean", dist.TruncatedNormal(50., 20., low=0)
-                )
-                a_fixed_scale = numpyro.sample(
-                    "a_fixed_scale", dist.HalfNormal(30.)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_fixed = numpyro.sample(
                         "a_fixed", dist.TruncatedNormal(
-                            a_fixed_mean, a_fixed_scale, low=0
+                            a_fixed_loc, a_fixed_scale, low=0
                         )
                     )
 
-        # Random Effects (Delta)
-        a_random_mean, a_random_scale = self.a_random_mean, self.a_random_scale
+        # Delta
+        a_random_loc, a_random_scale = self.a_random_loc, self.a_random_scale
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_random", n_random):
-                # a_random_mean = numpyro.sample(
-                #     "a_random_mean", dist.Normal(0., 20.)
-                # )
-                # a_random_scale = numpyro.sample(
-                #     "a_random_scale", dist.HalfNormal(30.)
-                # )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_random = numpyro.sample(
-                        "a_random", dist.Normal(a_random_mean, a_random_scale)
+                        "a_random", dist.Normal(a_random_loc, a_random_scale)
                     )
 
                     # Penalty for negative a
@@ -221,52 +192,30 @@ class Simulator(GammaModel):
                         "penalty_for_negative_a", -penalty_for_negative_a
                     )
 
+        # Hyper-priors
+        b_scale = numpyro.sample(
+            "b_scale", dist.HalfNormal(5.)
+        )
+
+        L_scale = numpyro.sample(
+            "L_scale", dist.HalfNormal(.5)
+        )
+        ell_scale = numpyro.sample(
+            "ell_scale", dist.HalfNormal(10.)
+        )
+        H_scale = numpyro.sample(
+            "H_scale", dist.HalfNormal(5.)
+        )
+
+        c_1_scale = numpyro.sample(
+            "c_1_scale", dist.HalfNormal(5.)
+        )
+        c_2_scale = numpyro.sample(
+            "c_2_scale", dist.HalfNormal(5.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Global Priors
-            b_scale_global_scale = numpyro.sample(
-                "b_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            L_scale_global_scale = numpyro.sample(
-                "L_scale_global_scale", dist.HalfNormal(.5)
-            )
-            ell_scale_global_scale = numpyro.sample(
-                "ell_scale_global_scale", dist.HalfNormal(10.)
-            )
-            H_scale_global_scale = numpyro.sample(
-                "H_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            c_1_scale_global_scale = numpyro.sample(
-                "c_1_scale_global_scale", dist.HalfNormal(5.)
-            )
-            c_2_scale_global_scale = numpyro.sample(
-                "c_2_scale_global_scale", dist.HalfNormal(5.)
-            )
-
             with numpyro.plate(site.n_features[1], n_features[1]):
-                # Hyper-priors
-                b_scale = numpyro.sample(
-                    "b_scale", dist.HalfNormal(b_scale_global_scale)
-                )
-
-                L_scale = numpyro.sample(
-                    "L_scale", dist.HalfNormal(L_scale_global_scale)
-                )
-                ell_scale = numpyro.sample(
-                    "ell_scale", dist.HalfNormal(ell_scale_global_scale)
-                )
-                H_scale = numpyro.sample(
-                    "H_scale", dist.HalfNormal(H_scale_global_scale)
-                )
-
-                c_1_scale = numpyro.sample(
-                    "c_1_scale", dist.HalfNormal(c_1_scale_global_scale)
-                )
-                c_2_scale = numpyro.sample(
-                    "c_2_scale", dist.HalfNormal(c_2_scale_global_scale)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     # Priors
                     a = numpyro.deterministic(
@@ -333,36 +282,36 @@ class HierarchicalBayesianModel(GammaModel):
         n_fixed = 1
         n_random = n_features[1] - 1
 
-        # Fixed Effects (Baseline)
+        # Fixed
+        a_fixed_loc = numpyro.sample(
+            "a_fixed_loc", dist.TruncatedNormal(50., 20., low=0)
+        )
+        a_fixed_scale = numpyro.sample(
+            "a_fixed_scale", dist.HalfNormal(30.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_fixed", n_fixed):
-                a_fixed_mean = numpyro.sample(
-                    "a_fixed_mean", dist.TruncatedNormal(50., 20., low=0)
-                )
-                a_fixed_scale = numpyro.sample(
-                    "a_fixed_scale", dist.HalfNormal(30.)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_fixed = numpyro.sample(
                         "a_fixed", dist.TruncatedNormal(
-                            a_fixed_mean, a_fixed_scale, low=0
+                            a_fixed_loc, a_fixed_scale, low=0
                         )
                     )
 
-        # Random Effects (Delta)
+        # Delta
+        a_random_loc = numpyro.sample(
+            "a_random_loc", dist.Normal(0., 20.)
+        )
+        a_random_scale = numpyro.sample(
+            "a_random_scale", dist.HalfNormal(30.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_random", n_random):
-                a_random_mean = numpyro.sample(
-                    "a_random_mean", dist.Normal(0., 20.)
-                )
-                a_random_scale = numpyro.sample(
-                    "a_random_scale", dist.HalfNormal(30.)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_random = numpyro.sample(
-                        "a_random", dist.Normal(a_random_mean, a_random_scale)
+                        "a_random", dist.Normal(a_random_loc, a_random_scale)
                     )
 
                     # Penalty for negative a
@@ -373,52 +322,30 @@ class HierarchicalBayesianModel(GammaModel):
                         "penalty_for_negative_a", -penalty_for_negative_a
                     )
 
+        # Hyper-priors
+        b_scale = numpyro.sample(
+            "b_scale", dist.HalfNormal(5.)
+        )
+
+        L_scale = numpyro.sample(
+            "L_scale", dist.HalfNormal(.5)
+        )
+        ell_scale = numpyro.sample(
+            "ell_scale", dist.HalfNormal(10.)
+        )
+        H_scale = numpyro.sample(
+            "H_scale", dist.HalfNormal(5.)
+        )
+
+        c_1_scale = numpyro.sample(
+            "c_1_scale", dist.HalfNormal(5.)
+        )
+        c_2_scale = numpyro.sample(
+            "c_2_scale", dist.HalfNormal(5.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Global Priors
-            b_scale_global_scale = numpyro.sample(
-                "b_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            L_scale_global_scale = numpyro.sample(
-                "L_scale_global_scale", dist.HalfNormal(.5)
-            )
-            ell_scale_global_scale = numpyro.sample(
-                "ell_scale_global_scale", dist.HalfNormal(10.)
-            )
-            H_scale_global_scale = numpyro.sample(
-                "H_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            c_1_scale_global_scale = numpyro.sample(
-                "c_1_scale_global_scale", dist.HalfNormal(5.)
-            )
-            c_2_scale_global_scale = numpyro.sample(
-                "c_2_scale_global_scale", dist.HalfNormal(5.)
-            )
-
             with numpyro.plate(site.n_features[1], n_features[1]):
-                # Hyper-priors
-                b_scale = numpyro.sample(
-                    "b_scale", dist.HalfNormal(b_scale_global_scale)
-                )
-
-                L_scale = numpyro.sample(
-                    "L_scale", dist.HalfNormal(L_scale_global_scale)
-                )
-                ell_scale = numpyro.sample(
-                    "ell_scale", dist.HalfNormal(ell_scale_global_scale)
-                )
-                H_scale = numpyro.sample(
-                    "H_scale", dist.HalfNormal(H_scale_global_scale)
-                )
-
-                c_1_scale = numpyro.sample(
-                    "c_1_scale", dist.HalfNormal(c_1_scale_global_scale)
-                )
-                c_2_scale = numpyro.sample(
-                    "c_2_scale", dist.HalfNormal(c_2_scale_global_scale)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     # Priors
                     a = numpyro.deterministic(
@@ -485,28 +412,6 @@ class NonHierarchicalBayesianModel(GammaModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
                 with numpyro.plate(site.n_features[0], n_features[0]):
-                    # Global Priors
-                    b_scale_global_scale = numpyro.sample(
-                        "b_scale_global_scale", dist.HalfNormal(5.)
-                    )
-
-                    L_scale_global_scale = numpyro.sample(
-                        "L_scale_global_scale", dist.HalfNormal(.5)
-                    )
-                    ell_scale_global_scale = numpyro.sample(
-                        "ell_scale_global_scale", dist.HalfNormal(10.)
-                    )
-                    H_scale_global_scale = numpyro.sample(
-                        "H_scale_global_scale", dist.HalfNormal(5.)
-                    )
-
-                    c_1_scale_global_scale = numpyro.sample(
-                        "c_1_scale_global_scale", dist.HalfNormal(5.)
-                    )
-                    c_2_scale_global_scale = numpyro.sample(
-                        "c_2_scale_global_scale", dist.HalfNormal(5.)
-                    )
-
                     # Hyper-priors
                     a_loc = numpyro.sample(
                         "a_loc", dist.TruncatedNormal(50., 20., low=0)
@@ -514,24 +419,24 @@ class NonHierarchicalBayesianModel(GammaModel):
                     a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
 
                     b_scale = numpyro.sample(
-                        "b_scale", dist.HalfNormal(b_scale_global_scale)
+                        "b_scale", dist.HalfNormal(5.)
                     )
 
                     L_scale = numpyro.sample(
-                        "L_scale", dist.HalfNormal(L_scale_global_scale)
+                        "L_scale", dist.HalfNormal(.5)
                     )
                     ell_scale = numpyro.sample(
-                        "ell_scale", dist.HalfNormal(ell_scale_global_scale)
+                        "ell_scale", dist.HalfNormal(10.)
                     )
                     H_scale = numpyro.sample(
-                        "H_scale", dist.HalfNormal(H_scale_global_scale)
+                        "H_scale", dist.HalfNormal(5.)
                     )
 
                     c_1_scale = numpyro.sample(
-                        "c_1_scale", dist.HalfNormal(c_1_scale_global_scale)
+                        "c_1_scale", dist.HalfNormal(5.)
                     )
                     c_2_scale = numpyro.sample(
-                        "c_2_scale", dist.HalfNormal(c_2_scale_global_scale)
+                        "c_2_scale", dist.HalfNormal(5.)
                     )
 
                     # Priors

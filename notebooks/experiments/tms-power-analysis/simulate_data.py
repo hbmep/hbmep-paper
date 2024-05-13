@@ -33,12 +33,12 @@ POSTERIOR_PATH = os.path.join(LEARN_POSTERIOR_DIR, INFERENCE_FILE)
 MIN_VALID_DRAWS = 2000
 
 
-def main(a_random_mean, a_random_scale, build_dir):
+def main(a_random_loc, a_random_scale, build_dir):
     # Build simulator
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = build_dir
     simulator = Simulator(
-        config=config, a_random_mean=a_random_mean, a_random_scale=a_random_scale
+        config=config, a_random_loc=a_random_loc, a_random_scale=a_random_scale
     )
 
     # Set up logging
@@ -99,16 +99,16 @@ def main(a_random_mean, a_random_scale, build_dir):
     remaining_sites = sorted(list(posterior_samples.keys()))
     logger.info(f"Remaining sites: {remaining_sites}")
 
-    # Tile along the intervention dimension
-    for u, v in posterior_samples.items():
-        if u in ["a_fixed_mean", "a_fixed_scale"]:
-            continue
+    # # Tile along the intervention dimension
+    # for u, v in posterior_samples.items():
+    #     if u in ["a_fixed_loc", "a_fixed_scale"]:
+    #         continue
 
-        if v.ndim == 3:
-            posterior_samples[u] = np.tile(v, (1, 2, 1))
+    #     if v.ndim == 3:
+    #         posterior_samples[u] = np.tile(v, (1, 2, 1))
 
-    for u, v in posterior_samples.items():
-        logger.info(f"{u}: {v.shape}")
+    # for u, v in posterior_samples.items():
+    #     logger.info(f"{u}: {v.shape}")
 
     # Simulate
     logger.info(f"Simulating new subjects ...")
