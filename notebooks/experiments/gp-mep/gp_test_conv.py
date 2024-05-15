@@ -34,6 +34,13 @@ def convolve_wrapper(gp_bio1_core, f):
 
 convolve_vectorized = vmap(convolve_wrapper, in_axes=(None, 0))
 
+# Define the convolution operation for 1D inputs
+def convolve_wrapper_stack(gp_bio1_core_row, filter_row):
+    return jnp.convolve(gp_bio1_core_row, filter_row, mode='same')
+
+# Adjust the vmap to vectorize across corresponding rows of both inputs
+convolve_vectorized_stack = vmap(convolve_wrapper_stack, in_axes=(0, 0))
+
 def concentration(mu, beta):
     return jnp.multiply(mu, beta)
 
@@ -173,6 +180,22 @@ def model(X, t, Y=None):
             gp_bio_stacked = gp_bio_stacked.at[:, i].set(gp_bio_core)
             # gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
             # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
+    elif str_mep_shape == "gp_stacked":
+        gp_bio_stacked = jnp.zeros((X.shape[0], t.shape[0], n_bio))
+        for i in range(0, n_bio):
+            # Sample core GP for each bio component
+            # need to think about why you need the noise in these GPs ...
+            noise_bio = 1e-2  # numpyro.sample(f"noise_bio{i}", dist.LogNormal(0.0, 1e-6))
+            length_bio = 1  # numpyro.sample(f"length_bio{i}", dist.HalfNormal(1.0))
+            kernel_bio = kernel(t, t, 1.0, length_bio, noise_bio)
+            mvn_dist = dist.MultivariateNormal(loc=jnp.zeros(t.shape[0]), covariance_matrix=kernel_bio)
+            gp_bio_core = numpyro.sample(f"gp_bio_core{i}",
+                                         mvn_dist, sample_shape=(X.shape[0],))
+            gp_bio_core_expanded = gp_bio_core[:, :, None]  # Add a new axis at the end
+            gp_bio_stacked = jax.lax.dynamic_update_slice(gp_bio_stacked, gp_bio_core_expanded, (0, 0, i))
+            # gp_bio_stacked = gp_bio_stacked.at[:, i].set(gp_bio_core)
+            # gp_norm = numpyro.deterministic(f"gp_norm{i}", jnp.sum((gp_bio_core[1:] + gp_bio_core[:-1]) / 2))
+            # gp_bio_norm = numpyro.deterministic(f"gp_bio_norm{i}", gp_bio_core / gp_norm)  # works but... much worse
     elif str_mep_shape == "basis1":
         basis_functions = gaussian_basis_vectorized(t, basis_means, basis_variance)
         gp_bio_stacked = jnp.zeros((t.shape[0], n_bio))
@@ -205,8 +228,10 @@ def model(X, t, Y=None):
                                                                                                covariance_matrix=cov_with_constant))
 
     ## TODO: consider looking at the impact of the mean subtraction on the filtering operation
-    str_orth = "cost"
-    if str_orth == "svd":
+    str_orth = "none"
+    if str_orth == "none" or str_mep_shape == 'gp_stacked':
+        gp_bio_stacked_ = gp_bio_stacked
+    elif str_orth == "svd":
         gp_bio_stacked_ = apply_svd(gp_bio_stacked)
     elif str_orth == "cost":
         I = jnp.eye(n_bio)  # Identity matrix of size N
@@ -215,11 +240,13 @@ def model(X, t, Y=None):
         lambda_ = 1.0  # This is a hyperparameter to be tuned
         numpyro.factor("orthogonality_penalty", -lambda_ * penalty)
         gp_bio_stacked_ = gp_bio_stacked
-    elif str_orth == "none":
-        gp_bio_stacked_ = gp_bio_stacked
+
 
     for i in range(0, n_bio):
-        gp_bio_core = gp_bio_stacked_[:, i]
+        if str_mep_shape == "gp_stacked":
+            gp_bio_core = gp_bio_stacked_[:, :, i]
+        else:
+            gp_bio_core = gp_bio_stacked_[:, i]
         shift_type = 'gp'
         if shift_type == 'gp':
             noise_shift = 1e-4  # numpyro.sample(f"noise_shift{i}", dist.HalfNormal(1e-4))
@@ -239,7 +266,11 @@ def model(X, t, Y=None):
 
         variance = numpyro.deterministic(f'variance{i}', v_global)
         filter_stack = generate_filter_stack(time_range[:, None], shift, variance)
-        gp_bio = convolve_vectorized(gp_bio_core, filter_stack)
+        if str_mep_shape == "gp_stacked":
+            gp_bio = convolve_vectorized_stack(gp_bio_core, filter_stack)
+        else:
+            gp_bio = convolve_vectorized(gp_bio_core, filter_stack)
+
 
         # Scale each gp_bio component
         b_bio = numpyro.sample(f"b_bio{i}", dist.HalfNormal(b_bio_parent))
