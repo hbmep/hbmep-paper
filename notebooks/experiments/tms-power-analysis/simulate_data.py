@@ -33,12 +33,12 @@ POSTERIOR_PATH = os.path.join(LEARN_POSTERIOR_DIR, INFERENCE_FILE)
 MIN_VALID_DRAWS = 2000
 
 
-def main(a_random_loc, a_random_scale, build_dir):
+def main(a_delta_loc, a_delta_scale, build_dir):
     # Build simulator
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = build_dir
     simulator = Simulator(
-        config=config, a_random_loc=a_random_loc, a_random_scale=a_random_scale
+        config=config, a_delta_loc=a_delta_loc, a_delta_scale=a_delta_scale
     )
 
     # Set up logging

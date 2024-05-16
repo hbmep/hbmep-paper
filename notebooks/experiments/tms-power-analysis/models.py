@@ -22,7 +22,7 @@ class LearnPosterior(GammaModel):
         feature1 = features[..., 1]
 
         n_fixed = 1
-        # n_random = n_features[1] - 1
+        # n_delta = n_features[1] - 1
 
         # Fixed
         a_fixed_loc = numpyro.sample(
@@ -42,23 +42,23 @@ class LearnPosterior(GammaModel):
                     )
 
         # # Delta
-        # a_random_loc = numpyro.sample(
-        #     "a_random_loc", dist.Normal(0., 20.)
+        # a_delta_loc = numpyro.sample(
+        #     "a_delta_loc", dist.Normal(0., 20.)
         # )
-        # a_random_scale = numpyro.sample(
-        #     "a_random_scale", dist.HalfNormal(30.)
+        # a_delta_scale = numpyro.sample(
+        #     "a_delta_scale", dist.HalfNormal(30.)
         # )
 
         # with numpyro.plate(site.n_response, self.n_response):
-        #     with numpyro.plate("n_random", n_random):
+        #     with numpyro.plate("n_delta", n_delta):
         #         with numpyro.plate(site.n_features[0], n_features[0]):
-        #             a_random = numpyro.sample(
-        #                 "a_random", dist.Normal(a_random_loc, a_random_scale)
+        #             a_delta = numpyro.sample(
+        #                 "a_delta", dist.Normal(a_delta_loc, a_delta_scale)
         #             )
 
         #             # Penalty for negative a
         #             penalty_for_negative_a = (
-        #                 jnp.fabs(a_fixed + a_random) - (a_fixed + a_random)
+        #                 jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
         #             )
         #             numpyro.factor(
         #                 "penalty_for_negative_a", -penalty_for_negative_a
@@ -92,7 +92,7 @@ class LearnPosterior(GammaModel):
                     # Priors
                     # a = numpyro.deterministic(
                     #     site.a,
-                    #     jnp.concatenate([a_fixed, a_fixed + a_random], axis=1)
+                    #     jnp.concatenate([a_fixed, a_fixed + a_delta], axis=1)
                     # )
                     a = numpyro.deterministic(site.a, a_fixed)
 
@@ -143,10 +143,10 @@ class LearnPosterior(GammaModel):
 class Simulator(GammaModel):
     NAME = "simulator"
 
-    def __init__(self, config: Config, a_random_loc, a_random_scale):
+    def __init__(self, config: Config, a_delta_loc, a_delta_scale):
         super(Simulator, self).__init__(config=config)
-        self.a_random_loc = a_random_loc
-        self.a_random_scale = a_random_scale
+        self.a_delta_loc = a_delta_loc
+        self.a_delta_scale = a_delta_scale
 
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
@@ -155,7 +155,7 @@ class Simulator(GammaModel):
         feature1 = features[..., 1]
 
         n_fixed = 1
-        n_random = n_features[1] - 1
+        n_delta = n_features[1] - 1
 
         # Fixed
         a_fixed_loc = numpyro.sample(
@@ -175,18 +175,18 @@ class Simulator(GammaModel):
                     )
 
         # Delta
-        a_random_loc, a_random_scale = self.a_random_loc, self.a_random_scale
+        a_delta_loc, a_delta_scale = self.a_delta_loc, self.a_delta_scale
 
         with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("n_random", n_random):
+            with numpyro.plate("n_delta", n_delta):
                 with numpyro.plate(site.n_features[0], n_features[0]):
-                    a_random = numpyro.sample(
-                        "a_random", dist.Normal(a_random_loc, a_random_scale)
+                    a_delta = numpyro.sample(
+                        "a_delta", dist.Normal(a_delta_loc, a_delta_scale)
                     )
 
                     # Penalty for negative a
                     penalty_for_negative_a = (
-                        jnp.fabs(a_fixed + a_random) - (a_fixed + a_random)
+                        jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
                     )
                     numpyro.factor(
                         "penalty_for_negative_a", -penalty_for_negative_a
@@ -220,7 +220,7 @@ class Simulator(GammaModel):
                     # Priors
                     a = numpyro.deterministic(
                         site.a,
-                        jnp.concatenate([a_fixed, a_fixed + a_random], axis=1)
+                        jnp.concatenate([a_fixed, a_fixed + a_delta], axis=1)
                     )
 
                     b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
@@ -280,7 +280,7 @@ class HierarchicalBayesianModel(GammaModel):
         feature1 = features[..., 1]
 
         n_fixed = 1
-        n_random = n_features[1] - 1
+        n_delta = n_features[1] - 1
 
         # Fixed
         a_fixed_loc = numpyro.sample(
@@ -300,23 +300,23 @@ class HierarchicalBayesianModel(GammaModel):
                     )
 
         # Delta
-        a_random_loc = numpyro.sample(
-            "a_random_loc", dist.Normal(0., 20.)
+        a_delta_loc = numpyro.sample(
+            "a_delta_loc", dist.Normal(0., 20.)
         )
-        a_random_scale = numpyro.sample(
-            "a_random_scale", dist.HalfNormal(30.)
+        a_delta_scale = numpyro.sample(
+            "a_delta_scale", dist.HalfNormal(30.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("n_random", n_random):
+            with numpyro.plate("n_delta", n_delta):
                 with numpyro.plate(site.n_features[0], n_features[0]):
-                    a_random = numpyro.sample(
-                        "a_random", dist.Normal(a_random_loc, a_random_scale)
+                    a_delta = numpyro.sample(
+                        "a_delta", dist.Normal(a_delta_loc, a_delta_scale)
                     )
 
                     # Penalty for negative a
                     penalty_for_negative_a = (
-                        jnp.fabs(a_fixed + a_random) - (a_fixed + a_random)
+                        jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
                     )
                     numpyro.factor(
                         "penalty_for_negative_a", -penalty_for_negative_a
@@ -350,7 +350,7 @@ class HierarchicalBayesianModel(GammaModel):
                     # Priors
                     a = numpyro.deterministic(
                         site.a,
-                        jnp.concatenate([a_fixed, a_fixed + a_random], axis=1)
+                        jnp.concatenate([a_fixed, a_fixed + a_delta], axis=1)
                     )
 
                     b = numpyro.sample(site.b, dist.HalfNormal(b_scale))

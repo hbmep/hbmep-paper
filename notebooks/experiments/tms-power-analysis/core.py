@@ -132,19 +132,19 @@ def main(simulation_data_dir, build_dir):
                 np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                 np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                a_random_loc = posterior_samples["a_random_loc"]
-                a_random_scale = posterior_samples["a_random_scale"]
-                np.save(os.path.join(model.build_dir, "a_random_loc.npy"), a_random_loc)
-                np.save(os.path.join(model.build_dir, "a_random_scale.npy"), a_random_scale)
+                a_delta_loc = posterior_samples["a_delta_loc"]
+                a_delta_scale = posterior_samples["a_delta_scale"]
+                np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
+                np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
                 a_true, a_pred = None, None
-                a_random_loc, a_random_scale = None, None
+                a_delta_loc, a_delta_scale = None, None
                 del config, df, prediction_df, encoder_dict, _
                 del model, posterior_samples, posterior_predictive
                 del a_true, a_pred
-                del a_random_loc, a_random_scale
+                del a_delta_loc, a_delta_scale
                 gc.collect()
 
             # Non-hierarchical models: non-hierarchical Bayesian
@@ -297,11 +297,11 @@ def main(simulation_data_dir, build_dir):
     ## Uncomment the following to run
     ## experiment for different models
 
-    # # Run hierarchical models
-    # n_subjects_space = N_SUBJECTS_SPACE
-    # models = [
-    #     HierarchicalBayesianModel
-    # ]
+    # Run hierarchical models
+    n_subjects_space = N_SUBJECTS_SPACE
+    models = [
+        HierarchicalBayesianModel
+    ]
 
     # # Run non-hierarchical models including
     # # non-hierarchical Bayesian and Maximum Likelihood
@@ -311,9 +311,9 @@ def main(simulation_data_dir, build_dir):
     #     MaximumLikelihoodModel
     # ]
 
-    # Run non-hierarchical Nelder-Mead optimization
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    models = [NelderMeadOptimization]
+    # # Run non-hierarchical Nelder-Mead optimization
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [NelderMeadOptimization]
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
