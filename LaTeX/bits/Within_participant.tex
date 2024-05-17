@@ -40,34 +40,17 @@
             \plate[inner sep=.25cm, yshift=.2cm] {plate_participant} {(a)(b)(L)(H)(ell)(g1)(g2)(plate_obs)} {$\text{participant } p:1, 2 \ldots N_P$};
 
             % % HYPER-PRIORS
-            \node[latent,above=of b,fill] (b_scale) {$\sigma_b$};
+            \node[latent,above=of b,yshift=.5cm,fill] (b_scale) {$\sigma_b$};
             % g1_scale, g2_scale, L_scale, H_scale, v_scale, ell_scale
-            \node[latent,above=of g2,fill] (g2_scale) {$\sigma_{c_2}$};
-            \node[latent,above=of g1,fill] (g1_scale) {$\sigma_{c_1}$};
-            \node[latent,above=of L,fill] (L_scale) {$\sigma_L$};
-            \node[latent,above=of H,fill] (H_scale) {$\sigma_H$};
+            \node[latent,above=of g2,yshift=.5cm,fill] (g2_scale) {$\sigma_{c_2}$};
+            \node[latent,above=of g1,yshift=.5cm,fill] (g1_scale) {$\sigma_{c_1}$};
+            \node[latent,above=of L,yshift=.5cm,fill] (L_scale) {$\sigma_L$};
+            \node[latent,above=of H,yshift=.5cm,fill] (H_scale) {$\sigma_H$};
             % \node[latent,above=of v,fill] (v_scale) {$\sigma_v$};
-            \node[latent,above=of ell,fill] (ell_scale) {$\sigma_\ell$};
+            \node[latent,above=of ell,yshift=.5cm,fill] (ell_scale) {$\sigma_\ell$};
 
             % Groups plate
-            \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(b_scale)(g1_scale)(g2_scale)(L_scale)(H_scale)(ell_scale)(plate_participant)} {$\text{repetition }r: 1, 2 \ldots N_R$};
-
-            % GLOBAL PRIORS
-            \node[latent,above=of g2_scale,xshift=.05cm,fill] (g2_scale_global_scale) {$\sigma_{\sigma_{c_1}}$};
-            \node[latent,above=of g1_scale,xshift=-.05cm,fill] (g1_scale_global_scale) {$\sigma_{\sigma_{c_2}}$};
-            \node[latent,above=of b_scale,fill] (b_scale_global_scale) {$\sigma_{\sigma_{b}}$};
-            \node[latent,above=of L_scale,fill] (L_scale_global_scale) {$\sigma_{\sigma_L}$};
-            \node[latent,above=of H_scale,fill] (H_scale_global_scale) {$\sigma_{\sigma_H}$};
-            % \node[latent,above=of v_scale,fill] (v_scale_global_scale) {$\sigma_{\sigma_v}$};
-            \node[latent,above=of ell_scale,fill] (ell_scale_global_scale) {$\sigma_{\sigma_\ell}$};
-
-            % Edges from Global-priors to Priors
-            \edge {g1_scale_global_scale} {g1_scale}
-            \edge {g2_scale_global_scale} {g2_scale}
-            \edge {b_scale_global_scale} {b_scale}
-            \edge {L_scale_global_scale} {L_scale}
-            \edge {H_scale_global_scale} {H_scale}
-            \edge {ell_scale_global_scale} {ell_scale}
+            \plate[inner sep=.25cm, yshift=.2cm] {plate_group} {(plate_participant)} {$\text{repetition }r: 1, 2 \ldots N_R$};
 
             % Edges from Hyper-priors to Priors
             \edge {g1_scale} {g1}
@@ -87,9 +70,9 @@
             \edge {mu} {beta};
 
             % Fixed
-            \node[latent,left=of a,xshift=-3cm,yshift=1.2cm,fill] (a_fixed) {$a_{\text{fixed}}$};
-            \node[latent,above=of a_fixed,xshift=-.6cm,yshift=-.5cm,fill] (a_fixed_mean) {$\mu_{a_{\text{fixed}}}$};
-            \node[latent,above=of a_fixed,xshift=.6cm,yshift=-.5cm,fill] (a_fixed_scale) {$\sigma_{a_{\text{fixed}}}$};
+            \node[latent,left=of a,xshift=-3cm,yshift=0cm,fill] (a_fixed) {$a_{\text{fixed}}$};
+            \node[latent,above=of a_fixed,xshift=-.6cm,yshift=.2cm,fill] (a_fixed_mean) {$\mu_{a_{\text{fixed}}}$};
+            \node[latent,above=of a_fixed,xshift=.6cm,yshift=.2cm,fill] (a_fixed_scale) {$\sigma_{a_{\text{fixed}}}$};
             % \plate[inner sep=.1cm, yshift=.0cm] {plate_participant_fixed} {(a_fixed)} {$p: 1, 2 \ldots N_P$};
             % \plate[inner sep=.1cm, yshift=.0cm] {plate_group_fixed} {(a_fixed_mean)(a_fixed_scale)(plate_participant_fixed)} {$h: 1$};
             \tikzset{plate caption/.style={caption, node distance=0, inner sep=0cm,
@@ -97,18 +80,20 @@
             \plate {plate_participant_fixed} {(a_fixed)} {$p: 1, 2 \ldots N_P$};
             \tikzset{plate caption/.style={caption, node distance=0, inner sep=-.1cm,
             below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.1em}}
-            \plate {plate_group_fixed} {(a_fixed_mean)(a_fixed_scale)(plate_participant_fixed)} {$r: 1$};
+            \plate {plate_group_fixed} {(plate_participant_fixed)} {$r: 1$};
 
             % Random
-            \node[latent,below=of a_fixed,yshift=-3cm,fill,minimum size=.9cm] (a_random) {$a_\Delta$};
-            \node[latent,above=of a_random,xshift=-.7cm,yshift=-.5cm,fill,minimum size=.9cm] (a_random_mean) {$\mu_{a_{\Delta}}$};
-            \node[latent,above=of a_random,xshift=.7cm,yshift=-.5cm,fill,minimum size=.9cm] (a_random_scale) {$\sigma_{a_{\Delta}}$};
+            \node[latent,below=of a_fixed,yshift=-2.3cm,fill,minimum size=.9cm] (a_random) {$a_\Delta$};
+            \node[latent,above=of a_random,yshift=-.5cm,fill,minimum size=.9cm] (a_random_mean) {$\mu_{a_{\Delta}}$};
+            \node[latent,left=of a_random,xshift=-.5cm,fill,minimum size=.9cm] (a_random_scale) {$\sigma_{a_{\Delta}}$};
+            \node[latent,left=of a_random_mean,xshift=-.5cm,yshift=1.2cm,fill,minimum size=.9cm] (a_random_loc_loc) {$\mu_{\mu_{a_{\Delta}}}$};
+            \node[latent,left=of a_random_mean,xshift=-.5cm,yshift=-.0cm,fill,minimum size=.9cm] (a_random_loc_scale) {$\sigma_{\mu_{a_{\Delta}}}$};
             \tikzset{plate caption/.style={caption, node distance=0, inner sep=0cm,
             below left=0cm and -1cm of #1.south,text height=1.2em,text depth=0.1em}}
             \plate {plate_participant_random} {(a_random)} {$p: 1, 2 \ldots N_P$};
             \tikzset{plate caption/.style={caption, node distance=0, inner sep=-.05cm,
             below left=0cm and -1.2cm of #1.south,text height=1.2em,text depth=0.1em}}
-            \plate {plate_group_random} {(a_random_mean)(a_random_scale)(plate_participant_random)} {$r: 2, 3 \ldots N_R$};
+            \plate {plate_group_random} {(a_random_mean)(plate_participant_random)} {$r: 2, 3 \ldots N_R$};
 
             % Edges for fixed
             \edge {a_fixed_mean, a_fixed_scale} {a_fixed}
@@ -119,9 +104,12 @@
             % Edges from a_fixed and a_random to deterministic a
             \edge {a_fixed, a_random} {a}
 
+            \edge {a_random_loc_loc,a_random_loc_scale} {a_random_mean}
+
             \tikzset{plate caption/.style={caption, node distance=0, inner sep=-.05cm,
             below left=0cm and -5.2cm of #1.south,text height=1.2em,text depth=0.1em}}
-            \plate {plate_muscle} {(g2_scale_global_scale)(g1_scale_global_scale)(b_scale_global_scale)(L_scale_global_scale)(ell_scale_global_scale)(H_scale_global_scale)(plate_group)(plate_group_fixed)(plate_group_random)} {$\text{muscle }m : 1, 2 \ldots N_M$};
+            \plate {plate_muscle} {(plate_group)(plate_group_fixed)(plate_group_random)} {$\text{muscle }m : 1, 2 \ldots N_M$};
+            % \plate {plate_muscle} {(plate_group)} {$\text{muscle }m : 1, 2 \ldots N_M$};
 
         }
     \end{figure}

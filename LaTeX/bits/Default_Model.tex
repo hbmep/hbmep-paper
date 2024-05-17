@@ -6,10 +6,11 @@
 \usepackage{float}
 \usetikzlibrary{bayesnet}
 \DeclareMathOperator{\E}{\mathbb{E}}
+\usepackage{biblatex}
 
 \begin{document}
 
-The simplest form of a standard 3-stage hierarchical Bayesian model in the context of modeling MEP size can be described as follows. Let there be $N_P$ exchangeable sequences $\left\{\left({x_i}^p, {y_i}^p\right)_{i=1}^{n(p)} \mid j = 1, 2 \ldots N_P\right\}$ of MEP sizes ${y_i}^p \in \mathbb{R}^+$ recorded at stimulation intensity ${x_i}^p \in \mathbb{R}_0^+$ from $p^{\text{th}}$ participant, for  a total of $N_P$ participants. Here $n(p)$ denotes the number of intensities tested for $p^{\text{th}}$ participant.\\
+% The simplest form of a standard 3-stage hierarchical Bayesian model in the context of modeling MEP size can be described as follows. Let there be $N_P$ exchangeable sequences $\left\{\left({x_i}^p, {y_i}^p\right)_{i=1}^{n(p)} \mid j = 1, 2 \ldots N_P\right\}$ of MEP sizes ${y_i}^p \in \mathbb{R}^+$ recorded at stimulation intensity ${x_i}^p \in \mathbb{R}_0^+$ from $p^{\text{th}}$ participant, for  a total of $N_P$ participants. Here $n(p)$ denotes the number of intensities tested for $p^{\text{th}}$ participant.\\
 
 The first stage of hierarchy is the \textit{participant-level} and specifies parametric model $P\left({y_i}^p \mid {x_i}^p, \theta^p\right)$ for each of the $N_P$ participants and models the MEP size ${y_i}^p$ as a function of stimulus intensity ${x_i}^p$ and participant-specific parameters $\theta^p$. In the second stage, $\theta_1, \theta_2 \ldots \theta^P$ are assumed to be exchangeable and generated from a common distribution $P\left(\theta^p \mid \gamma\right)$ with hyper-parameters $\gamma$. In the third stage, the hyper-parameters $\gamma$ are assumed to be unknown and assigned \textit{weakly-informative} prior, also called hyperprior-density $P\left(\gamma\right)$.
 \begin{align*}
@@ -22,26 +23,26 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
     \centering
     \tikz{ %
         % Obs
-        \node[obs,fill,] (obs) {${y_i}^{p}$};%
+        \node[obs,fill,] (obs) {${y_i}^{p,m}$};%
 
         % Deterministic mu, beta
-        \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill,] (beta) {${\beta_i}^{p}$}; %
-        \node[det,above=of obs,xshift=1.2cm,yshift=.2cm,fill,] (mu) {${\mu_i}^{p}$}; %
-        \node[obs,above=of obs,xshift=-.8cm,yshift=1.5cm,fill,] (intensity) {${x_i}^{p}$};%
+        \node[det,above=of obs,xshift=-1.2cm,yshift=-.5cm,fill,] (beta) {${\beta_i}^{p,m}$}; %
+        \node[det,above=of obs,xshift=1.2cm,yshift=.2cm,fill,] (mu) {${\mu_i}^{p,m}$}; %
+        \node[obs,above=of obs,xshift=-.8cm,yshift=1.5cm,fill,] (intensity) {${x_i}^{p,m}$};%
         \plate[inner sep=.1cm, yshift=.07cm] {plate_obs} {(obs)(mu)(beta)(intensity)} {$\text{intensity }i: 1, 2 \ldots n(p)$};
 
         % % PRIORS
         % a, b, v
-        \node[latent,above=of obs,yshift=3cm,xshift=-1cm,fill,] (a) {$a^{p}$};
-        \node[latent,right=of a,xshift=-.3cm,fill,] (b) {$b^{p}$};
+        \node[latent,above=of obs,yshift=3cm,xshift=-1cm,fill,] (a) {$a^{p,m}$};
+        \node[latent,right=of a,xshift=-.3cm,fill,] (b) {$b^{p,m}$};
         % \node[latent,right=of b,xshift=-.9cm,fill,] (v) {$v^{p}$};
         % L, ell, H
-        \node[latent,right=of b,xshift=-.9cm,fill,] (L) {$L^{p}$};
-        \node[latent,right=of L,xshift=-.9cm,fill,] (ell) {$\ell^{p}$};
-        \node[latent,right=of ell,xshift=-.9cm,fill,] (H) {$H^{p}$};
+        \node[latent,right=of b,xshift=-.9cm,fill,] (L) {$L^{p,m}$};
+        \node[latent,right=of L,xshift=-.9cm,fill,] (ell) {$\ell^{p,m}$};
+        \node[latent,right=of ell,xshift=-.9cm,fill,] (H) {$H^{p,m}$};
         % g1, g2
-        \node[latent,left=of a,xshift=.3cm,fill,] (g2) {${c_2}^{p}$};
-        \node[latent,left=of g2,xshift=.9cm,fill,] (g1) {${c_1}^{p}$};
+        \node[latent,left=of a,xshift=.3cm,fill,] (g2) {${c_2}^{p,m}$};
+        \node[latent,left=of g2,xshift=.9cm,fill,] (g1) {${c_1}^{p,m}$};
 
         % Participants plate
         \plate[inner sep=.1cm, yshift=.07cm] {plate_participant} {(a)(b)(L)(H)(ell)(g1)(g2)(plate_obs)} {$\text{participant }p : 1, 2 \ldots N_P$};
@@ -75,25 +76,26 @@ Figure $4.3.1$ shows the graphical representation of the default hierarchical mo
         \edge {intensity} {beta, mu}
         \edge {beta,mu} {obs};
         \edge {mu} {beta};
-        \plate[inner sep=.1cm, yshift=.07cm] {plate_muscle} {(a_mean)(a_scale)(b_scale)(L_scale)(ell_scale)(H_scale)(plate_participant)} {$\text{muscle }m : 1, 2 \ldots N_M$};
+        \plate[inner sep=.1cm, yshift=.07cm] {plate_muscle} {(plate_participant)} {$\text{muscle }m : 1, 2 \ldots N_M$};
     }
 \end{figure}
 
 \begin{align*}
-    &\text{Observation model} \\
-    &{y_i}^{p}\sim \text{Gamma}\left({\mu_i}^{p}\cdot{\beta_i}^{p}, {\beta_i}^{p}\right) \\
-    &{\mu_i}^{p} \gets \mathcal{F}\left({x_i}^{p} \mid a^{p}, {\Omega}^{p}\right) \\
-    &{\beta_i}^{p} \gets \frac1{{c_1}^{p}} + \frac1{{c_2}^{p}\cdot{\mu_i}^{p}}\\\\
-    &\text{Participant specific parameters} \\
-    &a^{p} \sim \text{TruncatedNormal}\left({\mu_a}, {\sigma_a}\right)\\
-    &{\theta}^{p} \sim \text{HalfNormal}\left({\sigma_{\theta}}\right) \forall \theta^{p} \in {\Omega}^{p}\\\\
-    &\text{Priors} \\
+    &\text{\RN{1}. Observation model} \\
+    &{y_i}^{p,m}\sim \text{Gamma}\left({\mu_i}^{p,m}\cdot{\beta_i}^{p,m}, {\beta_i}^{p,m}\right) \\
+    &{\mu_i}^{p,m} \gets \mathcal{F}\left({x_i}^{p,m} \mid a^{p,m}, {\Omega}^{p,m}\right) \\
+    &{\beta_i}^{p,m} \gets \frac1{{c_1}^{p,m}} + \frac1{{c_2}^{p,m}\cdot{\mu_i}^{p,m}}\\\\
+    &\text{\RN{2}. Participant-level parameters} \\
+    &a^{p,m} \sim \text{TruncatedNormal}\left({\mu_a}, {\sigma_a}\right)\\
+    &{\theta}^{p,m} \sim \text{HalfNormal}\left({\sigma_{\theta}}\right) \;\;\forall \theta^{p,m} \in {\Omega}^{p,m}\\\\
+    &\text{\RN{3}. Population-level parameters} \\
     & {\mu_a} \sim \text{TruncatedNormal}\left(50, 20\right)\\
     &{\sigma_a} \sim \text{HalfNormal}\left(30\right)\\
     &{\sigma_L} \sim \text{HalfNormal}\left(0.05\right)\\
-    &{\sigma_\theta} \sim \text{HalfNormal}\left(5\right) \forall {\sigma_\theta}\in \Omega\\\\
-    &{\Omega}^{p} \gets \left\{{b}^{p}, {L}^{p}, {\ell}^{p}, {H}^{p}, {c_1}^{p}, {c_2}^{p}\right\}\\
-    &\Omega \gets \left\{{\sigma_{b}},  {\sigma_{\ell}}, {\sigma_{H}}, {\sigma_{c_1}}, {\sigma_{c_2}}\right\}
+    &{\sigma_\theta} \sim \text{HalfNormal}\left(5\right) \;\;\forall {\sigma_\theta}\in \Omega\\\\
+    &\text{Here, } x_i^{p,1} = x_i^{p,2} = \ldots = x_i^{p,N_M} \;\;\forall i\\
+    &{\Omega}^{p} \gets \left\{{b}^{p,m}, {L}^{p,m}, {\ell}^{p,m}, {H}^{p,m}, {c_1}^{p,m}, {c_2}^{p,m}\right\}\\
+    &\Omega \gets \left\{{\sigma_{b}},  {\sigma_{\ell}}, {\sigma_{H}}, {\sigma_{c_1}}, {\sigma_{c_2}}\right\}\\
 \end{align*}
 
 \end{document}
