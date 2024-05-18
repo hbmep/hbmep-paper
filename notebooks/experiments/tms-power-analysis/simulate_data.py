@@ -150,7 +150,7 @@ def main(a_delta_loc, a_delta_scale, build_dir):
 
 if __name__ == "__main__":
     # Simulate data with effect
-    main(-3., 1.5, SIMULATE_DATA_DIR)
+    main(-5., 2.5, SIMULATE_DATA_DIR)
 
     # Simulate data with no effect
-    main(0, 1.5, SIMULATE_DATA_NO_EFFECT_DIR)
+    main(0, 2.5, SIMULATE_DATA_NO_EFFECT_DIR)

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 N_REPS = TOTAL_REPS
 N_PULSES = TOTAL_PULSES
-N_SUBJECTS_SPACE = [1, 2, 4, 8, 12, 16, 20, 24]
+N_SUBJECTS_SPACE = [1, 2, 4, 8, 12, 16, 20]
 
 
 @timing
