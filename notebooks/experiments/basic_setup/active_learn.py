@@ -194,7 +194,7 @@ def main():
     config = Config(toml_path=toml_path)
     root_dir = Path(config.BUILD_DIR)
     config.BUILD_DIR = root_dir / 'simulate_data'
-    config_fast = deepcopy(config)
+    config_fast = deepcopy(config) #
     config_fast.MCMC_PARAMS['num_chains'] = 1
     config_fast.MCMC_PARAMS['num_warmup'] = 500
     config_fast.MCMC_PARAMS['num_samples'] = 1000
