@@ -1,4 +1,4 @@
-%Version 3 December 2023
+%Version 3 October 2023
 % See section 11 of the User Manual for version history
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -26,37 +26,36 @@
 %%\documentclass[pdflatex,sn-basic]{sn-jnl}% Basic Springer Nature Reference Style/Chemistry Reference Style
 
 
-%%Note: the following reference styles support Namedate and Numbered referencing. By default the style follows the most common style. To switch between the options you can add or remove Numbered in the optional parenthesis. 
+%%Note: the following reference styles support Namedate and Numbered referencing. By default the style follows the most common style. To switch between the options you can add or remove �Numbered� in the optional parenthesis. 
 %%The option is available for: sn-basic.bst, sn-vancouver.bst, sn-chicago.bst%  
  
-% \documentclass[pdflatex,sn-nature]{sn-jnl}% Style for submissions to Nature Portfolio journals
-% \documentclass[pdflatex,sn-basic]{sn-jnl}% Basic Springer Nature Reference Style/Chemistry Reference Style
-% \documentclass[pdflatex,sn-mathphys-num]{sn-jnl}% Math and Physical Sciences Numbered Reference Style 
-\documentclass[pdflatex,sn-mathphys-ay]{sn-jnl}% Math and Physical Sciences Author Year Reference Style
-%%\documentclass[pdflatex,sn-aps]{sn-jnl}% American Physical Society (APS) Reference Style
-%%\documentclass[pdflatex,sn-vancouver,Numbered]{sn-jnl}% Vancouver Reference Style
-% \documentclass[pdflatex,sn-apa]{sn-jnl}% APA Reference Style 
-% \documentclass[pdflatex,sn-chicago]{sn-jnl}% Chicago-based Humanities Reference Style
+%%\documentclass[sn-nature]{sn-jnl}% Style for submissions to Nature Portfolio journals
+%%\documentclass[sn-basic]{sn-jnl}% Basic Springer Nature Reference Style/Chemistry Reference Style
+% \documentclass[sn-mathphys-num]{sn-jnl}% Math and Physical Sciences Numbered Reference Style 
+\documentclass[sn-mathphys-ay]{sn-jnl}% Math and Physical Sciences Author Year Reference Style
+%%\documentclass[sn-aps]{sn-jnl}% American Physical Society (APS) Reference Style
+%%\documentclass[sn-vancouver,Numbered]{sn-jnl}% Vancouver Reference Style
+%%\documentclass[sn-apa]{sn-jnl}% APA Reference Style 
+%%\documentclass[sn-chicago]{sn-jnl}% Chicago-based Humanities Reference Style
 
 %%%% Standard Packages
 %%<additional latex packages if required can be included here>
 
-\usepackage{graphicx}%
-\usepackage{multirow}%
+% \usepackage{graphicx}%
+% \usepackage{multirow}%
+% \usepackage{amsmath,amssymb,amsfonts}%
 \usepackage{amsmath,amssymb,amsfonts}%
 \usepackage{amsthm}%
-\usepackage{mathrsfs}%
-\usepackage[title]{appendix}%
-\usepackage{xcolor}%
-\usepackage{textcomp}%
-\usepackage{manyfoot}%
-\usepackage{booktabs}%
-\usepackage{algorithm}%
-\usepackage{algorithmicx}%
-\usepackage{algpseudocode}%
-\usepackage{listings}%
-
-\numberwithin{equation}{subsection}
+% \usepackage{mathrsfs}%
+% \usepackage[title]{appendix}%
+% \usepackage{xcolor}%
+% \usepackage{textcomp}%
+% \usepackage{manyfoot}%
+% \usepackage{booktabs}%
+% \usepackage{algorithm}%
+% \usepackage{algorithmicx}%
+% \usepackage{algpseudocode}%
+% \usepackage{listings}%
 %%%%
 
 %%%%%=============================================================================%%%%
@@ -99,7 +98,7 @@
 %% Particle	-> \spfx{van der} -> surname prefix
 %% FamilyName	-> \sur{Ploeg}
 %% Suffix	-> \sfx{IV}
-%% \author*[1,2]{\fnm{Joergen W.} \spfx{van der} \sur{Ploeg}
+%% \author*[1,2]{\fnm{Joergen W.} \spfx{van der} \sur{Ploeg} 
 %%  \sfx{IV}}\email{iauthor@gmail.com}
 %%=============================================================%%
 
@@ -258,7 +257,12 @@ Figure \ref{fig-default}g,h specifies the default model used on human TMS data i
 
 \bigskip\noindent In Results \ref{res-choice} (Fig. \ref{fig-choice}e--g), we used the default model structure (Fig. \ref{fig-default}g) for cross-validation \cite{vehtari_practical_2017}. The participant-level parameters of the rectified-logistic function were replaced with those of rectified-linear, logistic-4 and logistic-5. Supplementary Fig. \ref{sufig-reclog-rat}--\ref{sufig-reclin-intraop} specify the models for each function on rat epidural SCS, human TMS and human epidural SCS datasets. For the rat epidural SCS data, 150 recruitment curves (RCs) were simultaneously fit on three muscles: biceps, extensor carpi radialis longus (ECR), and triceps--for a total of 450 RCs. For the human TMS data, \textbf{[**update**]} 27 RCs  were simultaneously fit on six muscles: abductor digiti minimi (ADM), abductor pollicis brevis (APB), biceps, extensor carpi radialis (ECR), flexor carpi radialis (FCR), and triceps—for a total of 114 RCs. For the human SCS data, 26 RCs were simultaneously fit on three muscles: ADM, APB, and triceps—for a total of 78 RCs. An arviz \cite{kumar_arviz_2019} implementation of cross-validation \cite{vehtari_practical_2017} was used to compute expected log-pointwise predictive density (ELPD) scores and pairwise differences between models.
 
-\bigskip\noindent In Results \ref{res-simulation} (Fig. \ref{fig-robustness}a--d), we used the default model (Fig. \ref{fig-default}g,h) to estimate participant-level and population-level parameters from TMS data in Results 2.2.1. We used data from the APB muscle, which was the target muscle for 21 of the total 27 participants. The model was conditioned on estimated participant-level parameters to replicate the observed participants (Fig. \ref{fig-robustness}b). It was conditioned on estimated population-level parameters to simulate new participants (Fig. \ref{fig-robustness}c). A principal component analysis (PCA) plot was used to visualize the participant-level parameters on a 2D plane (Fig. \ref{fig-robustness}d). The PCA map was fit on parameters simulated from the prior predictive distribution (Fig. \ref{fig-robustness}d, \textbf{??} dots). The map was used to transform parameters estimated from observed TMS participants (Fig. \ref{fig-robustness}d, \textbf{??} dots) and parameters of new simulated participants (Fig. \ref{fig-robustness}d, \textbf{??} dots).
+\bigskip\noindent In Results \ref{res-simulation} (Fig. \ref{fig-robustness}a--d), we used the default model (Fig. \ref{fig-default}g,h) to estimate participant-level and population-level parameters from TMS data in Results 2.2.1. We used data from the APB muscle $\left(N_M = 1\right)$, which was the target muscle for 21 of the total 27 participants $\left(N_P = 27\right)$. The model was conditioned on estimated participant-level parameters $\left(c_1, c_2, a \ldots H\right)$ to replicate the observed participants (Fig. \ref{fig-robustness}b). It was conditioned on estimated population-level parameters $\left(\sigma_{c_1}, \sigma_{c}, \mu_a \ldots \sigma_H\right)$ to simulate new participants (Fig. \ref{fig-robustness}c). A principal component analysis (PCA) plot was used to visualize the participant-level parameters on the cartesian plane (Fig. \ref{fig-robustness}d). The PCA map was fit on parameters simulated from the prior predictive distribution (Fig. \ref{fig-robustness}d, \textbf{??} dots). The map was used to transform parameters estimated from observed TMS participants (Fig. \ref{fig-robustness}d, \textbf{??} dots) and parameters of new simulated participants (Fig. \ref{fig-robustness}d, \textbf{??} dots).
+
+\bigskip\noindent The estimated population-level parameters consisted of 4000 posterior samples, returned by the No-U-Turn sampler (NUTS) \cite{hoffman_no-u-turn_2011}. For each posterior sample, 16 participants were simulated conditioned on estimated population-level parameters--resulting in 4000 distinct draws of 16 participants. These draws were shuffled and the thresholds of the first 2000 were used as ground truth in Results \ref{res-accuracy} (Fig. \ref{fig-robustness}e,f). The default hierarchical Bayesian (HB) model was benchmarked against three non-hierarchical models to assess the effect of partial pooling across participants--non-hierarchical Bayesian (nHB), maximum likelihood (ML), and Nelder-Mead (NM). The nHB model was implemented equivalently to the HB model, except no pooling was done across participants. The ML model was implemented by replacing the priors of the nHB model with uniform priors. The Nelder-Mead method was implemented using SciPy minimize \cite{virtanen_scipy_2020} as mean squared error between data points and the recruitment curve fit.
+
+For the HB and nHB models, the mean of the estimated threshold posterior was used as a point estimate to calculate mean absolute error from the ground truth threshold. Maximum likelihood estimation was implemented by replacing the priors of the non-hierarchical Bayesian model with uniform priors, and the mean of the estimated threshold posterior was used as a point estimate. The Nelder-Mead method was implemented using SciPy minimize (Virtanen et al., 2020) as mean squared error between data points and the recruitment curve fit. The method was re-initialized 100 times with different starting points and the one that resulted in minimum cost function was used to estimate the threshold.
+
 
 \subsubsection{Within-participants comparison}
 This section presents a hierarchical model that is useful for modeling shifts in curve parameters. This is applicable in settings where the same set of participants are tested for multiple experimental conditions, such as pre- and post-intervention phases, stimulation location (e.g. midline or lateral), or stimulation parameters (e.g. electrode position, stimulation frequency).
@@ -296,7 +300,7 @@ where $C_{p_{\text{outlier}}}, C_{\sigma_{\text{outlier}}} > 0$ are constants an
 
 \bigskip\noindent In Supplementary Fig. \ref{sufig-mixture}, the default model (Methods \ref{meth-default}) with rectified-logistic function and Gamma observation was cross-validated against its mixture extension. Supplementary Fig. \ref{sufig-mixture-rat}--\ref{sufig-mixture-intraop} specify the mixture model for the three datasets that were used in Results \ref{res-choice}.
 
-\bibliography{bibliography}% common bib file
+\bibliography{sn-bibliography}% common bib file
 %% if required, the content of .bbl file can be included here once bbl is generated
 %%\input sn-article.bbl
 
