@@ -128,7 +128,8 @@ def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
             str_param = opt_param[ix_opt_param]
             posterior_samples_ = posterior_samples_fut[str_param][:, 0, ix_muscle]
             posterior_samples.append(posterior_samples_)
-            bounds_ = (np.min(posterior_samples_) * 0.5, np.max(posterior_samples_) * 1.5)
+            extend_x = (np.max(posterior_samples_) - np.min(posterior_samples_)) * 0.2
+            bounds_ = [np.min(posterior_samples_) - extend_x, np.max(posterior_samples_) + extend_x]
             bounds.append(bounds_)
 
         joint_samples = np.column_stack(posterior_samples)
