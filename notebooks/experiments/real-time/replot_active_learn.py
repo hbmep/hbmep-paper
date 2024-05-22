@@ -28,7 +28,7 @@ from scipy.integrate import nquad
 from joblib import Parallel, delayed
 from pathlib import Path
 import matplotlib.gridspec as gridspec
-import cv2
+import cv2  # install opencv-python
 import os
 import glob
 plt.rcParams['svg.fonttype'] = 'none'
@@ -85,7 +85,7 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/250, 1080/250), 
         vec_muscle = [str_muscle.replace('PKPK_', '') for str_muscle in model.response]
         participants = ['MEH']
         xlim = [0, 100]
-        ylim = [-0.1, 1.5]
+        ylim = [-0.1, 0.5]
         # Simulate TOTAL_SUBJECTS subjects
         TOTAL_PULSES = 100
         TOTAL_SUBJECTS = len(participants)
@@ -98,7 +98,7 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/250, 1080/250), 
                 how="cross"
             )
         df_custom = simulator.make_prediction_dataset(
-            df=df_custom, min_intensity=0, max_intensity=100, num=TOTAL_PULSES)
+            df=df_custom, min_intensity=0, max_intensity=100, num_points=TOTAL_PULSES)
 
         colors = sns.color_palette('colorblind')
         colors = [(208/255, 28/255, 138/255), (208/255, 28/255, 138/255), (208/255, 28/255, 138/255)]

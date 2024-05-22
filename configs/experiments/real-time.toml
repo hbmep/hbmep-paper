@@ -9,8 +9,8 @@ build_directory = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R
 [variables]
 features = [["participant", "participant_condition"]]
 intensity = "TMSInt"
-response = ['PKPK_ECR', 'PKPK_ECR', 'PKPK_ECR']
-# response = ['PKPK_ECR']
+# response = ['PKPK_ECR', 'PKPK_FCR']
+response = ['PKPK_ECR']
 
 [mcmc]
 num_chains = 4

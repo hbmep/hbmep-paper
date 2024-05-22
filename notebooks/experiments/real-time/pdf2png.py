@@ -2,7 +2,8 @@ import os
 import glob
 import subprocess
 from pathlib import Path
-
+from hbmep.config import Config
+from learn_posterior import TOML_PATH
 
 # Define the source and destination directories
 def convert_pdf_to_png(source_dir):
@@ -58,10 +59,13 @@ def convert_pdf_to_png(source_dir):
 
 
 if __name__ == "__main__":
-    source_dir = Path("/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build")
 
+    source_dir = Path("/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/testX")
+    toml_path = TOML_PATH
+    config = Config(toml_path=toml_path)
+    root_dir = Path(config.BUILD_DIR)
     # Automatically populate d with directories matching the pattern 'test*'
-    pattern = os.path.join(source_dir, "test*")
+    pattern = os.path.join(root_dir, "test*")
     d = [Path(dir_path).name for dir_path in glob.glob(pattern) if os.path.isdir(dir_path)]
 
     for dir_name in d:
