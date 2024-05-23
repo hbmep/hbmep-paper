@@ -9,11 +9,11 @@ from hbmep.model import GammaModel
 from hbmep.model.utils import Site as site
 
 
-class MixtureModel(GammaModel):
-    NAME = "mixture_model"
+class HierarchicalBayesianModel(GammaModel):
+    NAME = "hierarchical_bayesian_model"
 
     def __init__(self, config: Config):
-        super(MixtureModel, self).__init__(config=config)
+        super(HierarchicalBayesianModel, self).__init__(config=config)
 
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
@@ -21,78 +21,44 @@ class MixtureModel(GammaModel):
         feature0 = features[..., 0]
         feature1 = features[..., 1]
 
+        # Population level hyper-priors
+        a_loc_loc = numpyro.sample(
+            "a_loc_loc", dist.TruncatedNormal(50., 20.)
+        )
+        a_loc_scale = numpyro.sample(
+            "a_loc_scale", dist.HalfNormal(30.)
+        )
+
+        a_scale = numpyro.sample(
+            "a_scale", dist.HalfNormal(30.)
+        )
+
+        b_scale = numpyro.sample(
+            "b_scale", dist.HalfNormal(5.)
+        )
+
+        L_scale = numpyro.sample(
+            "L_scale", dist.HalfNormal(.5)
+        )
+        ell_scale = numpyro.sample(
+            "ell_scale", dist.HalfNormal(10.)
+        )
+        H_scale = numpyro.sample(
+            "H_scale", dist.HalfNormal(5.)
+        )
+
+        c_1_scale = numpyro.sample(
+            "c_1_scale", dist.HalfNormal(5.)
+        )
+        c_2_scale = numpyro.sample(
+            "c_2_scale", dist.HalfNormal(5.)
+        )
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Global Priors
-            b_scale_global_scale = numpyro.sample(
-                "b_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            L_scale_global_scale = numpyro.sample(
-                "L_scale_global_scale", dist.HalfNormal(.5)
-            )
-            ell_scale_global_scale = numpyro.sample(
-                "ell_scale_global_scale", dist.HalfNormal(10.)
-            )
-            H_scale_global_scale = numpyro.sample(
-                "H_scale_global_scale", dist.HalfNormal(5.)
-            )
-
-            c_1_scale_global_scale = numpyro.sample(
-                "c_1_scale_global_scale", dist.HalfNormal(5.)
-            )
-            c_2_scale_global_scale = numpyro.sample(
-                "c_2_scale_global_scale", dist.HalfNormal(5.)
-            )
-
             with numpyro.plate(site.n_features[1], n_features[1]):
                 # Hyper-priors
                 a_loc = numpyro.sample(
-                    "a_loc", dist.TruncatedNormal(50., 20., low=0)
-                )
-                a_scale = numpyro.sample(
-                    "a_scale", dist.HalfNormal(30.)
-                )
-
-                b_scale_raw = numpyro.sample(
-                    "b_scale_raw", dist.HalfNormal(scale=1)
-                )
-                b_scale = numpyro.deterministic(
-                    "b_scale", jnp.multiply(b_scale_global_scale, b_scale_raw)
-                )
-
-                L_scale_raw = numpyro.sample(
-                    "L_scale_raw", dist.HalfNormal(scale=1)
-                )
-                L_scale = numpyro.deterministic(
-                    "L_scale", jnp.multiply(L_scale_global_scale, L_scale_raw)
-                )
-
-                ell_scale_raw = numpyro.sample(
-                    "ell_scale_raw", dist.HalfNormal(scale=1)
-                )
-                ell_scale = numpyro.deterministic(
-                    "ell_scale", jnp.multiply(ell_scale_global_scale, ell_scale_raw)
-                )
-
-                H_scale_raw = numpyro.sample(
-                    "H_scale_raw", dist.HalfNormal(scale=1)
-                )
-                H_scale = numpyro.deterministic(
-                    "H_scale", jnp.multiply(H_scale_global_scale, H_scale_raw)
-                )
-
-                c_1_scale_raw = numpyro.sample(
-                    "c_1_scale_raw", dist.HalfNormal(scale=1)
-                )
-                c_1_scale = numpyro.deterministic(
-                    "c_1_scale", jnp.multiply(c_1_scale_global_scale, c_1_scale_raw)
-                )
-
-                c_2_scale_raw = numpyro.sample(
-                    "c_2_scale_raw", dist.HalfNormal(scale=1)
-                )
-                c_2_scale = numpyro.deterministic(
-                    "c_2_scale", jnp.multiply(c_2_scale_global_scale, c_2_scale_raw)
+                    "a_loc", dist.TruncatedNormal(a_loc_loc, a_loc_scale, low=0)
                 )
 
                 with numpyro.plate(site.n_features[0], n_features[0]):
