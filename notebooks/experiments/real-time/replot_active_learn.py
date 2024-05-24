@@ -110,7 +110,7 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(1920/250, 1080/250), 
         # df_template = df_template[ind1 & ind2]
 
         n_muscles = len(model.response)
-        n_muscles = 2 # overwrite to two
+        # n_muscles = 2 # overwrite to two
         # conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
         # conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
         # participants = list(encoder_dict[model.features[1]].inverse_transform(np.unique(df[model.features[1]])))
