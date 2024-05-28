@@ -201,7 +201,7 @@ def main():
     seed = dict()
     seed['ix_gen_seed'] = 10
     seed['ix_participant'] = 62
-    opt_param = [site.a, site.H]  # ['a', 'H']
+    opt_param = [site.a, site.H]  # [site.a]
     choose_interp = False
     make_figures_per_sample = False  # True eventually crashes some X-sessions
     N_max = 30

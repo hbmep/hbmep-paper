@@ -5,7 +5,7 @@ build_directory = ""
 [variables]
 intensity = "TMSInt"
 features = ["participant", "intervention"]
-response = ['PKPK_APB']
+response = ['PKPK_APB', 'PKPK_ECR', 'PKPK_FCR']
 
 [mcmc]
 num_chains = 4
