@@ -9,7 +9,7 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models import MixedEffects
+from models import HierarchicalBayesianModel
 from constants import (
     DATA_PATH,
     TOML_PATH,
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    M = MixedEffects
+    M = HierarchicalBayesianModel
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = os.path.join(
         BUILD_DIR,
@@ -40,7 +40,6 @@ def main():
     df = pd.read_csv(DATA_PATH)
     ind = ~df[model.response].isna().values.any(axis=-1)
     df = df[ind].reset_index(drop=True).copy()
-    df[model.features[1]] = df[model.features[1]].replace({"L": "01_L", "M": "02_M"})
     df, encoder_dict = model.load(df=df)
 
     # Run inference
