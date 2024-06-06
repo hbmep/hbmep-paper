@@ -8,7 +8,7 @@ version = "0.0.1"
 authors = [
     { name="Vishweshwar Tyagi, James R. McIntosh", email="vt2353@cumc.columbia.edu" }
 ]
-description = "Package for hbmep paper"
+description = "hbmep paper"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
@@ -26,6 +26,7 @@ classifiers = [
     "Operating System :: MacOS"
 ]
 dependencies = [
+    "hbmep==0.5.0",
     "numpy==1.24.2",
     "pandas==2.0.2",
     "scikit-learn==1.2.1",
