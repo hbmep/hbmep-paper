@@ -335,19 +335,19 @@ if __name__ == "__main__":
     ## Uncomment the following to run
     ## experiment for different models
 
-    # Run hierarchical models
-    n_subjects_space = N_SUBJECTS_SPACE
-    models = [
-        HierarchicalBayesianModel
-    ]
-
-    # # Run non-hierarchical models including
-    # # non-hierarchical Bayesian and Maximum Likelihood
-    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # # Run hierarchical models
+    # n_subjects_space = N_SUBJECTS_SPACE
     # models = [
-    #     NonHierarchicalBayesianModel,
-    #     MaximumLikelihoodModel
+    #     HierarchicalBayesianModel
     # ]
+
+    # Run non-hierarchical models including
+    # non-hierarchical Bayesian and Maximum Likelihood
+    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    models = [
+        NonHierarchicalBayesianModel,
+        # MaximumLikelihoodModel
+    ]
 
     # # Run non-hierarchical Nelder-Mead optimization
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]

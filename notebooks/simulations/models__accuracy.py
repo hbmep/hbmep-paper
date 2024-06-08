@@ -177,7 +177,7 @@ class MaximumLikelihoodModel(GammaModel):
             with numpyro.plate(site.n_features[0], n_features[0]):
                 # Uniform priors (maximum likelihood estimation)
                 a = numpyro.sample(
-                    site.a, dist.Uniform(0., 150.)
+                    site.a, dist.Uniform(0., 200.)
                 )
 
                 b = numpyro.sample(site.b, dist.Uniform(0., 10.))
@@ -232,8 +232,8 @@ class NelderMeadOptimization(BoundedOptimization):
         self.solver = "Nelder-Mead"
         self.functional = F.rectified_logistic
         self.named_params = [site.a, site.b, site.L, site.ell, site.H]
-        self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
-        self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
+        self.bounds = [(1e-9, 200.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.informed_bounds = [(1e-9, 120), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
         self.num_points = 1000
         self.num_iters = 100
         self.n_jobs = -1
