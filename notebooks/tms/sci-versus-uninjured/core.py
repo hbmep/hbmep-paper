@@ -9,7 +9,7 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models import MixtureModel
+from models import HierarchicalBayesianModel
 from constants import (
     DATA_PATH,
     TOML_PATH,
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    M = MixtureModel
+    M = HierarchicalBayesianModel
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = os.path.join(
         BUILD_DIR,

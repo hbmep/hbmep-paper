@@ -23,14 +23,14 @@ class HierarchicalBayesianModel(GammaModel):
 
         # Population level hyper-priors
         a_loc_loc = numpyro.sample(
-            "a_loc_loc", dist.TruncatedNormal(50., 20.)
+            "a_loc_loc", dist.TruncatedNormal(50., 50.)
         )
         a_loc_scale = numpyro.sample(
-            "a_loc_scale", dist.HalfNormal(30.)
+            "a_loc_scale", dist.HalfNormal(50.)
         )
 
         a_scale = numpyro.sample(
-            "a_scale", dist.HalfNormal(30.)
+            "a_scale", dist.HalfNormal(50.)
         )
 
         b_scale = numpyro.sample(
