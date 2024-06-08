@@ -62,6 +62,7 @@ def main():
 
         # Turn off mixture distribution
         if site.outlier_prob in posterior_samples:
+            outlier_prob = posterior_samples[site.outlier_prob]
             posterior_samples[site.outlier_prob] = 0 * posterior_samples[site.outlier_prob]
 
         # Predictions and recruitment curves
@@ -82,6 +83,9 @@ def main():
             prediction_df=prediction_df,
             posterior_predictive=posterior_predictive
         )
+
+        if site.outlier_prob in posterior_samples:
+            posterior_samples[site.outlier_prob] = outlier_prob
 
         # Save posterior
         dest = os.path.join(model.build_dir, INFERENCE_FILE)
