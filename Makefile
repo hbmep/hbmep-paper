@@ -20,9 +20,8 @@ build-base: check-env
 build: build-base
 	@source .venv/bin/activate && \
 	pip install --upgrade pip && \
-	pip install -e . && \
-	pip install -e ../hbmep
+	pip install -e .
 
-nb:
+notebook:
 	@source .venv/bin/activate && \
 	jupyter notebook
