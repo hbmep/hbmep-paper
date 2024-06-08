@@ -1,6 +1,8 @@
 import os
+import sys
 import gc
 import pickle
+import argparse
 import logging
 
 import pandas as pd
@@ -24,7 +26,7 @@ from utils import generate_nested_pulses
 from constants__accuracy import (
     TOML_PATH,
     SIMULATE_DATA_DIR__ACCURACY,
-    NUMBER_OF_SUJECTS_DIR,
+    NUMBER_OF_SUBJECTS_DIR,
     REP,
     SIMULATION_DF,
     INFERENCE_FILE,
@@ -35,14 +37,14 @@ logger = logging.getLogger(__name__)
 
 SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR__ACCURACY, SIMULATION_DF)
 SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR__ACCURACY, INFERENCE_FILE)
-BUILD_DIR = NUMBER_OF_SUJECTS_DIR
+BUILD_DIR = NUMBER_OF_SUBJECTS_DIR
 
 N_REPS = 1
 N_PULSES = 48
 
 
 @timing
-def main():
+def main(draws_space, n_subjects_space, models, n_jobs=-1):
     # Load simulated dataframe
     src = SIMULATION_DF_PATH
     simulation_df = pd.read_csv(src)
@@ -305,30 +307,11 @@ def main():
         return
 
 
-    # Experiment space
-    draws_space = range(2000)
-    n_jobs = -1
-
-    ## Uncomment the following to run
-    ## experiment for different models
-
-    # Run hierarchical models
-    n_subjects_space = N_SUBJECTS_SPACE
-    models = [
-        HierarchicalBayesianModel
-    ]
-
-    # # Run non-hierarchical models including
-    # # non-hierarchical Bayesian and Maximum Likelihood
-    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # models = [
-    #     NonHierarchicalBayesianModel,
-    #     MaximumLikelihoodModel
-    # ]
-
-    # # Run non-hierarchical Nelder-Mead optimization
-    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # models = [NelderMeadOptimization]
+    logger.info("Number of subjects experiment.")
+    logger.info(f"n_subjects_space: {', '.join(map(str, n_subjects_space))}")
+    logger.info(f"models: {', '.join([z.NAME for z in models])}")
+    logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
+    logger.info(f"n_jobs: {n_jobs}")
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
@@ -342,4 +325,40 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    lo, hi = list(map(int, sys.argv[1:]))
+    print(lo, hi)
+
+    # # parser = argparse.ArgumentParser()
+    # # parser.parse_args()
+
+    # # Experiment space
+    # draws_space = range(2000)
+    # n_jobs = -1
+
+    # ## Uncomment the following to run
+    # ## experiment for different models
+
+    # # Run hierarchical models
+    # n_subjects_space = N_SUBJECTS_SPACE
+    # models = [
+    #     HierarchicalBayesianModel
+    # ]
+
+    # # # Run non-hierarchical models including
+    # # # non-hierarchical Bayesian and Maximum Likelihood
+    # # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # # models = [
+    # #     NonHierarchicalBayesianModel,
+    # #     MaximumLikelihoodModel
+    # # ]
+
+    # # # Run non-hierarchical Nelder-Mead optimization
+    # # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # # models = [NelderMeadOptimization]
+
+    # main(
+    #     draws_space=draws_space,
+    #     n_subjects_space=n_subjects_space,
+    #     models=models,
+    #     n_jobs=n_jobs
+    # )
