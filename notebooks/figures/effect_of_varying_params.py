@@ -12,8 +12,10 @@ from hbmep_paper.utils import setup_logging
 from constants import BUILD_DIR
 
 logger = logging.getLogger(__name__)
+plt.rcParams["svg.fonttype"] = "none"
 
-colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 3))
+colors = sns.light_palette("grey", as_cmap=True)(np.linspace(0.3, 1, 2))
+colors = list(colors) + ["k"]
 lineplot_kwargs = {
     "linewidth": 1
 }
@@ -26,9 +28,9 @@ def main():
         constrained_layout=True, squeeze=False
     )
     x = np.linspace(0, 10, 1000)
-    named_params = [site.a, site.L, site.H, site.b, site.ell]
-    check_values = [(1, 2, 3), (.5, .8, 1), (2, 3, 4), (.25, .5, 1), (.01, .1, 1)]
-    yticks = [[1, 2], [.5, .8, 1, 1.5, 1.8, 2], [1, 3, 4, 5], [1, 2], [1, 2]]
+    named_params = [site.a, site.b, site.L, site.H, site.ell]
+    check_values = [(1, 2, 3), (.25, .5, 1), (.5, .8, 1), (2, 3, 4), (.01, .1, 1)]
+    yticks = [[1, 2], [1, 2], [.5, .8, 1, 1.5, 1.8, 2], [1, 3, 4, 5], [1, 2]]
     default_values = {named_param: 1 for named_param in named_params}
     for i, named_param in enumerate(named_params):
         ax = axes[i // ncols, i % ncols]
@@ -39,6 +41,32 @@ def main():
                 x, param[site.a], param[site.b], param[site.L], param[site.ell], param[site.H]
             )
             sns.lineplot(x=x, y=y, color=colors[j], ax=ax, label=f"{named_param}={value}", **lineplot_kwargs)
+
+            # Inflection point
+            if named_param == site.ell:
+                inflection_point = (
+                    param[site.a]
+                    + np.true_divide(
+                        np.log(np.true_divide(param[site.H], param[site.ell])),
+                        param[site.b]
+                    )
+                )
+                y_at_inflection_point = F.rectified_logistic(
+                    inflection_point, param[site.a], param[site.b], param[site.L], param[site.ell], param[site.H]
+                ).item()
+                inflection_point = inflection_point.item()
+                logger.info(inflection_point)
+                logger.info(y_at_inflection_point)
+                sns.scatterplot(
+                    x=[inflection_point],
+                    y=[y_at_inflection_point],
+                    color="black",
+                    ax=ax,
+                    zorder=10,
+                    # label="Inflection point" if j == 2 else None,
+                    s=20
+                )
+
         ax.set_xticks([0, 1, 10])
         ax.set_yticks(yticks[i])
         ax.legend(loc="lower right", fontsize=8)
@@ -80,9 +108,14 @@ def main():
             )
 
     fig.suptitle("All other parameters are 1", fontsize=10)
+    dest = os.path.join(BUILD_DIR, "effect_of_varying_params.svg")
+    fig.savefig(dest, dpi=600)
+    logger.info(f"Saved to {dest}")
+
     dest = os.path.join(BUILD_DIR, "effect_of_varying_params.png")
     fig.savefig(dest, dpi=600)
     logger.info(f"Saved to {dest}")
+
     return
 
 
