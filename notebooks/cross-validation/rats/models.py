@@ -20,20 +20,20 @@ class RectifiedLogistic(GammaModel):
         n_features = np.max(features, axis=0) + 1
         feature0 = features[..., 0]
 
+        # Hyper Priors
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
+
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Hyper Priors
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
-
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-            ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
-            H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
-
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
-
             with numpyro.plate(site.n_features[0], n_features[0]):
                 # Priors
                 a = numpyro.sample(
@@ -104,20 +104,20 @@ class Logistic5(GammaModel):
         n_features = np.max(features, axis=0) + 1
         feature0 = features[..., 0]
 
+        # Hyper Priors
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
+
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        v_scale = numpyro.sample("v_scale", dist.HalfNormal(5.))
+
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Hyper Priors
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
-
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-            v_scale = numpyro.sample("v_scale", dist.HalfNormal(5.))
-
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-            H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
-
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
-
             with numpyro.plate(site.n_features[0], n_features[0]):
                 # Priors
                 a = numpyro.sample(
@@ -188,18 +188,18 @@ class Logistic4(GammaModel):
         n_features = np.max(features, axis=0) + 1
         feature0 = features[..., 0]
 
+        # Hyper Priors
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
+
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Hyper Priors
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
-
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-            H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
-
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
-
             with numpyro.plate(site.n_features[0], n_features[0]):
                 # Priors
                 a = numpyro.sample(
@@ -266,17 +266,17 @@ class RectifiedLinear(GammaModel):
         n_features = np.max(features, axis=0) + 1
         feature0 = features[..., 0]
 
+        # Hyper Priors
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
+
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Hyper Priors
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
-
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
-
             with numpyro.plate(site.n_features[0], n_features[0]):
                 # Priors
                 a = numpyro.sample(
@@ -339,20 +339,20 @@ class MixtureModel(GammaModel):
         n_features = np.max(features, axis=0) + 1
         feature0 = features[..., 0]
 
+        # Hyper Priors
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
+
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Hyper Priors
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(150., 100., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(100.))
-
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-            ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
-            H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
-
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
-
             with numpyro.plate(site.n_features[0], n_features[0]):
                 # Priors
                 a = numpyro.sample(
