@@ -1,9 +1,9 @@
 #! /bin/bash
 
-STEP=200
+STEP=50
 START=0
-END=1800
+END=$((2000-$STEP))
 
 for (( COUNTER=START; COUNTER<=END; COUNTER+=STEP )); do
-    sbatch -c 64 --mem=258GB core.sh $COUNTER $((COUNTER+200))
+    sbatch -c 32 --mem=128GB core.sh $COUNTER $((COUNTER+STEP))
 done
