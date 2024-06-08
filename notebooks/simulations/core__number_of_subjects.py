@@ -325,40 +325,37 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
 
 
 if __name__ == "__main__":
+    # python -m core__number_of_subjects 0 2000
     lo, hi = list(map(int, sys.argv[1:]))
-    print(lo, hi)
 
-    # # parser = argparse.ArgumentParser()
-    # # parser.parse_args()
+    # Experiment space
+    draws_space = range(lo, hi)
+    n_jobs = -1
 
-    # # Experiment space
-    # draws_space = range(2000)
-    # n_jobs = -1
+    ## Uncomment the following to run
+    ## experiment for different models
 
-    # ## Uncomment the following to run
-    # ## experiment for different models
+    # Run hierarchical models
+    n_subjects_space = N_SUBJECTS_SPACE
+    models = [
+        HierarchicalBayesianModel
+    ]
 
-    # # Run hierarchical models
-    # n_subjects_space = N_SUBJECTS_SPACE
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [
-    #     HierarchicalBayesianModel
+    #     NonHierarchicalBayesianModel,
+    #     MaximumLikelihoodModel
     # ]
 
-    # # # Run non-hierarchical models including
-    # # # non-hierarchical Bayesian and Maximum Likelihood
-    # # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # # models = [
-    # #     NonHierarchicalBayesianModel,
-    # #     MaximumLikelihoodModel
-    # # ]
+    # # Run non-hierarchical Nelder-Mead optimization
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [NelderMeadOptimization]
 
-    # # # Run non-hierarchical Nelder-Mead optimization
-    # # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # # models = [NelderMeadOptimization]
-
-    # main(
-    #     draws_space=draws_space,
-    #     n_subjects_space=n_subjects_space,
-    #     models=models,
-    #     n_jobs=n_jobs
-    # )
+    main(
+        draws_space=draws_space,
+        n_subjects_space=n_subjects_space,
+        models=models,
+        n_jobs=n_jobs
+    )
