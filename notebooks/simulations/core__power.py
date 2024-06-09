@@ -300,6 +300,12 @@ def main(
         return
 
 
+    logger.info("Number of subjects experiment.")
+    logger.info(f"n_subjects_space: {', '.join(map(str, n_subjects_space))}")
+    logger.info(f"models: {', '.join([z.NAME for z in models])}")
+    logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
+    logger.info(f"n_jobs: {n_jobs}")
+
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(
