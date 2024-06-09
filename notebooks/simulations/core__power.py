@@ -346,22 +346,22 @@ if __name__ == "__main__":
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [NelderMeadOptimization]
 
-    # Run for simulation with effect
-    main(
-        simulation_data_dir=SIMULATE_DATA_WITH_EFFECT_DIR,
-        build_dir=EXPERIMENTS_WITH_EFFECT_DIR,
-        draws_space=draws_space,
-        n_subjects_space=n_subjects_space,
-        models=models,
-        n_jobs=n_jobs
-    )
-
-    # # Run for simulation without effect
+    # # Run for simulation with effect
     # main(
-    #     simulation_data_dir=SIMULATE_DATA_WITH_NO_EFFECT_DIR,
-    #     build_dir=EXPERIMENTS_WITH_NO_EFFECT_DIR,
+    #     simulation_data_dir=SIMULATE_DATA_WITH_EFFECT_DIR,
+    #     build_dir=EXPERIMENTS_WITH_EFFECT_DIR,
     #     draws_space=draws_space,
     #     n_subjects_space=n_subjects_space,
     #     models=models,
     #     n_jobs=n_jobs
     # )
+
+    # Run for simulation without effect
+    main(
+        simulation_data_dir=SIMULATE_DATA_WITH_NO_EFFECT_DIR,
+        build_dir=EXPERIMENTS_WITH_NO_EFFECT_DIR,
+        draws_space=draws_space,
+        n_subjects_space=n_subjects_space,
+        models=models,
+        n_jobs=n_jobs
+    )
