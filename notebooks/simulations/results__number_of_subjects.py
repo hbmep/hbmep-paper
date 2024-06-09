@@ -30,13 +30,13 @@ def main():
     n_pulses = N_PULSES
     n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = list(range(350)) + list(range(400, 1100))
+    draws_space = range(4000)
 
     models = [
-        # NelderMeadOptimization,
+        NelderMeadOptimization,
         # MaximumLikelihoodModel,
         # NonHierarchicalBayesianModel,
-        HierarchicalBayesianModel
+        # HierarchicalBayesianModel
     ]
 
     mae = []
@@ -46,6 +46,8 @@ def main():
             for M in models:
                 n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
                 draw_dir = f"d{draw}"
+
+                logger.info(f"n_subjects: {n_subjects}, draw: {draw}, model: {M.NAME}")
 
                 match M.NAME:
                     case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
