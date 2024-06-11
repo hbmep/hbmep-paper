@@ -20,8 +20,6 @@ from constants__power import (
     EXPERIMENTS_WITH_NO_EFFECT_DIR
 )
 
-# N_SUBJECTS_SPACE = [1, 2, 8, 16, 20]
-
 logger = logging.getLogger(__name__)
 
 
@@ -36,7 +34,7 @@ def main(build_dir, draws_space):
     n_subjects_space = N_SUBJECTS_SPACE
 
     models = [
-        # NelderMeadOptimization,
+        NelderMeadOptimization,
         MaximumLikelihoodModel,
         NonHierarchicalBayesianModel,
         HierarchicalBayesianModel,
@@ -179,12 +177,12 @@ def main(build_dir, draws_space):
     mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
     mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
     prob = np.array(prob).reshape(len(n_subjects_space) - 1, len(draws_space), len(models))
-    # norm = np.array(norm).reshape(len(n_subjects_space) - 2, len(draws_space), len(models) - 1)
+    norm = np.array(norm).reshape(len(n_subjects_space) - 2, len(draws_space), len(models) - 1)
 
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
     logger.info(f"Prob: {prob.shape}")
-    # logger.info(f"Norm: {norm.shape}")
+    logger.info(f"Norm: {norm.shape}")
 
     dest = os.path.join(build_dir, "mae.npy")
     np.save(dest, mae)
@@ -198,24 +196,22 @@ def main(build_dir, draws_space):
     np.save(dest, prob)
     logger.info(f"Saved to {dest}")
 
-    # dest = os.path.join(build_dir, "norm.npy")
-    # np.save(dest, norm)
-    # logger.info(f"Saved to {dest}")
+    dest = os.path.join(build_dir, "norm.npy")
+    np.save(dest, norm)
+    logger.info(f"Saved to {dest}")
 
-    # for model_ind, model in enumerate(models[:-1]):
-    #     not_normal = (norm < .05)[-1, :, model_ind].mean()
-    #     logger.info(
-    #         f"{not_normal * 100}% of the draws (threshold differences estimated by {model.NAME}) are not normal."
-    #     )
+    for model_ind, model in enumerate(models[:-1]):
+        not_normal = (norm < .05)[-1, :, model_ind].mean()
+        logger.info(
+            f"{not_normal * 100}% of the draws (threshold differences estimated by {model.NAME}) are not normal."
+        )
 
     return
 
 
 if __name__ == "__main__":
     # Run for the experiments with effect
-    # EXPERIMENTS_WITH_EFFECT_DIR = "/mount//mr_lab/vt2353/repos/hbmep-paper/reports/simulations/power/with_effect/experiments"
     main(EXPERIMENTS_WITH_EFFECT_DIR, range(2000))
 
-    # # Run for the experiments without effect
-    # # EXPERIMENTS_WITH_NO_EFFECT_DIR = "/mount//mr_lab/vt2353/repos/hbmep-paper/reports/simulations/power/with_no_effect/experiments"
-    # main(EXPERIMENTS_WITH_NO_EFFECT_DIR, range(2000))
+    # EXPERIMENTS_WITH_NO_EFFECT_DIR = "/mount//mr_lab/vt2353/repos/hbmep-paper/reports/simulations/power/with_no_effect/experiments"
+    main(EXPERIMENTS_WITH_NO_EFFECT_DIR, range(2000))

@@ -2,6 +2,8 @@ import os
 import logging
 
 import numpy as np
+import scipy.stats as stats
+import matplotlib.pyplot as plt
 
 from hbmep_paper.utils import setup_logging
 from models__accuracy import (
@@ -10,27 +12,23 @@ from models__accuracy import (
     MaximumLikelihoodModel,
     NelderMeadOptimization,
 )
-from core__number_of_subjects import (
-    N_REPS,
-    N_PULSES
-)
+from core__number_of_pulses import N_REPS, N_SUBJECTS
 from constants__accuracy import (
-    NUMBER_OF_SUBJECTS_DIR,
-    N_SUBJECTS_SPACE
+    N_PULSES_SPACE,
+    NUMBER_OF_PULSES_DIR,
 )
 
 logger = logging.getLogger(__name__)
 
-BUILD_DIR = NUMBER_OF_SUBJECTS_DIR
+BUILD_DIR = NUMBER_OF_PULSES_DIR
 
 
 def main():
     n_reps = N_REPS
-    n_pulses = N_PULSES
-    n_subjects_space = N_SUBJECTS_SPACE
+    n_subjects = N_SUBJECTS
+    n_pulses_space = N_PULSES_SPACE
 
     draws_space = range(4000)
-
     models = [
         NelderMeadOptimization,
         MaximumLikelihoodModel,
@@ -40,13 +38,13 @@ def main():
 
     mae = []
     mse = []
-    for n_subjects in n_subjects_space:
+    for n_pulses in n_pulses_space:
         for draw in draws_space:
             for M in models:
                 n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
                 draw_dir = f"d{draw}"
 
-                logger.info(f"n_subjects: {n_subjects}, draw: {draw}, model: {M.NAME}")
+                logger.info(f"n_pulses: {n_pulses}, draw: {draw}, model: {M.NAME}")
 
                 match M.NAME:
                     case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
@@ -58,7 +56,6 @@ def main():
                             n_pulses_dir,
                             M.NAME
                         )
-
                         a_true = np.load(os.path.join(dir, "a_true.npy"))
                         a_pred = np.load(os.path.join(dir, "a_pred.npy"))
 
@@ -66,7 +63,7 @@ def main():
                         a_true = a_true.reshape(-1,)
 
                     case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
-                        n_subjects_dir = f"n{n_subjects_space[-1]}"
+                        n_subjects_dir = f"n{N_SUBJECTS}"
                         a_true, a_pred = [], []
 
                         for subject in range(n_subjects):
@@ -96,7 +93,7 @@ def main():
                         dir = os.path.join(
                             BUILD_DIR,
                             draw_dir,
-                            f"n{n_subjects_space[-1]}",
+                            n_subjects_dir,
                             n_reps_dir,
                             n_pulses_dir,
                             M.NAME
@@ -115,8 +112,8 @@ def main():
                 mae.append(curr_mae)
                 mse.append(curr_mse)
 
-    mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
-    mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
+    mae = np.array(mae).reshape(len(n_pulses_space), len(draws_space), len(models))
+    mse = np.array(mse).reshape(len(n_pulses_space), len(draws_space), len(models))
 
     logger.info(f"MAE: {mae.shape}")
     logger.info(f"MSE: {mse.shape}")
