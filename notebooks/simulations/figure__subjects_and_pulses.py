@@ -16,6 +16,7 @@ from models__accuracy import (
 from constants__accuracy import (
     N_SUBJECTS_SPACE,
     N_PULSES_SPACE,
+    SIMULATE_DATA_DIR__ACCURACY,
     NUMBER_OF_SUBJECTS_DIR,
     NUMBER_OF_PULSES_DIR
 )
@@ -23,9 +24,9 @@ from constants__accuracy import (
 logger = logging.getLogger(__name__)
 plt.rcParams["svg.fonttype"] = "none"
 
-BUILD_DIR = NUMBER_OF_SUBJECTS_DIR
+BUILD_DIR = SIMULATE_DATA_DIR__ACCURACY
 markersize = 3
-linewidth = 1
+linewidth = 1.0
 linestyle = "--"
 axis_label_size = 12
 inside_text_size = 8
@@ -72,14 +73,9 @@ def main():
 
     colors = ["#00ced1", "purple", "gray", "k"]
 
-    src = "/mount/mr_lab/vt2353/repos/hbmep-paper/reports/simulations/accuracy/experiments/number_of_subjects/mae.npy"
+    src = os.path.join(NUMBER_OF_SUBJECTS_DIR, "mae.npy")
     mae = np.load(src)
     logger.info(mae.shape)
-
-    t = mae[-1, ...] - mae[0, ...]
-    me, sem = t.mean(axis=0), stats.sem(t, axis=0)
-    logger.info(me)
-    logger.info(sem)
 
     ax = axes[0, 0]
     for model_ind, model in enumerate(models):
@@ -107,34 +103,34 @@ def main():
     ax.set_xlabel("Number of participants", fontsize=axis_label_size)
     ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
 
-    # n_pulses_space = N_PULSES_SPACE
-    # src = os.path.join(NUMBER_OF_PULSES_DIR, "mae.npy")
-    # mae = np.load(src)
+    n_pulses_space = N_PULSES_SPACE
+    src = os.path.join(NUMBER_OF_PULSES_DIR, "mae.npy")
+    mae = np.load(src)
 
-    # ax = axes[0, 1]
-    # for model_ind, model in enumerate(models):
-    #     x = n_pulses_space
-    #     y = mae[..., model_ind]
-    #     yme = y.mean(axis=-1)
-    #     ysem = stats.sem(y, axis=-1)
-    #     ax.errorbar(
-    #         x=x,
-    #         y=yme,
-    #         yerr=ysem,
-    #         marker="o",
-    #         label=labels[model_ind],
-    #         linestyle=linestyle,
-    #         ms=markersize,
-    #         linewidth=linewidth,
-    #         color=colors[model_ind]
-    #     )
-    #     ax.set_xticks(x)
-    #     ax.set_xlabel("# Pulses")
-    #     ax.set_ylabel("MAE")
+    ax = axes[0, 1]
+    for model_ind, model in enumerate(models):
+        x = n_pulses_space
+        y = mae[..., model_ind]
+        yme = y.mean(axis=-1)
+        ysem = stats.sem(y, axis=-1)
+        ax.errorbar(
+            x=x,
+            y=yme,
+            yerr=ysem,
+            marker="o",
+            label=labels[model_ind],
+            linestyle=linestyle,
+            ms=markersize,
+            linewidth=linewidth,
+            color=colors[model_ind]
+        )
+        ax.set_xticks(x)
+        ax.set_xlabel("# Pulses")
+        ax.set_ylabel("MAE")
 
-    # ax.set_ylim(bottom=0.)
-    # ax.set_xlabel("Number of intensities", fontsize=axis_label_size)
-    # ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
+    ax.set_ylim(bottom=0.)
+    ax.set_xlabel("Number of intensities", fontsize=axis_label_size)
+    ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
 
     for i in range(ncols):
         ax = axes[0, i]
@@ -158,9 +154,9 @@ def main():
         ax.grid(axis="y", linestyle=linestyle, alpha=.25)
         ax.set_ylabel("")
 
-    # ax = axes[0, 0]
-    # ax.sharey(axes[0, 1])
-    # ax.legend(loc="upper right", fontsize=inside_text_size, reverse=True, labelspacing=1.1)
+    ax = axes[0, 0]
+    ax.sharey(axes[0, 1])
+    ax.legend(loc="upper right", fontsize=inside_text_size, reverse=True)
 
     ax = axes[0, 0]
     ax.set_ylabel("Mean absolute error\nof threshold estimation $($% MSO$)$", fontsize=axis_label_size)

@@ -83,13 +83,13 @@ def main():
     )
 
     models = [
-        # NelderMeadOptimization,
+        NelderMeadOptimization,
         MaximumLikelihoodModel,
         NonHierarchicalBayesianModel,
         HierarchicalBayesianModel,
     ]
     labels = [
-        # "Nelder-Mead method\nOne-sided signed-rank test",
+        "Nelder-Mead method\nOne-sided signed-rank test",
         "Maximum likelihood estimation\nOne-sided signed-rank test",
         "Non-hierarchical Bayesian\nOne-sided signed-rank test",
         "Hierarchical Bayesian\n95% highest density interval\n(HDI) testing",
@@ -122,8 +122,7 @@ def main():
     ax = axes[0, 1]
     ax = _power_plot(ax, N_SUBJECTS_SPACE[1:], prob, models, labels, jitter=.1)
     ax.axhline(y=.05, linestyle="--", color="r", linewidth=1, xmax=.99)
-    ax.axhline(y=.025, linestyle="--", color="r", linewidth=1, xmax=.99, alpha=.5)
-    ax.set_yticks([.02 * i for i in range(6)] + [.025, .05])
+    ax.set_yticks([.02 * i for i in range(6)] + [.05])
     ax.set_ylim(top=.11)
 
     for i in range(nrows):
