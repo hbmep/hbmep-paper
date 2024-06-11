@@ -75,34 +75,31 @@ def main():
     src = SIMULATION_DF_PATH
     simulation_df = pd.read_csv(src)
 
-    # # Load parameters reduced by PCA
-    # src = os.path.join(BUILD_DIR, "pca.pkl")
-    # with open(src, "rb") as f:
-    #     pca, params_embedded, ppd_params_embedded, prior_params_embedded = pickle.load(f)
+    # Load parameters reduced by PCA
+    src = os.path.join(BUILD_DIR, "pca.pkl")
+    with open(src, "rb") as f:
+        pca, params_embedded, ppd_params_embedded, prior_params_embedded = pickle.load(f)
 
-    # # Subsample
-    # def subsample(random_key, arr, N):
-    #     result = None
-    #     keys = random.split(random_key, arr.shape[1])
-    #     for i, key in enumerate(keys):
-    #         samples = random.choice(key, arr[:, i:i + 1, ...], shape=(N,), replace=False)
-    #         if result is None: result = samples
-    #         else: result = np.concatenate([result, samples], axis=1)
-    #     return result
+    # Subsample
+    def subsample(random_key, arr, N):
+        result = None
+        keys = random.split(random_key, arr.shape[1])
+        for i, key in enumerate(keys):
+            samples = random.choice(key, arr[:, i:i + 1, ...], shape=(N,), replace=False)
+            if result is None: result = samples
+            else: result = np.concatenate([result, samples], axis=1)
+        return result
 
-    # N = 200
-    # random_key = random.PRNGKey(0)
-    # random_keys = random.split(random_key, 3)
-    # # params_embedded = subsample(random_keys[0], params_embedded, 400)
-    # # ppd_params_embedded = subsample(random_keys[1], ppd_params_embedded, 300)
-    # # prior_params_embedded = subsample(random_keys[2], prior_params_embedded, 2000)
-    # params_embedded = subsample(random_keys[0], params_embedded, N)
-    # ppd_params_embedded = subsample(random_keys[1], ppd_params_embedded, N)
-    # prior_params_embedded = subsample(random_keys[2], prior_params_embedded, 2000)
+    N = 500
+    random_key = random.PRNGKey(0)
+    random_keys = random.split(random_key, 3)
+    params_embedded = subsample(random_keys[0], params_embedded, 400)
+    ppd_params_embedded = subsample(random_keys[1], ppd_params_embedded, 300)
+    prior_params_embedded = subsample(random_keys[2], prior_params_embedded, 2000)
 
-    # params_embedded = params_embedded.reshape(-1, 2)
-    # ppd_params_embedded = ppd_params_embedded.reshape(-1, 2)
-    # prior_params_embedded = prior_params_embedded.reshape(-1, 2)
+    params_embedded = params_embedded.reshape(-1, 2)
+    ppd_params_embedded = ppd_params_embedded.reshape(-1, 2)
+    prior_params_embedded = prior_params_embedded.reshape(-1, 2)
 
     # Plot
     nrows, ncols = 2, 4
@@ -148,29 +145,13 @@ def main():
 
         match i:
             case 0:
-                # c = (3,)
-                # draw = 2
-                # c = (6,)
-                # draw = 24
-                # c = (25,)
-                # draw = 25
-                c = (9,)
-                draw = 1
-                c = (8,)
-                draw = 5
-                c = (9,)
-                draw = 12
-                c = (23,)
-                draw = 40
                 c = (28,)
                 draw = 20
-                c = (31,)
-                draw = 36
                 label = "$Participant_{N + 1}$"
 
             case 1:
-                c = (2,)
-                draw = 0
+                c = (31,)
+                draw = 36
                 label = "$Participant_{N + M}$"
 
         ax = axes[i, 2]
@@ -187,7 +168,7 @@ def main():
         )
         ax.axvline(
             simulation_ppd[site.a][draw, *c, 0],
-            ymax=.48,
+            ymax=.4,
             color=ppd_color,
             label="True Threshold",
             linestyle="--"
@@ -215,112 +196,122 @@ def main():
     ax = axes[0, 2]
     ax.set_title("New participants\n(Simulated data)", fontsize=axis_label_size)
 
-    # ax = axes[0, 3]
-    # sns.scatterplot(
-    #     x=prior_params_embedded[:, 0],
-    #     y=prior_params_embedded[:, 1],
-    #     ax=ax,
-    #     label="Prior parameters",
-    #     color=prior_color,
-    #     s=markersize
-    # )
-    # sns.scatterplot(
-    #     x=params_embedded[:, 0],
-    #     y=params_embedded[:, 1],
-    #     ax=ax,
-    #     label="Observed participants' parameters",
-    #     color=observed_color,
-    #     s=markersize,
-    # )
-    # sns.scatterplot(
-    #     x=ppd_params_embedded[:, 0],
-    #     y=ppd_params_embedded[:, 1],
-    #     ax=ax,
-    #     label="Simulated parameters",
-    #     color=ppd_color,
-    #     s=markersize,
-    # )
-    # w = 6
-    # a, b = -5, -6.2
-    # # ax.add_patch(Rectangle((a, b), 2 * w, 2 * w, edgecolor="black", facecolor="none", linewidth=1.5))
-    # # ax.set_yticks([15, 0, -15])
-    # # ax.set_xticks([-20, 0, 20])
-    # ax.set_xlim(-5, 12)
-    # ax.set_ylim(-5, 12)
-    # # ax.set_xlim(-5, 5)
-    # # ax.set_ylim(-5, 5)
-    # # ax.set_xlim([-2.5, 2.5])
-    # # ax.set_ylim([-2.5, 2.5])
+    ax = axes[0, 3]
+    sns.scatterplot(
+        x=prior_params_embedded[:, 0],
+        y=prior_params_embedded[:, 1],
+        ax=ax,
+        label="Prior parameters",
+        color=prior_color,
+        s=markersize
+    )
+    sns.scatterplot(
+        x=params_embedded[:, 0],
+        y=params_embedded[:, 1],
+        ax=ax,
+        label="Observed participants' parameters",
+        color=observed_color,
+        s=markersize,
+    )
+    sns.scatterplot(
+        x=ppd_params_embedded[:, 0],
+        y=ppd_params_embedded[:, 1],
+        ax=ax,
+        label="Simulated parameters",
+        color=ppd_color,
+        s=markersize,
+    )
+    w = 10
+    h = 3
+    ax.set_xlim(-w, w)
+    ax.set_ylim(-w, w)
+    ax.set_xticks([-w + h, 0, w - h])
+    ax.set_yticks([-w + h, 0, w - h])
 
-    # ax = axes[1, 3]
-    # sns.scatterplot(
-    #     x=params_embedded[:, 0],
-    #     y=params_embedded[:, 1],
-    #     ax=ax,
-    #     label="Observed Parameters",
-    #     color=observed_color,
-    #     s=markersize,
-    # )
-    # sns.scatterplot(
-    #     x=ppd_params_embedded[:, 0],
-    #     y=ppd_params_embedded[:, 1],
-    #     label="Simulated Parameters",
-    #     color=ppd_color,
-    #     s=markersize,
-    # )
+    # ax.add_patch(Rectangle((a, b), 2 * w, 2 * w, edgecolor="black", facecolor="none", linewidth=1.5))
+    # ax.set_yticks([15, 0, -15])
+    # ax.set_xticks([-20, 0, 20])
+    # ax.set_xlim(-10, 10)
+    # ax.set_ylim(-10, 10)
+    # ax.set_xlim(-5, 5)
+    # ax.set_ylim(-5, 5)
+    # ax.set_xlim([-2.5, 2.5])
+    # ax.set_ylim([-2.5, 2.5])
 
-    # # ax.set_xticks([-3, 0, 3])
-    # # ax.set_yticks([-3, 0, 3])
-    # # ax.set_xlim(-4, 6)
-    # # ax.set_ylim(-5, 5)
+    ax = axes[1, 3]
+    sns.scatterplot(
+        x=params_embedded[:, 0],
+        y=params_embedded[:, 1],
+        ax=ax,
+        label="Observed Parameters",
+        color=observed_color,
+        s=markersize,
+    )
+    sns.scatterplot(
+        x=ppd_params_embedded[:, 0],
+        y=ppd_params_embedded[:, 1],
+        label="Simulated Parameters",
+        color=ppd_color,
+        s=markersize,
+    )
 
-    # for i in range(nrows):
-    #     for j in range(ncols):
-    #         ax = axes[i, j]
+    ax.set_xticks([-3, 0, 3])
+    ax.set_yticks([-3, 0, 3])
+    ax.set_xlim(-5, 5)
+    ax.set_ylim(-5, 5)
 
-    #         if j == 3:
-    #             sides = ["top", "right"]
-    #             for side in sides:
-    #                 ax.spines[side].set_visible(False)
+    for i in range(nrows):
+        for j in range(ncols):
+            ax = axes[i, j]
 
-    #         if ax.get_legend() is not None:
-    #             ax.get_legend().remove()
+            if j == 3:
+                sides = ["top", "right"]
+                for side in sides:
+                    ax.spines[side].set_visible(False)
 
-    #         ax.tick_params(
-    #             axis='both',
-    #             which='both',
-    #             left=True,
-    #             bottom=True,
-    #             right=False,
-    #             top=False,
-    #             labelleft=True,
-    #             labelbottom=True,
-    #             labelright=False,
-    #             labeltop=False,
-    #             labelrotation=15,
-    #             labelsize=10
-    #         )
-    #         ax.set_ylabel("")
-    #         ax.set_xlabel("")
+            if ax.get_legend() is not None:
+                ax.get_legend().remove()
 
-    # lgnd = axes[0, 3].legend(loc=(0, .85), ncol=1, columnspacing=.5, fontsize=10, handletextpad=0)
-    # lgnd.legend_handles[0]._sizes = [30]
-    # lgnd.legend_handles[1]._sizes = [30]
-    # lgnd.legend_handles[2]._sizes = [30]
+            ax.tick_params(
+                axis='both',
+                which='both',
+                left=True,
+                bottom=True,
+                right=False,
+                top=False,
+                labelleft=True,
+                labelbottom=True,
+                labelright=False,
+                labeltop=False,
+                labelrotation=15,
+                labelsize=10
+            )
+            ax.set_ylabel("")
+            ax.set_xlabel("")
+
+    lgnd = axes[0, 3].legend(loc=(0, .85), ncol=1, columnspacing=.5, fontsize=10, handletextpad=0)
+    lgnd.legend_handles[0]._sizes = [30]
+    lgnd.legend_handles[1]._sizes = [30]
+    lgnd.legend_handles[2]._sizes = [30]
+
+    ax = axes[0, 3]
+    ax.get_legend().remove()
+
+    for ax in [axes[0, 0], axes[1, 0]]:
+        ax.set_ylabel("MEP size (a.u.)", fontsize=axis_label_size)
 
     ax = axes[1, 0]
-    ax.set_ylabel("MEP size (a.u.)", fontsize=axis_label_size)
+    ax.set_xlabel("Stimulation intensity ($\%$ MSO)", fontsize=axis_label_size)
 
     for j in range(1):
         ax = axes[1, j]
-        ax.set_xlabel("Stimulation intensity ($\%$ MSO)", fontsize=axis_label_size)
 
     for i in range(2):
         ax = axes[i, 3]
-        ax.set_ylabel("PC 2", fontsize=axis_label_size)
+        ax.set_ylabel(f"Principal component 2\n({pca.explained_variance_ratio_[1] * 100:.0f}%)", fontsize=axis_label_size)
 
         if i == 1:
-            ax.set_xlabel("PC 1", fontsize=axis_label_size)
+            ax.set_xlabel(f"Principal component 1 ({pca.explained_variance_ratio_[0] * 100:.0f}%)", fontsize=axis_label_size)
 
     ax = axes[0, 2]
     ax.legend(loc=(0.02, 0.67), fontsize=10)
