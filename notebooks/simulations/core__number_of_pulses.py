@@ -306,7 +306,7 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
         return
 
 
-    logger.info("Number of subjects experiment.")
+    logger.info("Number of pulses experiment.")
     logger.info(f"n_pulses_space: {', '.join(map(str, n_pulses_space))}")
     logger.info(f"models: {', '.join([z.NAME for z in models])}")
     logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
@@ -324,7 +324,7 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
 
 
 if __name__ == "__main__":
-    # python -m core__number_of_pulses 0 2000
+    # python -m core__number_of_pulses 0 4000
     lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space

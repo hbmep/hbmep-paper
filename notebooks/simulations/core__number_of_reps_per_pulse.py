@@ -17,7 +17,7 @@ from models__accuracy import HierarchicalBayesianModel
 from utils import generate_nested_pulses
 from constants__accuracy import (
     TOML_PATH,
-    SIMULATE_DATA_DIR,
+    SIMULATE_DATA_DIR__ACCURACY,
     NUMBER_OF_REPS_PER_PULSE_DIR,
     N_PULSES_SPACE,
     N_REPS_PER_PULSE_SPACE,
@@ -28,8 +28,8 @@ from constants__accuracy import (
 
 logger = logging.getLogger(__name__)
 
-SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR, SIMULATION_DF)
-SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR, INFERENCE_FILE)
+SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR__ACCURACY, SIMULATION_DF)
+SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR__ACCURACY, INFERENCE_FILE)
 BUILD_DIR = NUMBER_OF_REPS_PER_PULSE_DIR
 
 N_SUBJECTS = 8
@@ -148,7 +148,7 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
         return
 
 
-    logger.info("Number of subjects experiment.")
+    logger.info("Number of reps per pulse experiment.")
     logger.info(f"n_reps_space: {', '.join(map(str, n_reps_space))}")
     logger.info(f"n_pulses_space: {', '.join(map(str, n_pulses_space))}")
     logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
@@ -168,7 +168,7 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
 
 
 if __name__ == "__main__":
-    # python -m core__number_of_reps_per_pulse 0 2000
+    # python -m core__number_of_reps_per_pulse 0 4000
     lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space

@@ -300,7 +300,7 @@ def main(
         return
 
 
-    logger.info("Number of subjects experiment.")
+    logger.info("Power analysis experiment.")
     logger.info(f"n_subjects_space: {', '.join(map(str, n_subjects_space))}")
     logger.info(f"models: {', '.join([z.NAME for z in models])}")
     logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
@@ -318,7 +318,7 @@ def main(
 
 
 if __name__ == "__main__":
-    # python -m core__number_of_subjects 0 2000
+    # python -m core_power 0 2000
     lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
@@ -334,34 +334,34 @@ if __name__ == "__main__":
     #     HierarchicalBayesianModel
     # ]
 
-    # Run non-hierarchical models including
-    # non-hierarchical Bayesian and Maximum Likelihood
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    models = [
-        NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel
-    ]
-
-    # # Run non-hierarchical Nelder-Mead optimization
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # models = [NelderMeadOptimization]
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     MaximumLikelihoodModel
+    # ]
 
-    # # Run for simulation with effect
-    # main(
-    #     simulation_data_dir=SIMULATE_DATA_WITH_EFFECT_DIR,
-    #     build_dir=EXPERIMENTS_WITH_EFFECT_DIR,
-    #     draws_space=draws_space,
-    #     n_subjects_space=n_subjects_space,
-    #     models=models,
-    #     n_jobs=n_jobs
-    # )
+    # Run non-hierarchical Nelder-Mead optimization
+    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    models = [NelderMeadOptimization]
 
-    # Run for simulation without effect
+    # Run for simulation with effect
     main(
-        simulation_data_dir=SIMULATE_DATA_WITH_NO_EFFECT_DIR,
-        build_dir=EXPERIMENTS_WITH_NO_EFFECT_DIR,
+        simulation_data_dir=SIMULATE_DATA_WITH_EFFECT_DIR,
+        build_dir=EXPERIMENTS_WITH_EFFECT_DIR,
         draws_space=draws_space,
         n_subjects_space=n_subjects_space,
         models=models,
         n_jobs=n_jobs
     )
+
+    # # Run for simulation without effect
+    # main(
+    #     simulation_data_dir=SIMULATE_DATA_WITH_NO_EFFECT_DIR,
+    #     build_dir=EXPERIMENTS_WITH_NO_EFFECT_DIR,
+    #     draws_space=draws_space,
+    #     n_subjects_space=n_subjects_space,
+    #     models=models,
+    #     n_jobs=n_jobs
+    # )
