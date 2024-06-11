@@ -99,9 +99,11 @@ def main():
         ax.set_xlabel("# Subjects")
         ax.set_ylabel("MAE")
 
-    ax.set_ylim(bottom=0., top=16.)
     ax.set_xlabel("Number of participants", fontsize=axis_label_size)
     ax.set_ylabel("MAE on Threshold $($% MSO$)$", fontsize=axis_label_size)
+
+    ax = axes[0, 1]
+    ax.set_ylim(bottom=0., top=16.5)
 
     n_pulses_space = N_PULSES_SPACE
     src = os.path.join(NUMBER_OF_PULSES_DIR, "mae.npy")

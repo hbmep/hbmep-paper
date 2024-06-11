@@ -46,7 +46,7 @@ def _power_plot(ax, x, arr, models, labels, jitter=0.):
             continue
         match model.NAME:
             case HierarchicalBayesianModel.NAME:
-                y = arr[..., model_ind] < 0.
+                y = arr[..., model_ind] < BAYESIAN_CUTOFF
             case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME | NelderMeadOptimization.NAME:
                 y = arr[..., model_ind] < FREQUENTIST_CUTOFF
             case _:
@@ -106,7 +106,7 @@ def main():
 
     ax = axes[0, 0]
     ax = _power_plot(ax, N_SUBJECTS_SPACE[1:], prob, models, labels)
-    ax.axhline(y=.8, linestyle="--", color="r", linewidth=1, xmax=.99)
+    ax.axhline(y=.8, linestyle="--", color="r", linewidth=1, xmax=.98)
     ax.set_yticks([.2 * i for i in range(6)])
     ax.set_ylim(top=1.1)
 
@@ -121,7 +121,7 @@ def main():
 
     ax = axes[0, 1]
     ax = _power_plot(ax, N_SUBJECTS_SPACE[1:], prob, models, labels, jitter=.1)
-    ax.axhline(y=.05, linestyle="--", color="r", linewidth=1, xmax=.99)
+    ax.axhline(y=.05, linestyle="--", color="r", linewidth=1, xmax=.98)
     ax.set_yticks([.02 * i for i in range(6)] + [.05])
     ax.set_ylim(top=.11)
 
