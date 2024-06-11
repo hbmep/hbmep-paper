@@ -9,4 +9,4 @@ cd $REPO/notebooks/simulations/
 source $PYTHON_ENV
 
 # Run the script
-python -m core_saturation $1 $2
+python -m core__saturation $1 $2
