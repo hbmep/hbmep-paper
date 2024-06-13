@@ -30,11 +30,13 @@ markersize = 3
 linewidth = 1
 axis_label_size = 12
 
-# TOTAL_SUBJECTS = 1
+EXCLUDE_DRAW = [511]
 
 
 def main():
     draws_space = list(range(4000))
+    draws_space = [u for u in draws_space if u not in EXCLUDE_DRAW]
+
     models = [
         HierarchicalBayesianModel,
         RectifiedLogisticS50
