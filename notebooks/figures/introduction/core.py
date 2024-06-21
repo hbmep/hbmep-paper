@@ -4,24 +4,21 @@ import logging
 
 import arviz as az
 import pandas as pd
-from joblib import Parallel, delayed
 
 from hbmep.config import Config
 
 from hbmep_paper.utils import setup_logging
 from models import (
     RectifiedLogistic,
-    NelderMeadOptimization
+    NelderMeadOptimization,
+)
+from constants import (
+    TOML_PATH,
+    DATA_PATH,
+    BUILD_DIR,
 )
 
 logger = logging.getLogger(__name__)
-
-TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/rats/J_RCML_000.toml"
-DATA_PATH = "/home/vishu/repos/hbmep-paper/reports/figures/01_Intro/data.csv"
-MAT_PATH = "/home/vishu/repos/hbmep-paper/reports/figures/01_Intro/mat.npy"
-RESPONSE = ["APB", "ADM"]
-FEATURES = ["participant"]
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/figures/01_Intro"
 
 
 def run_inference(model):
@@ -30,11 +27,10 @@ def run_inference(model):
     df, encoder_dict = model.load(df=df)
 
     # Run inference
-    # model.plot(df=df, encoder_dict=encoder_dict)
     mcmc, posterior_samples = model.run_inference(df=df)
 
     # Predict and render plots
-    prediction_df = model.make_prediction_dataset(df=df, num=5000)
+    prediction_df = model.make_prediction_dataset(df=df, num_points=5000, min_intensity=0, max_intensity=105)
     posterior_predictive = model.predict(df=prediction_df, posterior_samples=posterior_samples)
     model.render_recruitment_curves(df=df, encoder_dict=encoder_dict, posterior_samples=posterior_samples, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
     model.render_predictive_check(df=df, encoder_dict=encoder_dict, prediction_df=prediction_df, posterior_predictive=posterior_predictive)
@@ -62,14 +58,35 @@ def run_inference(model):
     return
 
 
+def nelder_mead_method(model):
+    # Load data
+    df = pd.read_csv(DATA_PATH)
+
+    # Run inference
+    df, encoder_dict = model.load(df=df)
+    params = model.run_inference(df=df)
+    logger.info(type(params))
+    dest = os.path.join(model.build_dir, "params.pkl")
+    with open(dest, "wb") as f:
+        pickle.dump((params,), f)
+    logger.info(f"Saved to {dest}")
+
+    # Predictions and recruitment curves
+    prediction_df = model.make_prediction_dataset(df=df, num_points=5000, min_intensity=0, max_intensity=105)
+    prediction_df = model.predict(df=prediction_df, params=params)
+    model.render_recruitment_curves(
+        df=df,
+        encoder_dict=encoder_dict,
+        params=params,
+        prediction_df=prediction_df,
+    )
+    return
+
+
 def main(Model):
     # Build model
     config = Config(toml_path=TOML_PATH)
-    config.BUILD_DIR = BUILD_DIR
-    config.RESPONSE = RESPONSE
-    config.FEATURES = FEATURES
-    config.MCMC_PARAMS["num_warmup"] = 10000
-    config.MCMC_PARAMS["num_samples"] = 10000
+    config.BUILD_DIR = os.path.join(BUILD_DIR, Model.NAME)
     model = Model(config=config)
 
     # Setup logging
@@ -80,10 +97,16 @@ def main(Model):
     )
 
     # Run inference
-    run_inference(model)
+    match model.NAME:
+        case "rectified_logistic":
+            run_inference(model)
+        case "nelder_mead":
+            nelder_mead_method(model)
+        case _:
+            raise ValueError(f"Unknown model")
     return
 
 
 if __name__ == "__main__":
-    Model = RectifiedLogistic
-    main(Model)
+    main(RectifiedLogistic)
+    main(NelderMeadOptimization)
