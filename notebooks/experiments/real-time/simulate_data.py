@@ -9,14 +9,16 @@ import numpy as np
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
-from models_old import RectifiedLogistic
+#from models_old import RectifiedLogistic
+from hbmep.model import RectifiedLogistic
+
 from learn_posterior import TOML_PATH, DATA_PATH
 
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate path to inference.pkl from learn_posterior.py
-POSTERIOR_PATH = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test1/learn_posterior/inference.pkl"
+POSTERIOR_PATH = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_quad_muscle_a/learn_posterior/inference.pkl"
 
 
 def main():
@@ -43,7 +45,7 @@ def main():
     """ Load learnt posterior """
     src = POSTERIOR_PATH
     with open(src, "rb") as g:
-        model, mcmc, posterior_samples = pickle.load(g)
+        model, mcmc, posterior_samples, df_ = pickle.load(g)
 
     logger.info(
         f"Logging all sites learnt posterior with their shapes ..."
@@ -105,7 +107,7 @@ def main():
         df=df,
         min_intensity=0,
         max_intensity=100,
-        num=TOTAL_PULSES
+        num_points=TOTAL_PULSES
     )
 
     logger.info(f"Simulating existing participants at equi-spaced pulses ...")
@@ -145,7 +147,7 @@ def main():
         df=simulation_df,
         min_intensity=0,
         max_intensity=100,
-        num=TOTAL_PULSES
+        num_points=TOTAL_PULSES
     )
     logger.info(
         f"Simulation (new participants) dataframe: {simulation_df.shape}"
