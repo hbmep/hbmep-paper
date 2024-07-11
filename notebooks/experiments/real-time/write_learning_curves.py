@@ -80,8 +80,8 @@ def write_learning_curves(root_dir=None, es=''):
         mean_threshold = np.mean(posterior_samples[site.a][:, 0, :], 0)
         ci_threshold = az.hdi(posterior_samples[site.a][:, 0, :])
         mean_threshold_list.append(mean_threshold)
-        ci_threshold_list_lower.append(ci_threshold[0][0])
-        ci_threshold_list_upper.append(ci_threshold[0][1])
+        ci_threshold_list_lower.append(ci_threshold[:, 0])
+        ci_threshold_list_upper.append(ci_threshold[:, 1])
 
 
    # ADD GT AS LAST ENTRY!!!

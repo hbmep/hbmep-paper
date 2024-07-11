@@ -50,9 +50,9 @@ if __name__ == "__main__":
     root_dir = None
 
     csv_list = [
-        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_ECR_muscle_a/REC_MT_cond_norm_mean_threshold.csv'
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_ECR_muscle_a/REC_MT_cond_norm_mean_threshold.csv',
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv'
     ]
-    # '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv',
 
     for csv in csv_list:
         loaded_df = pd.read_csv(csv)
@@ -68,13 +68,16 @@ if __name__ == "__main__":
         plt.figure()
 
         colors = sns.color_palette('colorblind')
-        colors[0] = (208 / 255, 28 / 255, 138 / 255)
-
+        # colors[0] = (208 / 255, 28 / 255, 138 / 255)
+        colors_dict = dict()
+        colors_dict['APB'] = (208 / 255, 28 / 255, 138 / 255)
+        colors_dict['ECR'] = colors[0]
+        colors_dict['FCR'] = colors[1]
         for idx, column in enumerate(loaded_df.columns):
-            plt.fill_between(loaded_df.index, loaded_df_lower[column], loaded_df_upper[column], color=colors[idx],
+            plt.fill_between(loaded_df.index, loaded_df_lower[column], loaded_df_upper[column], color=colors_dict[column],
                              alpha=0.2)
-            plt.plot(loaded_df[column], marker='.', linestyle='-', color=colors[idx], label=column)
-            plt.axhline(y=last_row_vector[idx], color=colors[idx], linestyle='--', label=f'LastRow {column}')
+            plt.plot(loaded_df[column], marker='.', linestyle='-', color=colors_dict[column], label=column)
+            plt.axhline(y=last_row_vector[idx], color=colors_dict[column], linestyle='--', label=f'GT {column}')
 
         plt.xlabel('Index')
         plt.ylabel('Values')
