@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
     csv_list = [
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv',
-        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv'
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_ECR_muscle_a/REC_MT_cond_norm_mean_threshold.csv'
     ]
 
     for csv in csv_list:
