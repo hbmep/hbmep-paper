@@ -50,13 +50,15 @@ if __name__ == "__main__":
     root_dir = None
 
     csv_list = [
-        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_ECR_muscle_a/REC_MT_cond_norm_mean_threshold.csv'
     ]
+    # '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv',
 
     for csv in csv_list:
         loaded_df = pd.read_csv(csv)
 
+        loaded_df_lower = pd.read_csv(csv.replace('mean_threshold', 'ci_threshold_lower'))
+        loaded_df_upper = pd.read_csv(csv.replace('mean_threshold', 'ci_threshold_upper'))
         # Pop the last row and put it in a separate vector
         last_row_vector = loaded_df.iloc[-1].values
         loaded_df = loaded_df.iloc[:-1]
@@ -69,13 +71,16 @@ if __name__ == "__main__":
         colors[0] = (208 / 255, 28 / 255, 138 / 255)
 
         for idx, column in enumerate(loaded_df.columns):
-            plt.plot(loaded_df[column], marker='o', linestyle='-', color=colors[idx], label=column)
+            plt.fill_between(loaded_df.index, loaded_df_lower[column], loaded_df_upper[column], color=colors[idx],
+                             alpha=0.2)
+            plt.plot(loaded_df[column], marker='.', linestyle='-', color=colors[idx], label=column)
             plt.axhline(y=last_row_vector[idx], color=colors[idx], linestyle='--', label=f'LastRow {column}')
 
         plt.xlabel('Index')
         plt.ylabel('Values')
         plt.legend()
         plt.grid(True)
+        plt.ylim([15, 75])
         plt.show()
 
         print(1)

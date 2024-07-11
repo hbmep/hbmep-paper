@@ -30,6 +30,8 @@ from pathlib import Path
 import matplotlib.gridspec as gridspec
 import cv2  # install opencv-python
 import os
+import arviz as az
+
 import glob
 plt.rcParams['svg.fonttype'] = 'none'
 # from matplotlib import rcParams
@@ -61,6 +63,8 @@ def write_learning_curves(root_dir=None, es=''):
         _, _, posterior_samples_gt, _, _ = pickle.load(g)
 
     mean_threshold_list = []
+    ci_threshold_list_lower = []
+    ci_threshold_list_upper = []
 
     for str_dir in subdirs:
 
@@ -74,7 +78,10 @@ def write_learning_curves(root_dir=None, es=''):
         vec_muscle = [str_muscle.replace('PKPK_', '') for str_muscle in model.response]
 
         mean_threshold = np.mean(posterior_samples[site.a][:, 0, :], 0)
+        ci_threshold = az.hdi(posterior_samples[site.a][:, 0, :])
         mean_threshold_list.append(mean_threshold)
+        ci_threshold_list_lower.append(ci_threshold[0][0])
+        ci_threshold_list_upper.append(ci_threshold[0][1])
 
 
    # ADD GT AS LAST ENTRY!!!
@@ -83,6 +90,15 @@ def write_learning_curves(root_dir=None, es=''):
     p_mean = config.BUILD_DIR.parent / f"REC_MT_cond_norm{es}_mean_threshold.{'csv'}"
     df = pd.DataFrame(mean_threshold_list, columns=vec_muscle)
     df.to_csv(p_mean, index=False)
+
+    p_mean = config.BUILD_DIR.parent / f"REC_MT_cond_norm{es}_ci_threshold_lower.{'csv'}"
+    df = pd.DataFrame(ci_threshold_list_lower, columns=vec_muscle)
+    df.to_csv(p_mean, index=False)
+
+    p_mean = config.BUILD_DIR.parent / f"REC_MT_cond_norm{es}_ci_threshold_upper.{'csv'}"
+    df = pd.DataFrame(ci_threshold_list_upper, columns=vec_muscle)
+    df.to_csv(p_mean, index=False)
+
 
     return root_dir
 
