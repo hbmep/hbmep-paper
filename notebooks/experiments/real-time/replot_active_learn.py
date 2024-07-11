@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 
-def main(root_dir=None, es='', fig_format='png', fig_size=(960/250, 1080/250), overwrite=False):
+def main(root_dir=None, es='', fig_format='png', fig_size=[960/250, 1080/250], overwrite=False):
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
     if root_dir is None:
@@ -116,23 +116,17 @@ def main(root_dir=None, es='', fig_format='png', fig_size=(960/250, 1080/250), o
         # participants = list(encoder_dict[model.features[1]].inverse_transform(np.unique(df[model.features[1]])))
 
         # fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
-        fig_size[0] = fig_size * n_muscles
-        fig = plt.figure(figsize=fig_size)  # You can adjust the size as needed
+        fig_size_local = fig_size.copy()
+        fig_size_local[0] = fig_size_local[0] * n_muscles
+        fig = plt.figure(figsize=fig_size_local)  # You can adjust the size as needed
         plt.suptitle(f'Sample: {iter}')
         gs = gridspec.GridSpec(3, n_muscles * 4, figure=fig)
-
-        # font = {'family': 'monospace',
-        #         'weight': 'normal',
-        #         'size': 'large'}
-        #
-        # matplotlib.rc('font', **font)
-
         # Define the subplots
         ix = 0
         ax_rc = [fig.add_subplot(gs[0:2, 0 + ix:3 + ix])]
         ax_H = [fig.add_subplot(gs[0:2, 3 + ix])]
         ax_a = [fig.add_subplot(gs[2, 0 + ix:3 + ix])]
-        for ix in range(n_muscles, n_muscles * 4, n_muscles):
+        for ix in range(4, n_muscles * 4, 4):
             ax_rc.append(fig.add_subplot(gs[0:2, 0 + ix:3 + ix]))
             ax_H.append(fig.add_subplot(gs[0:2, 3 + ix]))
             ax_a.append(fig.add_subplot(gs[2, 0 + ix:3 + ix]))

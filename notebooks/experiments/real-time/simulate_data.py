@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Change this to indicate path to inference.pkl from learn_posterior.py
-POSTERIOR_PATH = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_quad_muscle_a/learn_posterior/inference.pkl"
+POSTERIOR_PATH = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/learn_posterior/inference.pkl"
 
 
 def main():
