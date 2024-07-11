@@ -314,9 +314,10 @@ def main():
     for k in posterior_samples.keys():
         posterior_samples_individual[k] = posterior_samples[k][seed['ix_participant']:seed['ix_participant']+1, ...]
 
-    posterior_samples_individual['a'][0][0][0] = posterior_samples_individual['a'][0][0][0] + 4
-    if posterior_samples_individual['a'].shape[-1] == 2:
-        posterior_samples_individual['a'][0][0][1] = posterior_samples_individual['a'][0][0][1] - 4
+    if seed['ix_participant'] == 62:  # this was to make things a bit more challenging (as an example)
+        posterior_samples_individual['a'][0][0][0] = posterior_samples_individual['a'][0][0][0] + 4
+        if posterior_samples_individual['a'].shape[-1] == 2:
+            posterior_samples_individual['a'][0][0][1] = posterior_samples_individual['a'][0][0][1] - 4
 
     """ Save individual participant info"""
     d_participant = root_dir / 'participant'
