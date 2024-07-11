@@ -190,6 +190,7 @@ def fit_new_model(config, df, do_save=True, make_figures=True):
 
 
 def main():
+    # before running this 1) learn_posterior 2) simulate_data
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
     root_dir = Path(config.BUILD_DIR)
