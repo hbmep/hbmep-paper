@@ -4,15 +4,15 @@ csv_path = ""
 #build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test30_a_2muscles_identical"
 # build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test32_H_2muscles_identical"
 # build_dir = "/home/mcintosh/Local/temp/test_hbmep/hbmep_sim/build/test33_aH_2muscles_identical"
-#build_directory = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_ECR_muscle_a/"
-build_directory = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a"
+build_directory = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_ECR_muscle_a/"
+#build_directory = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a"
 #build_directory = "/home/mcintosh/test38_N30_triple_muscle_a"
 
 [variables]
 features = [["participant", "participant_condition"]]
 intensity = "TMSInt"
-# response = ['PKPK_ECR']  # ['PKPK_ECR', 'PKPK_FCR', 'PKPK_APB'
-response = ['PKPK_ECR', 'PKPK_FCR', 'PKPK_APB']
+response = ['PKPK_ECR']  # ['PKPK_ECR', 'PKPK_FCR', 'PKPK_APB'
+# response = ['PKPK_ECR', 'PKPK_FCR', 'PKPK_APB']
 
 [mcmc]
 num_chains = 4

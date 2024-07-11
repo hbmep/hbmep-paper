@@ -115,6 +115,12 @@ def main(root_dir=None, es='', fig_format='png', fig_size=[960/250, 1080/250], o
         # conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
         # participants = list(encoder_dict[model.features[1]].inverse_transform(np.unique(df[model.features[1]])))
 
+        mean_threshold = np.mean(posterior_samples[site.a][:, 0, :], 0)
+        p_mean = config.BUILD_DIR / f"REC_MT_cond_norm{es}_mean_threshold.{'txt'}"
+        with open(p_mean, 'w') as file:
+            for value in mean_threshold:
+                file.write(f"{value}\n")
+
         # fig, axs = plt.subplots(1, n_muscles, figsize=fig_size)
         fig_size_local = fig_size.copy()
         fig_size_local[0] = fig_size_local[0] * n_muscles
