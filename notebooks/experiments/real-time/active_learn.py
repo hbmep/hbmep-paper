@@ -118,10 +118,16 @@ def fit_lookahead_wrapper(simulation_df_future, candidate_int, cand_y_at_x, conf
     return entropy
 
 
-def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H')):
+def calculate_entropy(posterior_samples_fut, config, opt_param=('a', 'H'), opt_muscles=None):
     # this is actually quite slow as well...
+    if opt_muscles is None:
+        opt_muscles = config.RESPONSE
+        vec_ix_muscle = range(len(opt_muscles))
+    else:
+        # while I guess this works, none of the rest of the code is setup to handle entropy that isn't the size of the number of muscles
+        vec_ix_muscle = [config.RESPONSE.index(y) for y in opt_muscles]
     entropy = []
-    for ix_muscle in range(len(config.RESPONSE)):
+    for ix_muscle in vec_ix_muscle:
         posterior_samples = []
         bounds = []
         for ix_opt_param in range(len(opt_param)):
@@ -189,6 +195,20 @@ def fit_new_model(config, df, do_save=True, make_figures=True):
     return model, mcmc, posterior_samples
 
 
+def filter_posterior_samples(posterior_samples_individual, ix):
+    updated_samples = {}
+    for key, value in posterior_samples_individual.items():
+        # Select only the slice at index ix in the third dimension
+        if len(value.shape) == 3:
+            updated_samples[key] = value[:, :, ix:ix+1]
+        elif len(value.shape) == 2:
+            updated_samples[key] = value[:, ix:ix + 1]
+        else:
+            print(key, value.shape)
+            raise Exception("?")
+    return updated_samples
+
+
 def main():
     # before running this 1) learn_posterior 2) simulate_data
     toml_path = TOML_PATH
@@ -200,9 +220,10 @@ def main():
     config_fast.MCMC_PARAMS['num_warmup'] = 500
     config_fast.MCMC_PARAMS['num_samples'] = 1000
     seed = dict()
-    seed['ix_gen_seed'] = 10
-    seed['ix_participant'] = 62
+    seed['ix_gen_seed'] = 20  # [10, 10, 20, 100, 200]
+    seed['ix_participant'] = 20  # [62, 40, 20, 100, 200]
     opt_param = [site.a]  # [site.a]
+    reduce_muscle_set = None  #, ['PKPK_FCR'] # None means all muscles. N.B. the implementation of the filtering is the worst imaginable.
     choose_interp = False
     make_figures_per_sample = False  # True eventually crashes some X-sessions
     N_max = 40
@@ -445,8 +466,13 @@ def main():
                     mat_entropy[ix_intensity, ix_muscle] = H_exp
 
             mat_entropy_diff = mat_entropy - entropy_base
+
             # collapse over muscles
-            vec_entropy_diff = mat_entropy_diff.mean(axis=-1)
+            if reduce_muscle_set is None:
+                vec_entropy_diff = mat_entropy_diff.mean(axis=-1)
+            else:
+                selected_vectors = np.take(mat_entropy_diff, [config.RESPONSE.index(y) for y in reduce_muscle_set], axis=-1)
+                vec_entropy_diff = selected_vectors.mean(axis=-1)
 
             ix_min_entropy = np.nanargmin(vec_entropy_diff)
             next_intensity = vec_candidate_int[ix_min_entropy]
