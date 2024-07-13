@@ -214,6 +214,7 @@ def main():
     toml_path = TOML_PATH
     config = Config(toml_path=toml_path)
     root_dir = Path(config.BUILD_DIR)
+    root_dir = Path(str(root_dir).replace('ECR', 'APB'))
     config.BUILD_DIR = root_dir / 'simulate_data'
     config_fast = deepcopy(config)
     config_fast.MCMC_PARAMS['num_chains'] = 1
