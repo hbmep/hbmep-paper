@@ -223,7 +223,7 @@ def main():
     seed['ix_gen_seed'] = 10  # [10, 10, 20, 100, 200]
     seed['ix_participant'] = 62  # [62, 40, 20, 100, 200]
     opt_param = [site.a]  # [site.a]
-    reduce_muscle_set = ['PKPK_FCR']  #, ['PKPK_FCR'] # None means all muscles. N.B. the implementation of the filtering is the worst imaginable.
+    reduce_muscle_set = ['PKPK_APB']  #, ['PKPK_FCR'] # None means all muscles. N.B. the implementation of the filtering is the worst imaginable.
     choose_interp = False
     make_figures_per_sample = False  # True eventually crashes some X-sessions
     N_max = 40
