@@ -51,7 +51,9 @@ if __name__ == "__main__":
 
     csv_list = [
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_ECR_muscle_a/REC_MT_cond_norm_mean_threshold.csv',
-        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv'
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a/REC_MT_cond_norm_mean_threshold.csv',
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a_ix40/REC_MT_cond_norm_mean_threshold.csv',
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N30_triple_muscle_a_ix20/REC_MT_cond_norm_mean_threshold.csv'
     ]
 
     for csv in csv_list:
@@ -83,7 +85,7 @@ if __name__ == "__main__":
         plt.ylabel('Values')
         plt.legend()
         plt.grid(True)
-        plt.ylim([15, 75])
+        plt.ylim([0, 75])
         plt.show()
 
         print(1)
