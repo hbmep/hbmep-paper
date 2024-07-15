@@ -1,8 +1,8 @@
 [paths]
 csv_path = ""
 
-build_directory = "/home/mcintosh/test38_N40_ECR_muscle_a_ix0040"
-#build_directory = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_ECR_muscle_a_ix0062"
+# build_directory = "/home/mcintosh/test38_N40_ECR_muscle_a_ix0040"
+build_directory = "/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_FCR_muscle_a_ix0062"
 
 # build_directory = "/home/mcintosh/test38_N30_triple_muscle_a"
 

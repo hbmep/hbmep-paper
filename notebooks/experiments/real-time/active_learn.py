@@ -22,7 +22,7 @@ from utils import run_inference
 
 from scipy.stats import gaussian_kde
 from scipy.integrate import nquad
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed, cpu_count
 from pathlib import Path
 from copy import deepcopy
 import sys
@@ -226,6 +226,7 @@ def main():
     reduce_muscle_set = ['PKPK_ECR']  #, ['PKPK_FCR'] # None means all muscles. N.B. the implementation of the filtering is the worst imaginable.
     choose_interp = False
     make_figures_per_sample = False  # True eventually crashes some X-sessions
+    n_jobs = int(np.floor(cpu_count() * 0.9))
     N_max = 40
     N_reps = 1  # if N_max = 50, then good choices are 1, 2, 5, 10
     N_obs = 15  # this is how many entropy calcs to do per every y drawn from x... larger is better
@@ -429,7 +430,7 @@ def main():
             simulation_df_future = simulation_df_happened.copy()  # just an empty template
             # would be great to init the MCMC chains with the previous full fit (or fit of previous parallel op)
             if do_parallel:
-                with Parallel(n_jobs=-1) as parallel:
+                with Parallel(n_jobs=n_jobs) as parallel:
                     entropy_list_flattened = parallel(
                         delayed(fit_lookahead_wrapper)(simulation_df_future,
                                                        vec_candidate_int_flattened[ix_sample],
