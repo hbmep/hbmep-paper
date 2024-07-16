@@ -31,11 +31,15 @@ def power_analysis(pre, post, candidate_test='t-test', alpha=0.05, power_target=
     return results
 
 # rng62, rng40, rng20
-rng62_apb = 0.0
+rng62_apb = 15.0  # last one
 pre = np.array([29.0, 36.0, 39.0])
 post = np.array([16.0+36.0+rng62_apb, 16.0+39.0+17.0, 14.0+28.0+15.0])  # not yet in
 results_ttest = power_analysis(pre, post, candidate_test='t-test')
 results_signrank = power_analysis(pre, post, candidate_test='signrank')
+
+d_mea = np.mean(post - pre)
+d_std = np.std(post - pre)
+print(f'{d_mea:0.1f}+-{d_std:0.1f}')
 
 import matplotlib.pyplot as plt
 
