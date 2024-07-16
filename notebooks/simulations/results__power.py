@@ -213,5 +213,5 @@ if __name__ == "__main__":
     # Run for the experiments with effect
     main(EXPERIMENTS_WITH_EFFECT_DIR, range(2000))
 
-    # EXPERIMENTS_WITH_NO_EFFECT_DIR = "/mount//mr_lab/vt2353/repos/hbmep-paper/reports/simulations/power/with_no_effect/experiments"
+    # Run for the experiments with no effect
     main(EXPERIMENTS_WITH_NO_EFFECT_DIR, range(2000))

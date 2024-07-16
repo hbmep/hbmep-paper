@@ -102,7 +102,9 @@ def main():
     min_bin, max_bin = 0, 1
     bins = np.arange(min_bin, max_bin + bin_width, bin_width)
     n_bins = len(bins) - 1
-    bin_labels = [f"{((bins[i]  + bins[i + 1]) / 2)* 100:.0f}" for i in range(n_bins)]
+    # bin_labels = [f"{((bins[i]  + bins[i + 1]) / 2)* 100:.0f}" for i in range(n_bins)]
+    # bin_labels[0] = bin_labels[0].replace("(", "[")
+    bin_labels = [f"({bins[i] * 100:.0f}, {bins[i + 1] * 100:.0f}]" for i in range(n_bins)]
     bin_labels[0] = bin_labels[0].replace("(", "[")
     logger.info(bins)
     logger.info(n_bins)
@@ -180,7 +182,7 @@ def main():
     ax.set_ylabel("")
 
     ax.set_xticks(bins[:-1][start:] + (bin_width / 2))
-    ax.set_xticklabels(bin_labels[start:], rotation=15)
+    ax.set_xticklabels(bin_labels[start:], rotation=25)
     ax.set_xlabel("Percentage of saturation observed (% saturation)", fontsize=axis_label_size)
     ax.set_ylabel("Mean absolute error (% MSO)", fontsize=axis_label_size)
     ax.legend(loc="upper right", fontsize=11, reverse=True)

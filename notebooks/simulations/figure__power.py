@@ -18,6 +18,7 @@ from constants__power import (
     EXPERIMENTS_WITH_EFFECT_DIR,
     EXPERIMENTS_WITH_NO_EFFECT_DIR
 )
+from figure__subjects_and_pulses import COLORS as colors
 
 logger = logging.getLogger(__name__)
 plt.rcParams["svg.fonttype"] = "none"
@@ -29,13 +30,14 @@ BAYESIAN_CUTOFF = 0.
 axis_label_size = 12
 inside_text_size = 8
 
-colors = ["#00ced1", "purple", "gray", "k"]
 IF_SKIP = True
 IF_SKIP = not IF_SKIP
 
 markersize = 3
 linewidth = 1
 linestyle = "--"
+RCOLOR = (204 / 255, 25 / 255, 59 / 255)
+RCOLOR = "r"
 
 
 def _power_plot(ax, x, arr, models, labels, jitter=0.):
@@ -79,7 +81,7 @@ def main():
         figsize=(const * 5.1, const * 2.65),
         squeeze=False,
         constrained_layout=True,
-        sharex="row"
+        # sharex="row"
     )
 
     models = [
@@ -102,11 +104,13 @@ def main():
 
     src = os.path.join(EXPERIMENTS_WITH_EFFECT_DIR, "prob.npy")
     prob = np.load(src)
+    # # [0:2, 1:4, 2:8, 3:9, 4:10, 5:12, 6:16, 7:17, 8:20]
+    # prob = prob[[0, 1, 2, 4, 5, 6, 7, 8], ...]
     logger.info(f"prob: {prob.shape}")
 
     ax = axes[0, 0]
     ax = _power_plot(ax, N_SUBJECTS_SPACE[1:], prob, models, labels)
-    ax.axhline(y=.8, linestyle="--", color="r", linewidth=1, xmax=.98)
+    ax.axhline(y=.8, linestyle="--", color=RCOLOR, linewidth=1, xmax=.98)
     ax.set_yticks([.2 * i for i in range(6)])
     ax.set_ylim(top=1.1)
 
@@ -121,7 +125,7 @@ def main():
 
     ax = axes[0, 1]
     ax = _power_plot(ax, N_SUBJECTS_SPACE[1:], prob, models, labels, jitter=.1)
-    ax.axhline(y=.05, linestyle="--", color="r", linewidth=1, xmax=.98)
+    ax.axhline(y=.05, linestyle="--", color=RCOLOR, linewidth=1, xmax=.98)
     ax.set_yticks([.02 * i for i in range(6)] + [.05])
     ax.set_ylim(top=.11)
 
@@ -162,7 +166,7 @@ def main():
     ax.text(2, .051, "5% Significance level", va="bottom", ha="left", fontsize=inside_text_size)
 
     ax = axes[0, 1]
-    ax.legend(loc="upper right", fontsize=inside_text_size, labelspacing=1.1, reverse=True)
+    ax.legend(loc="upper right", fontsize=inside_text_size, labelspacing=.7, reverse=True)
 
     fig.align_xlabels()
     fig.align_ylabels()

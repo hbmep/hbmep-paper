@@ -31,6 +31,14 @@ linestyle = "--"
 axis_label_size = 12
 inside_text_size = 8
 
+COLORS = [
+    (128, 128, 128),
+    (128,0,128),
+    (128, 128, 0),
+    (0, 206, 209),
+]
+COLORS = [(r / 255, g / 255, b / 255) for r, g, b in COLORS]
+
 
 def main():
     const = 1.25
@@ -57,21 +65,7 @@ def main():
         "Hierarchical Bayesian"
     ]
 
-    colors = ["#00ced1", "#ffa500", "#0000ff", "k"]
-    colors = ["#00ced1", "gold", "#0000ff", "k"]
-
-    colors = list(sns.color_palette("colorblind", 5))
-    colors = colors[:2] + colors[3:]
-    colors += ["k"]
-
-    custom_palette = sns.color_palette("colorblind", 10)
-    custom_palette = list(custom_palette)
-    c_ind = [0, 1, -3]
-    colors = [custom_palette[i] for i in c_ind]
-    colors += ["k"]
-
-
-    colors = ["#00ced1", "purple", "gray", "k"]
+    colors = COLORS
 
     src = os.path.join(NUMBER_OF_SUBJECTS_DIR, "mae.npy")
     mae = np.load(src)
@@ -158,7 +152,7 @@ def main():
 
     ax = axes[0, 0]
     ax.sharey(axes[0, 1])
-    ax.legend(loc="upper right", fontsize=inside_text_size, reverse=True)
+    ax.legend(loc="upper right", fontsize=inside_text_size, reverse=True, labelspacing=.6)
 
     ax = axes[0, 0]
     ax.set_ylabel("Mean absolute error\nof threshold estimation $($% MSO$)$", fontsize=axis_label_size)
