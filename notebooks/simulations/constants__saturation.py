@@ -1,0 +1,21 @@
+import os
+
+from constants__accuracy import (
+    TOML_PATH,
+    BUILD_DIR,
+    REP,
+    INFERENCE_FILE,
+    SIMULATION_DF
+)
+
+
+TOTAL_SUBJECTS = 8
+N_SUBJECTS_SPACE = [1, TOTAL_SUBJECTS]
+
+TOTAL_PULSES = 48
+TOTAL_REPS = 1
+
+MAX_INTENSITY = 70
+
+SIMULATE_DATA_DIR__SATURATION = os.path.join(BUILD_DIR, "saturation")
+EXPERIMENTS_DIR__SATURATION = os.path.join(SIMULATE_DATA_DIR__SATURATION, "experiments")
