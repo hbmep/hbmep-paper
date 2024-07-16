@@ -3,7 +3,7 @@ hbmep-paper
 
 This repository has code to reproduce the results in the paper `Hierarchical Bayesian estimation of motor-evoked potential recruitment curves yields accurate and robust estimates <https://arxiv.org/abs/2407.08709>`_.
 
-It uses the `hbmep v0.5.0 <https://github.com/hbmep/hbmep>`_ package. See :file:`pyproject.toml <https://github.com/hbmep/hbmep-paper/blob/main/pyproject.toml>`_ for dependencies.
+It uses the `hbmep v0.5.0 <https://github.com/hbmep/hbmep>`_. See `pyproject.toml <https://github.com/hbmep/hbmep-paper/blob/main/pyproject.toml>`_ for dependencies.
 
 Installation
 ---------------
@@ -26,8 +26,6 @@ Note that the above command uses Python 3.11. If you have a different version of
 We can then install in editable mode.
 
 .. code-block:: bash
-
-    python$(python) -m venv .venv
 
 	@source .venv/bin/activate && \
 	pip install --upgrade pip && \
