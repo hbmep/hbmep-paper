@@ -318,21 +318,21 @@ def main(
 
 
 if __name__ == "__main__":
-    # python -m core_power 0 2000
+    # Usage: python -m core_power 0 2000
     lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
     draws_space = range(lo, hi)
     n_jobs = -1
 
-    ## Uncomment the following to run
-    ## experiment for different models
+    # Uncomment the following to run
+    # experiment for different models
 
-    # # Run hierarchical models
-    # n_subjects_space = N_SUBJECTS_SPACE
-    # models = [
-    #     HierarchicalBayesianModel
-    # ]
+    # Run hierarchical models
+    n_subjects_space = N_SUBJECTS_SPACE
+    models = [
+        HierarchicalBayesianModel
+    ]
 
     # # Run non-hierarchical models including
     # # non-hierarchical Bayesian and Maximum Likelihood
@@ -342,9 +342,9 @@ if __name__ == "__main__":
     #     MaximumLikelihoodModel
     # ]
 
-    # Run non-hierarchical Nelder-Mead optimization
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    models = [NelderMeadOptimization]
+    # # Run non-hierarchical Nelder-Mead optimization
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [NelderMeadOptimization]
 
     # Run for simulation with effect
     main(

@@ -168,7 +168,7 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
 
 
 if __name__ == "__main__":
-    # python -m core__number_of_reps_per_pulse 0 4000
+    # Usage: python -m core__number_of_reps_per_pulse 0 4000
     lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space

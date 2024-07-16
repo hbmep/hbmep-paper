@@ -325,7 +325,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
 
 
 if __name__ == "__main__":
-    # python -m core__number_of_subjects 0 4000
+    # Usage: python -m core__number_of_subjects 0 4000
     lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
@@ -335,19 +335,19 @@ if __name__ == "__main__":
     ## Uncomment the following to run
     ## experiment for different models
 
-    # # Run hierarchical models
-    # n_subjects_space = N_SUBJECTS_SPACE
-    # models = [
-    #     HierarchicalBayesianModel
-    # ]
-
-    # Run non-hierarchical models including
-    # non-hierarchical Bayesian and Maximum Likelihood
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # Run hierarchical models
+    n_subjects_space = N_SUBJECTS_SPACE
     models = [
-        NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel
+        HierarchicalBayesianModel
     ]
+
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     MaximumLikelihoodModel
+    # ]
 
     # # Run non-hierarchical Nelder-Mead optimization
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
