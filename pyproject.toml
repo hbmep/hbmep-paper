@@ -8,7 +8,7 @@ version = "0.0.1"
 authors = [
     { name="Vishweshwar Tyagi, James R. McIntosh", email="vt2353@cumc.columbia.edu" }
 ]
-description = "Results for hbmep paper"
+description = "Results for the hbMEP paper"
 readme = "README.md"
 requires-python = ">=3.11"
 classifiers = [
