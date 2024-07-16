@@ -1,4 +1,4 @@
-hbmep-paper
+hbMEP paper
 =====
 
 This repository has code to reproduce the results in the paper `Hierarchical Bayesian estimation of motor-evoked potential recruitment curves yields accurate and robust estimates <https://arxiv.org/abs/2407.08709>`_.
