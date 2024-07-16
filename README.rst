@@ -1,7 +1,7 @@
 hbMEP Paper
 =====
 
-This repository has code to reproduce the results in the paper `Hierarchical Bayesian estimation of motor-evoked potential recruitment curves yields accurate and robust estimates <https://arxiv.org/abs/2407.08709>`_.
+This repository has code to reproduce results in the paper `Hierarchical Bayesian estimation of motor-evoked potential recruitment curves yields accurate and robust estimates <https://arxiv.org/abs/2407.08709>`_.
 
 It uses the `hbmep v0.5.0 <https://github.com/hbmep/hbmep>`_. See `pyproject.toml <https://github.com/hbmep/hbmep-paper/blob/main/pyproject.toml>`_ for dependencies.
 
