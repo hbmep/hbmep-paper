@@ -112,15 +112,15 @@ if __name__ == "__main__":
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_triple_muscle_a_ix0062/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_ECR_muscle_a_ix0062/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_FCR_muscle_a_ix0062/REC_MT_cond_norm_mean_threshold.csv',
-        # '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_APB_muscle_a_ix0062/REC_MT_cond_norm_mean_threshold.csv',
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_APB_muscle_a_ix0062/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_triple_muscle_a_ix0040/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_ECR_muscle_a_ix0040/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_FCR_muscle_a_ix0040/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_APB_muscle_a_ix0040/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_triple_muscle_a_ix0020/REC_MT_cond_norm_mean_threshold.csv',
         '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_ECR_muscle_a_ix0020/REC_MT_cond_norm_mean_threshold.csv',
-        # '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_FCR_muscle_a_ix0020/REC_MT_cond_norm_mean_threshold.csv',
-        # '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_APB_muscle_a_ix0020/REC_MT_cond_norm_mean_threshold.csv',
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_FCR_muscle_a_ix0020/REC_MT_cond_norm_mean_threshold.csv',
+        '/home/mcintosh/Cloud/DataPort/2024_active_learning_sims_for_R03/hbmep_sim/build/test38_N40_APB_muscle_a_ix0020/REC_MT_cond_norm_mean_threshold.csv',
     ]
 
 
@@ -145,7 +145,7 @@ if __name__ == "__main__":
         colors_dict['FCR'] = colors[1]
         # ix_stop = find_consecutive_true(loaded_df, 0.02, 3)  # eta in Alavi is 0.001... seems a bit too small?!
         ix_stop = find_consecutive_gt((loaded_df - last_row_vector).abs(), 1.5, 4)  # eta in Alavi is 0.001... seems a bit too small?!
-        print(f'ix:{csv_info[0][1]}')
+        print(f'rng:{csv_info[0][1]}')
         if csv_info[0][0] == 'triple':
             print(f'Triple: {np.max(ix_stop):0.1f}, {ix_stop}')
         else:
@@ -157,7 +157,7 @@ if __name__ == "__main__":
             plt.axhline(y=last_row_vector[idx], color=colors_dict[column], linestyle='--', label=f'GT {column}')
             plt.axvline(x=ix_stop[idx] - 1, color=colors_dict[column], linestyle='--', label=f'GT {column}')
 
-        plt.title(f'{csv_info[0][0]}, ix{csv_info[0][1]}')
+        plt.title(f'{csv_info[0][0]}, rng{csv_info[0][1]}')
         plt.xlabel('Index')
         plt.ylabel('Values')
         plt.legend()
