@@ -6,6 +6,7 @@ export
 python = 3.11
 
 .PHONY: build-base
+build-base:
 	@python$(python) -m venv .venv
 
 .PHONY: build
