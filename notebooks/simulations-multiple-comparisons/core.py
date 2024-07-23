@@ -18,7 +18,7 @@ from models import (
     HierarchicalBayesianModel,
     # NonHierarchicalBayesianModel,
     # MaximumLikelihoodModel,
-    # NelderMeadOptimization
+    NelderMeadOptimization
 )
 from utils import _generate_simulation_data_dirs
 from constants import (
@@ -346,9 +346,9 @@ if __name__ == "__main__":
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [NelderMeadOptimization]
 
+    # Run for simulation without effect
     key = "with_no_effect"
     _, _, simulation_data_dir = simulation_data_dirs[key]
-    # Run for simulation without effect
     main(
         simulation_data_dir=simulation_data_dir,
         draws_space=draws_space,
@@ -356,12 +356,3 @@ if __name__ == "__main__":
         models=models,
         n_jobs=n_jobs
     )
-
-    # main(
-    #     simulation_data_dir=SIMULATE_DATA_WITH_NO_EFFECT_DIR,
-    #     build_dir=EXPERIMENTS_WITH_NO_EFFECT_DIR,
-    #     draws_space=draws_space,
-    #     n_subjects_space=n_subjects_space,
-    #     models=models,
-    #     n_jobs=n_jobs
-    # )
