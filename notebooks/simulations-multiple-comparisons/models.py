@@ -506,16 +506,16 @@ class HierarchicalBayesianModel(GammaModel):
 #                 )
 
 
-# class NelderMeadOptimization(BoundedOptimization):
-#     NAME = "nelder_mead_optimization"
+class NelderMeadOptimization(BoundedOptimization):
+    NAME = "nelder_mead_optimization"
 
-#     def __init__(self, config: Config):
-#         super(NelderMeadOptimization, self).__init__(config=config)
-#         self.solver = "Nelder-Mead"
-#         self.functional = F.rectified_logistic
-#         self.named_params = [site.a, site.b, site.L, site.ell, site.H]
-#         self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
-#         self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
-#         self.num_points = 1000
-#         self.num_iters = 100
-#         self.n_jobs = -1
+    def __init__(self, config: Config):
+        super(NelderMeadOptimization, self).__init__(config=config)
+        self.solver = "Nelder-Mead"
+        self.functional = F.rectified_logistic
+        self.named_params = [site.a, site.b, site.L, site.ell, site.H]
+        self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
+        self.num_points = 1000
+        self.num_iters = 100
+        self.n_jobs = -1
