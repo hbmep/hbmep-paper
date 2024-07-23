@@ -239,7 +239,7 @@ def main(
                     (simulation_df[REP] < n_reps)
                 )
                 df = simulation_df[ind].reset_index(drop=True).copy()
-                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+                df[simulator.response] = ppd_obs[draw, ind, :]
 
                 ind = df[simulator.response[0]] > 0
                 df = df[ind].reset_index(drop=True).copy()
