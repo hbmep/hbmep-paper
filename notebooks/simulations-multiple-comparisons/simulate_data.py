@@ -153,15 +153,10 @@ def main(a_delta_loc, a_delta_scale, build_dir):
 if __name__ == "__main__":
     simulation_data_dirs = _generate_simulation_data_dirs()
 
-    key = "with_no_effect"
-    a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
-    main(a_delta_loc, a_delta_scale, build_dir)
-
-    # key = "test"
+    # key = "with_no_effect"
     # a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
     # main(a_delta_loc, a_delta_scale, build_dir)
 
-    # # Simulate data with effect
-
-    # # Simulate data with no effect
-    # main(0, 2.5, SIMULATE_DATA_WITH_NO_EFFECT_DIR)
+    key = "with_effect"
+    a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
+    main(a_delta_loc, a_delta_scale, build_dir)
