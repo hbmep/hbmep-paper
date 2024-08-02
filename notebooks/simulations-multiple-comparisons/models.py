@@ -10,7 +10,7 @@ from hbmep.model.utils import Site as site
 
 
 class LearnPosteriorModel(GammaModel):
-    NAME = "hierarchical_bayesian_model"
+    NAME = "learn_posterior_model"
 
     def __init__(self, config: Config):
         super(LearnPosteriorModel, self).__init__(config=config)
