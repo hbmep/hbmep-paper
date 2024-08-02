@@ -128,6 +128,9 @@ def main(a_delta_loc, a_delta_scale, build_dir):
     for u, v in simulation_ppd.items():
         simulation_ppd[u] = v[flag_valid_draws, ...]
 
+    # Ensure positive observations
+    assert (simulation_ppd[site.obs] > 0).all()
+
     # Shuffle draws
     logger.info(f"Shuffling draws ...")
     ind = np.arange(0, simulation_ppd[site.a].shape[0], 1)
@@ -153,9 +156,9 @@ def main(a_delta_loc, a_delta_scale, build_dir):
 if __name__ == "__main__":
     simulation_data_dirs = _generate_simulation_data_dirs()
 
-    # key = "with_no_effect"
-    # a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
-    # main(a_delta_loc, a_delta_scale, build_dir)
+    key = "with_no_effect"
+    a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
+    main(a_delta_loc, a_delta_scale, build_dir)
 
     key = "with_effect"
     a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]

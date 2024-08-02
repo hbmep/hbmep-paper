@@ -16,9 +16,9 @@ from hbmep_paper.utils import setup_logging
 from models import (
     Simulator,
     HierarchicalBayesianModel,
-    NonHierarchicalBayesianModel,
-    MaximumLikelihoodModel,
-    NelderMeadOptimization
+    # NonHierarchicalBayesianModel,
+    # MaximumLikelihoodModel,
+    # NelderMeadOptimization
 )
 from utils import _generate_simulation_data_dirs
 from constants import (
@@ -56,17 +56,11 @@ def main(
     with open(src, "rb") as g:
         simulator, simulation_ppd = pickle.load(g)
 
-    print(simulator.response)
-
     ppd_a = simulation_ppd[site.a]
     ppd_obs = simulation_ppd[site.obs]
     simulation_ppd = None
     del simulation_ppd
     gc.collect()
-
-    flag = (ppd_obs > 0).sum()
-    print(flag)
-    print(ppd_obs.shape)
 
     # Set up logging
     simulator._make_dir(build_dir)
@@ -146,19 +140,17 @@ def main(
 
                 a_delta_loc = posterior_samples["a_delta_loc"]
                 a_delta_scale = posterior_samples["a_delta_scale"]
-                a_delta_loc_loc = posterior_samples["a_delta_loc_loc"]
                 np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
                 np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
-                np.save(os.path.join(model.build_dir, "a_delta_loc_loc.npy"), a_delta_loc_loc)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
                 a_true, a_pred = None, None
-                a_delta_loc, a_delta_scale, a_delta_loc_loc = None, None, None
+                a_delta_loc, a_delta_scale = None, None
                 del config, df, prediction_df, encoder_dict, _
                 del model, posterior_samples, posterior_predictive
                 del a_true, a_pred
-                del a_delta_loc, a_delta_scale, a_delta_loc_loc
+                del a_delta_loc, a_delta_scale
                 gc.collect()
 
             # Non-hierarchical models: non-hierarchical Bayesian
@@ -341,6 +333,7 @@ if __name__ == "__main__":
 
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
+    n_subjects_space = [1, 2, 4]
     models = [
         HierarchicalBayesianModel
     ]
