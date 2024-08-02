@@ -333,7 +333,6 @@ if __name__ == "__main__":
 
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
-    n_subjects_space = [1, 2, 4]
     models = [
         HierarchicalBayesianModel
     ]
