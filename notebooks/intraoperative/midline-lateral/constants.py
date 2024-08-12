@@ -10,5 +10,9 @@ NETCODE_FILE = "inference_data.nc"
 BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/intraoperative/midline-lateral"
 
 BOOTSTRAP_DIR = os.path.join(BUILD_DIR, "bootstrap")
+BOOTSTRAP_EXPERIMENTS_DIR = os.path.join(BOOTSTRAP_DIR, "experiments")
+
 NUM_PERMUTATIONS = 4000
+N_SUBJECTS_SPACE = [2, 4, 6, 8, 10, 13]
+
 BOOTSTRAP_FILE = "bootstrap.pkl"
