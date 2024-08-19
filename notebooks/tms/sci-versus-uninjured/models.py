@@ -22,8 +22,8 @@ class HierarchicalBayesianModel(GammaModel):
         feature1 = features[..., 1]
 
         # Population level hyper-priors
-        a_loc_loc = numpyro.sample(
-            "a_loc_loc", dist.TruncatedNormal(50., 50.)
+        a_loc_loc_scale = numpyro.sample(
+            "a_loc_loc_scale", dist.HalfNormal(50.)
         )
         a_loc_scale = numpyro.sample(
             "a_loc_scale", dist.HalfNormal(50.)
@@ -55,6 +55,10 @@ class HierarchicalBayesianModel(GammaModel):
         )
 
         with numpyro.plate(site.n_response, self.n_response):
+            a_loc_loc = numpyro.sample(
+                "a_loc_loc", dist.TruncatedNormal(50., a_loc_loc_scale)
+            )
+
             with numpyro.plate(site.n_features[1], n_features[1]):
                 # Hyper-priors
                 a_loc = numpyro.sample(
