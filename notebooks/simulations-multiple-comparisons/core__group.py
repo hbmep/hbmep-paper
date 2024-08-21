@@ -13,6 +13,11 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
+from models import (
+    NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization,
+)
 from models__group import (
     Simulator,
     HierarchicalBayesianModel,
@@ -346,7 +351,7 @@ if __name__ == "__main__":
     # # non-hierarchical Bayesian and Maximum Likelihood
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [
-    #     NonHierarchicalBayesianModel,
+    #     NonHierarchicalBayesianModel
     #     # MaximumLikelihoodModel
     # ]
 
