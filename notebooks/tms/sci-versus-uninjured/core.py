@@ -3,7 +3,6 @@ import pickle
 import logging
 
 import arviz as az
-import pandas as pd
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -12,9 +11,10 @@ from hbmep_paper.utils import setup_logging
 from models import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization
 )
 from constants import (
-    DATA_PATH,
     TOML_PATH,
     INFERENCE_FILE,
     BUILD_DIR,
@@ -91,7 +91,7 @@ def main(M):
             vars_to_exclude = ["~" + var for var in vars_to_exclude]
             logger.info(az.summary(inference_data, var_names=vars_to_exclude).to_string())
 
-        case NonHierarchicalBayesianModel.NAME:
+        case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME:
             config = Config(toml_path=TOML_PATH)
             config.BUILD_DIR = os.path.join(
                 BUILD_DIR,
@@ -133,7 +133,7 @@ def main(M):
             with open(src, "wb") as f:
                 pickle.dump((posterior_samples,), f)
 
-        case MaximumLikelihoodModel.NAME | NelderMeadOptimization.NAME:
+        case NelderMeadOptimization.NAME:
             config = Config(toml_path=TOML_PATH)
             config.BUILD_DIR = os.path.join(
                 BUILD_DIR,
@@ -171,7 +171,7 @@ def main(M):
 
 if __name__ == "__main__":
     # M = HierarchicalBayesianModel
-    M = NonHierarchicalBayesianModel
+    # M = NonHierarchicalBayesianModel
     # M = MaximumLikelihoodModel
-    # M = NelderMeadOptimization
+    M = NelderMeadOptimization
     main(M=M)
