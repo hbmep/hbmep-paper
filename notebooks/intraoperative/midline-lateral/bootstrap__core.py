@@ -1,4 +1,5 @@
 import os
+import sys
 import gc
 import pickle
 import logging
@@ -42,6 +43,8 @@ def main(
     def run_experiment(n_subjects, draw, M):
         # Build model
         config = Config(toml_path=TOML_PATH)
+        config.MCMC_PARAMS["num_samples"] = 1000
+        config.MCMC_PARAMS["thinning"] = 1
         config.BUILD_DIR = os.path.join(
             build_dir,
             f"d{draw}",

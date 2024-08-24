@@ -8,11 +8,6 @@ from hbmep.nn import functional as F
 from hbmep.model import GammaModel
 from hbmep.model.utils import Site as site
 
-from hbmep_paper.models import (
-    NonHierarchicalBaseModel,
-    ConstrainedOptimization
-)
-
 
 class HierarchicalBayesianModel(GammaModel):
     NAME = "hierarchical_bayesian_model"
