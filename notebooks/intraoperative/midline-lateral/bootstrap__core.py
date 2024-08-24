@@ -1,5 +1,4 @@
 import os
-import sys
 import gc
 import pickle
 import logging
@@ -16,41 +15,37 @@ from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
     BOOTSTRAP_EXPERIMENTS_DIR,
+    BOOTSTRAP_EXPERIMENTS_WEAK_DIR,
     N_SUBJECTS_SPACE,
     BOOTSTRAP_FILE,
 )
 
 logger = logging.getLogger(__name__)
 
-BUILD_DIR = BOOTSTRAP_EXPERIMENTS_DIR
-
 
 def main(
-	build_dir,
 	draws_space,
 	n_subjects_space,
 	models,
+    weak_control,
 	n_jobs=-1
 ):
+    build_dir = BOOTSTRAP_EXPERIMENTS_DIR
+    if weak_control: build_dir = BOOTSTRAP_EXPERIMENTS_WEAK_DIR
+    os.makedirs(build_dir, exist_ok=True)
+
     src = os.path.join(BOOTSTRAP_DIR, BOOTSTRAP_FILE)
     with open(src, "rb") as f:
-        DF, _, PERMUTATIONS = pickle.load(f)
+        DF, _, SUBJECTS, PERMUTATIONS, FLAGS = pickle.load(f)
 
 
-    def run_experiment(
-        n_subjects,
-        draw,
-        M
-    ):
-        n_subjects_dir = f"n{n_subjects}"
-        draw_dir = f"d{draw}"
-
+    def run_experiment(n_subjects, draw, M):
         # Build model
         config = Config(toml_path=TOML_PATH)
         config.BUILD_DIR = os.path.join(
             build_dir,
-            draw_dir,
-            n_subjects_dir,
+            f"d{draw}",
+            f"n{n_subjects}",
             M.NAME
         )
         model = M(config=config)
@@ -63,15 +58,24 @@ def main(
         )
 
         # Load data
-        subjects = PERMUTATIONS[draw][:n_subjects]
-        subjects = [p[1] for p in subjects]
+        permutation = PERMUTATIONS[draw, :n_subjects]
+        flag = FLAGS[draw, :n_subjects]
+
+        subjects = [SUBJECTS[p] for p in permutation]
+        subjects = [s[1] for s in subjects]
         subjects = sorted(subjects)
 
         df = []
-        for i, subject_ind in enumerate(subjects):
-            ind = DF[model.features[0]] == subject_ind
+        for new_subject_name, subject_name in enumerate(subjects):
+            ind = DF[model.features[0]] == subject_name
             curr_df = DF[ind].reset_index(drop=True).copy()
-            curr_df[model.features[0]] = curr_df[model.features[0]].replace({subject_ind: f"{subject_ind}__{i}"})
+            assert curr_df[model.features[0]].nunique() == 1
+            curr_df[model.features[0]] = new_subject_name
+            if weak_control and flag[new_subject_name]:
+                curr_df[model.features[1]] = (
+                    curr_df[model.features[1]]
+                    .replace({0: 1, 1: 0})
+                )
             df.append(curr_df)
 
         df = pd.concat(df, ignore_index=True).copy()
@@ -80,6 +84,12 @@ def main(
         # Run inference
         df, encoder_dict = model.load(df=df)
         _, posterior_samples = model.run_inference(df=df)
+
+        # Save
+        a_delta_loc = posterior_samples["a_delta_loc"]
+        a_delta_scale = posterior_samples["a_delta_scale"]
+        np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
+        np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
 
         # Predictions and recruitment curves
         prediction_df = model.make_prediction_dataset(df=df)
@@ -93,12 +103,6 @@ def main(
             prediction_df=prediction_df,
             posterior_predictive=posterior_predictive
         )
-
-        # Save
-        a_delta_loc = posterior_samples["a_delta_loc"]
-        a_delta_scale = posterior_samples["a_delta_scale"]
-        np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
-        np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
 
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
@@ -126,7 +130,7 @@ if __name__ == "__main__":
 
     # Experiment space
     draws_space = range(lo, hi)
-    n_jobs = 1
+    n_jobs = -1
 
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
@@ -134,10 +138,11 @@ if __name__ == "__main__":
         HierarchicalBayesianModel
     ]
 
+    weak_control = True
     main(
-        build_dir=BUILD_DIR,
         draws_space=draws_space,
         n_subjects_space=n_subjects_space,
         models=models,
+        weak_control=weak_control,
         n_jobs=n_jobs
     )
