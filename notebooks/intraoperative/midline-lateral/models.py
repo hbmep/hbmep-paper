@@ -42,25 +42,17 @@ class HierarchicalBayesianModel(GammaModel):
                     )
 
         # Delta
-        # a_delta_loc_loc = numpyro.sample(
-        #     "a_delta_loc_loc", dist.Normal(0., 10.)
-        # )
         a_delta_loc_scale = numpyro.sample(
             "a_delta_loc_scale", dist.HalfNormal(10.)
         )
-
         a_delta_scale = numpyro.sample(
             "a_delta_scale", dist.HalfNormal(10.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
-                a_delta_loc_raw = numpyro.sample(
-                    "a_delta_loc_raw", dist.Normal(0., 1.)
-                )
-                a_delta_loc = numpyro.deterministic(
-                    "a_delta_loc",
-                    jnp.multiply(a_delta_loc_raw, a_delta_loc_scale)
+                a_delta_loc = numpyro.sample(
+                    "a_delta_loc",dist.Normal(0., a_delta_loc_scale)
                 )
 
                 with numpyro.plate(site.n_features[0], n_features[0]):
@@ -77,26 +69,14 @@ class HierarchicalBayesianModel(GammaModel):
                     )
 
         # Hyper-priors
-        b_scale = numpyro.sample(
-            "b_scale", dist.HalfNormal(5.)
-        )
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
-        L_scale = numpyro.sample(
-            "L_scale", dist.HalfNormal(.5)
-        )
-        ell_scale = numpyro.sample(
-            "ell_scale", dist.HalfNormal(10.)
-        )
-        H_scale = numpyro.sample(
-            "H_scale", dist.HalfNormal(5.)
-        )
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
 
-        c_1_scale = numpyro.sample(
-            "c_1_scale", dist.HalfNormal(5.)
-        )
-        c_2_scale = numpyro.sample(
-            "c_2_scale", dist.HalfNormal(5.)
-        )
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
@@ -107,47 +87,23 @@ class HierarchicalBayesianModel(GammaModel):
                         jnp.concatenate([a_fixed, a_fixed + a_delta], axis=1)
                     )
 
-                    b_raw = numpyro.sample(
-                        "b_raw", dist.HalfNormal(scale=1)
-                    )
-                    b = numpyro.deterministic(
-                        site.b, jnp.multiply(b_scale, b_raw)
-                    )
+                    b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
+                    b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
 
-                    L_raw = numpyro.sample(
-                        "L_raw", dist.HalfNormal(scale=1)
-                    )
-                    L = numpyro.deterministic(
-                        site.L, jnp.multiply(L_scale, L_raw)
-                    )
+                    L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
+                    L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
 
-                    ell_raw = numpyro.sample(
-                        "ell_raw", dist.HalfNormal(scale=1)
-                    )
-                    ell = numpyro.deterministic(
-                        "ell", jnp.multiply(ell_scale, ell_raw)
-                    )
+                    ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                    ell = numpyro.deterministic("ell", jnp.multiply(ell_scale, ell_raw))
 
-                    H_raw = numpyro.sample(
-                        "H_raw", dist.HalfNormal(scale=1)
-                    )
-                    H = numpyro.deterministic(
-                        site.H, jnp.multiply(H_scale, H_raw)
-                    )
+                    H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
+                    H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
 
-                    c_1_raw = numpyro.sample(
-                        "c_1_raw", dist.HalfCauchy(scale=1)
-                    )
-                    c_1 = numpyro.deterministic(
-                        site.c_1, jnp.multiply(c_1_scale, c_1_raw)
-                    )
+                    c_1_raw = numpyro.sample("c_1_raw", dist.HalfNormal(scale=1))
+                    c_1 = numpyro.deterministic(site.c_1, jnp.multiply(c_1_scale, c_1_raw))
 
-                    c_2_raw = numpyro.sample(
-                        "c_2_raw", dist.HalfCauchy(scale=1)
-                    )
-                    c_2 = numpyro.deterministic(
-                        site.c_2, jnp.multiply(c_2_scale, c_2_raw)
-                    )
+                    c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
+                    c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
         # Outlier Distribution
         outlier_prob = numpyro.sample(site.outlier_prob, dist.Uniform(0., .01))
