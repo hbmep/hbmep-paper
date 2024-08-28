@@ -9,6 +9,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from hbmep.config import Config
+from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
 from models import HierarchicalBayesianModel
@@ -16,41 +17,51 @@ from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
     BOOTSTRAP_EXPERIMENTS_DIR,
+    BOOTSTRAP_EXPERIMENTS_NO_EFFECT_DIR,
     N_SUBJECTS_SPACE,
     BOOTSTRAP_FILE,
 )
 
 logger = logging.getLogger(__name__)
-
 BUILD_DIR = BOOTSTRAP_EXPERIMENTS_DIR
 
 
+@timing
 def main(
-	build_dir,
 	draws_space,
 	n_subjects_space,
 	models,
+    no_effect,
 	n_jobs=-1
 ):
+    build_dir = BOOTSTRAP_EXPERIMENTS_DIR
+    if no_effect: build_dir = BOOTSTRAP_EXPERIMENTS_NO_EFFECT_DIR
+    os.makedirs(build_dir, exist_ok=True)
+
     src = os.path.join(BOOTSTRAP_DIR, BOOTSTRAP_FILE)
     with open(src, "rb") as f:
-        DF, _, SCI_PERMUTATIONS, UNINJURED_PERMUTATIONS = pickle.load(f)
+        (
+            DF,
+            _,
+            GROUP_0,
+            GROUP_0_PERMUTATIONS,
+            GROUP_1,
+            GROUP_1_PERMUTATIONS,
+            SUBJECTS,
+            SUBJECTS_PERMUTATIONS,
+        ) = pickle.load(f)
 
 
-    def run_experiment(
-        n_subjects,
-        draw,
-        M
-    ):
-        n_subjects_dir = f"n{n_subjects}"
-        draw_dir = f"d{draw}"
-
+    def run_experiment(n_subjects, draw, M):
         # Build model
         config = Config(toml_path=TOML_PATH)
+        config.MCMC_PARAMS["num_warmup"] = 4000
+        config.MCMC_PARAMS["num_samples"] = 1000
+        config.MCMC_PARAMS["thinning"] = 1
         config.BUILD_DIR = os.path.join(
             build_dir,
-            draw_dir,
-            n_subjects_dir,
+            f"d{draw}",
+            f"n{n_subjects}",
             M.NAME
         )
         model = M(config=config)
@@ -63,15 +74,29 @@ def main(
         )
 
         # Load data
-        subjects = [p[1] for p in SCI_PERMUTATIONS[draw][:n_subjects]]
-        subjects += [p[1] for p in UNINJURED_PERMUTATIONS[draw][:n_subjects]]
-        subjects = sorted(subjects)
+        group_0 = GROUP_0_PERMUTATIONS[draw, :n_subjects]
+        group_1 = GROUP_1_PERMUTATIONS[draw, :n_subjects]
+        group_0 = [GROUP_0[i] for i in group_0]
+        group_1 = [GROUP_1[i] for i in group_1]
+
+        # Null distribution
+        if no_effect:
+            group_0 = SUBJECTS_PERMUTATIONS[draw, :n_subjects]
+            group_1 = SUBJECTS_PERMUTATIONS[draw, -n_subjects:]
+            group_0 = [SUBJECTS[i] for i in group_0]
+            group_1 = [SUBJECTS[i] for i in group_1]
+            group_0 = [(c[0], 0) for c in group_0]
+            group_1 = [(c[0], 1) for c in group_1]
+
+        subjects = group_0 + group_1
+        subjects = sorted(subjects, key=lambda x: (x[1], x[0]))
 
         df = []
-        for i, subject_ind in enumerate(subjects):
+        for new_subject_name, (subject_ind, _) in enumerate(subjects):
             ind = DF[model.features[0]] == subject_ind
             curr_df = DF[ind].reset_index(drop=True).copy()
-            curr_df[model.features[0]] = curr_df[model.features[0]].replace({subject_ind: f"{subject_ind}__{i}"})
+            assert curr_df[model.features[0]].nunique() == 1
+            curr_df[model.features[0]] = new_subject_name
             df.append(curr_df)
 
         df = pd.concat(df, ignore_index=True).copy()
@@ -132,10 +157,11 @@ if __name__ == "__main__":
         HierarchicalBayesianModel
     ]
 
+    no_effect = False
     main(
-        build_dir=BUILD_DIR,
         draws_space=draws_space,
         n_subjects_space=n_subjects_space,
         models=models,
+        no_effect=no_effect,
         n_jobs=n_jobs
     )

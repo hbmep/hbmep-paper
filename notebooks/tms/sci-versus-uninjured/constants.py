@@ -11,8 +11,9 @@ BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/tms/sci-versus-uninjured"
 
 BOOTSTRAP_DIR = os.path.join(BUILD_DIR, "bootstrap")
 BOOTSTRAP_EXPERIMENTS_DIR = os.path.join(BOOTSTRAP_DIR, "experiments")
+BOOTSTRAP_EXPERIMENTS_NO_EFFECT_DIR = os.path.join(BOOTSTRAP_DIR, "experiments_no_effect")
 
-NUM_PERMUTATIONS = 4000
+NUM_BOOTSTRAPS = 4000
 N_SUBJECTS_SPACE = [2, 4, 6, 8, 10, 13]
 
 BOOTSTRAP_FILE = "bootstrap.pkl"
