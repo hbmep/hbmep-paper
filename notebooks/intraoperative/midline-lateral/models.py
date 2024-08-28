@@ -8,6 +8,11 @@ from hbmep.nn import functional as F
 from hbmep.model import GammaModel
 from hbmep.model.utils import Site as site
 
+from hbmep_paper.models import (
+    NonHierarchicalBaseModel,
+    ConstrainedOptimization
+)
+
 
 class HierarchicalBayesianModel(GammaModel):
     NAME = "hierarchical_bayesian_model"
@@ -94,7 +99,7 @@ class HierarchicalBayesianModel(GammaModel):
                     L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
 
                     ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
-                    ell = numpyro.deterministic("ell", jnp.multiply(ell_scale, ell_raw))
+                    ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
 
                     H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
                     H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
@@ -107,7 +112,6 @@ class HierarchicalBayesianModel(GammaModel):
 
         # Outlier Distribution
         outlier_prob = numpyro.sample(site.outlier_prob, dist.Uniform(0., .01))
-        outlier_scale = numpyro.sample(site.outlier_scale, dist.HalfNormal(10))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -138,11 +142,11 @@ class HierarchicalBayesianModel(GammaModel):
 
                 # Mixture
                 q = numpyro.deterministic(
-                    site.q, outlier_prob * jnp.ones((n_data, self.n_response))
+                    site.q,
+                    jnp.multiply(outlier_prob, jnp.ones((n_data, self.n_response)))
                 )
                 bg_scale = numpyro.deterministic(
-                    site.bg_scale,
-                    outlier_scale * jnp.ones((n_data, self.n_response))
+                    site.bg_scale, L[feature0, feature1] + H[feature0, feature1]
                 )
 
                 mixing_distribution = dist.Categorical(

@@ -21,7 +21,6 @@ from constants import (
 )
 
 logger = logging.getLogger(__name__)
-
 BUILD_DIR = BOOTSTRAP_DIR
 
 
@@ -53,9 +52,6 @@ def main():
 
     # Generate N permutations
     rng_key = random.PRNGKey(0)
-    permutations = []
-    flags = []
-
     ind = np.arange(0, len(subjects), 1)
     permutations = random.choice(
         rng_key,
