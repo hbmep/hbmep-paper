@@ -10,6 +10,7 @@ from numpyro.infer.mcmc import MCMCKernel
 from hbmep.config import Config
 from hbmep.model import BaseModel
 from hbmep.model.bounded_optimization import abstractvariables
+from hbmep.utils import timing
 
 
 @abstractvariables(
@@ -21,6 +22,7 @@ class NonHierarchicalBaseModel(BaseModel):
     def __init__(self, config: Config):
         super(NonHierarchicalBaseModel, self).__init__(config=config)
 
+    @timing
     def run_inference(
         self,
         df: pd.DataFrame,
@@ -38,6 +40,8 @@ class NonHierarchicalBaseModel(BaseModel):
             df, _ = self.load(df=df)
 
             self.response = [response]
+            self.n_response = len(self.response)
+
             _, posterior_samples = BaseModel.run_inference(
                 self, df, sampler, **kwargs
             )
@@ -60,6 +64,7 @@ class NonHierarchicalBaseModel(BaseModel):
             )
 
         self.response = response    # Not sure if this is necessary to reset
+        self.n_response = len(self.response)
         n_features = (
             df[self.features].max().astype(int).to_numpy() + 1
         )

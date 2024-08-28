@@ -25,107 +25,177 @@ logger = logging.getLogger(__name__)
 
 
 @abstractvariables(
-    ("solver", "str: Type of solver used to minimize the cost function."),
-    ("args", "list[str]: Named parameters of the cost function, for which it is minimized."),
-    ("bounds", "list[tuple(float, float)]: Bounds for the parameters of the cost function method."),
-    ("informed_bounds", "list[tuple(float, float)]: Informed bounds for the parameters of the cost function method."),
+    ("method", "str: Type of `scipy.optimize.minimize` solver used to minimize the cost function."),
+    ("named_args", "list[str]: Named arguments of the cost function, for which it is minimized."),
+    ("bounds", "list[tuple(float, float)]: Bounds for the arguments of `named_args`."),
+    ("informed_bounds", "list[tuple(float, float)]: Informed bounds for the arguments of `named_args`."),
+    ("num_reinit", "int: Number of reinitializations for the optimization algorithm."),
+    ("n_jobs", "int: Number of parallel jobs to run with `joblib.Parallel`."),
 )
-class BoundedOptimization(BaseModel):
-    NAME = BOUNDED_OPTIMIZATION
+class ConstrainedOptimization(BaseModel):
+    NAME = "constrained_optimization"
 
     def __init__(self, config: Config):
-        super(BoundedOptimization, self).__init__(config=config)
-        self.num_points = 100
-        self.num_iters = 1000
-        self.n_jobs = -1
+        super(ConstrainedOptimization, self).__init__(config=config)
+
+    def functional(self, x, *args):
+        """
+        This method should return the predicted values of the response variable given
+        the input intensity values `x` and the arguments `args` for which the
+        cost function is minimized.
+        """
+        raise NotImplementedError
+
+    def cost_function(self, x, y_obs, *args):
+        """
+        This method should return the cost function to be minimized for arguments `args`.
+        The return value should be a scalar.
+
+        Note that the same arguments in `args` are passed to both the `functional` and `cost_function`.
+
+        E.g.: Suppose the cost function is the mean squared error between the observed
+        and predicted values of the response variable. Then, the cost function would be:
+
+        ```python
+        def cost_function(self, x, y_obs, *args):
+            y_pred = self.functional(x, *args)
+            return np.mean((y_obs - y_pred) ** 2)
+        ```
+
+        while, the `functional` method could be:
+
+        ```python
+        def functional(self, x, *args):
+            return args[0] + args[1] * x + args[2] * (x ** 2)
+        ```
+        """
+        raise NotImplementedError
 
     @staticmethod
-    def _get_search_space(rng_key, bounds, informed_bounds, num_points, num_iters):
-        rng_keys = random.split(rng_key, num=len(bounds))
-        grid = [np.linspace(lo, hi, num_points) for lo, hi in informed_bounds]
-        grid = [
-            random.choice(key=rng_key, a=arr, shape=(num_iters,), replace=True)
-            for arr, rng_key in zip(grid, rng_keys)
-        ]
+    def _get_search_space(rng_keys, bounds, informed_bounds, num_grid_points, num_reinit):
+        if informed_bounds is None:
+            if bounds is not None: informed_bounds = bounds
+            grid = [random.uniform(key=rng_key, shape=(num_reinit,)) for rng_key in rng_keys]
+
+        else:
+            grid = [np.linspace(lo, hi, num_grid_points) for lo, hi in informed_bounds]
+            grid = [
+                random.choice(key=rng_key, a=arr, shape=(num_reinit,), replace=True)
+                for arr, rng_key in zip(grid, rng_keys)
+            ]
+
         grid = [np.array(arr).tolist() for arr in grid]
         grid = list(zip(*grid))
         return grid
 
     @staticmethod
-    def _get_named_params(params, named_params):
-        return {u: dict(zip(named_params, v)) for u, v in params.items()}
+    def _get_named_args(args, named_args):
+        # TODO: Rename this method to make more sense
+        return {u: dict(zip(named_args, v)) for u, v in args.items()}
 
-    def functional(self, x, *args):
-        raise NotImplementedError
-
-    def cost_function(self, x, y_obs, *args):
-        raise NotImplementedError
-
-    @timing
-    def run_inference(self, df: pd.DataFrame):
-        grid = BoundedOptimization._get_search_space(
-            rng_key=self.rng_key,
+    def optimize(self, x, y_obs, build_dir, **kwargs):
+        rng_keys = random.split(self.rng_key, num=len(self.named_args))
+        grid = ConstrainedOptimization._get_search_space(
+            rng_keys=rng_keys,
             bounds=self.bounds,
             informed_bounds=self.informed_bounds,
-            num_points=self.num_points,
-            num_iters=self.num_iters
+            num_grid_points=10 * self.num_reinit,
+            num_reinit=self.num_reinit
         )
-        combinations = self._get_combinations(df, self.features)
-        temp_dir = os.path.join(self.build_dir, "optimize_results")
 
-        def body_fn_optimize(x, y_obs, x0, destination_path):
+        temp_dir = os.path.join(build_dir, f"optimize_results")
+        if os.path.exists(temp_dir): shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir, exist_ok=False)
+
+
+        def _body_fn_optimize(x, y_obs, x0, destination_path):
             res = minimize(
                 lambda coeffs: self.cost_function(x, y_obs, *coeffs),
                 x0=x0,
                 bounds=self.bounds,
-                method=self.solver
+                method=self.method,
+                **kwargs
             )
             with open(destination_path, "wb") as f:
                 pickle.dump((res,), f)
 
-        params = {}
-        for combination in combinations:
-            for response_ind, response in enumerate(self.response):
-                ind = (
-                    df[self.features]
-                    .apply(tuple, axis=1)
-                    .isin([combination])
+
+        with Parallel(n_jobs=self.n_jobs) as parallel:
+            parallel(
+                delayed(_body_fn_optimize)(
+                    x, y_obs, x0, os.path.join(temp_dir, f"param{i}.pkl")
                 )
-                df_ = df[ind].reset_index(drop=True).copy()
-                x, y_obs = df_[self.intensity].values, df_[response].values
+                for i, x0 in enumerate(grid)
+            )
 
-                if os.path.exists(temp_dir): shutil.rmtree(temp_dir)
-                os.makedirs(temp_dir, exist_ok=False)
-
-                with Parallel(n_jobs=self.n_jobs) as parallel:
-                    parallel(
-                        delayed(body_fn_optimize)(
-                            x, y_obs, x0, os.path.join(temp_dir, f"param{i}.pkl")
-                        )
-                        for i, x0 in enumerate(grid)
-                    )
-
-                res = []
-                for i, _ in enumerate(grid):
-                    src = os.path.join(temp_dir, f"param{i}.pkl")
-                    with open(src, "rb") as g:
-                        res.append(pickle.load(g)[0])
-
-                estimated_params = [r.x for r in res]
-                errors = [r.fun for r in res]
-                argmin = np.argmin(errors)
-                params[(*combination, response_ind)] = estimated_params[argmin]
+        result = []
+        for i, _ in enumerate(grid):
+            src = os.path.join(temp_dir, f"param{i}.pkl")
+            with open(src, "rb") as g:
+                result.append(pickle.load(g)[0])
 
         if os.path.exists(temp_dir): shutil.rmtree(temp_dir)
 
-        named_params = BoundedOptimization._get_named_params(
-            params=params, named_params=self.args
+        estimated_args = [r.x for r in result]
+        errors = [r.fun for r in result]
+        argmin = np.argmin(errors)
+        estimated_args = estimated_args[argmin]
+
+        dest = os.path.join(build_dir, "estimated_args.pkl")
+        with open(dest, "wb") as f:
+            pickle.dump(estimated_args, f)
+
+        return
+
+    @timing
+    def run_inference(self, df: pd.DataFrame, **kwargs):
+        combinations = self._get_combinations(df, self.features)
+
+
+        def _body_fn_run_inference(combination, response_ind):
+            nonlocal df
+            ind = (
+                df[self.features]
+                .apply(tuple, axis=1)
+                .isin([combination])
+            )
+            df_ = df[ind].reset_index(drop=True).copy()
+            x, y_obs = df_[self.intensity].values, df_[self.response[response_ind]].values
+
+            build_dir = os.path.join(self.build_dir, f"{combination}__{response_ind}")
+            self.optimize(x, y_obs, build_dir, **kwargs)
+            return
+
+
+        with Parallel(n_jobs=self.n_jobs) as parallel:
+            parallel(
+                delayed(_body_fn_run_inference)(combination, response_ind)
+                for combination in combinations
+                for response_ind in range(self.n_response)
+            )
+
+
+        args = {}
+        for combination in combinations:
+            for response_ind, _ in enumerate(self.response):
+                build_dir = os.path.join(self.build_dir, f"{combination}__{response_ind}")
+
+                src = os.path.join(build_dir, "estimated_args.pkl")
+                with open(src, "rb") as f:
+                    estimated_args = pickle.load(f)
+
+                args[(*combination, response_ind)] = estimated_args
+                if os.path.exists(build_dir): shutil.rmtree(build_dir)
+
+        named_params = ConstrainedOptimization._get_named_args(
+            args=args, named_args=self.named_args
         )
-        n_features = df[self.features].max().values + 1
 
         params = {}
-        for named_param in self.args:
-            params[named_param] = np.full((*n_features, self.n_response), np.nan)
+        n_features = df[self.features].max().values + 1
+
+        for named_arg in self.named_args:
+            params[named_arg] = np.full((*n_features, self.n_response), np.nan)
 
         for u, v in named_params.items():
             for named_param, value in v.items():
@@ -156,7 +226,7 @@ class BoundedOptimization(BaseModel):
                     temp_df[self.intensity].values,
                     *(
                         params[named_param][*combination, response_ind]
-                        for named_param in self.args
+                        for named_param in self.named_args
                     )
                 )
                 df.loc[ind, response] = y_pred
