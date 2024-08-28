@@ -16,7 +16,7 @@ from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
     BOOTSTRAP_EXPERIMENTS_DIR,
-    BOOTSTRAP_EXPERIMENTS_WEAK_DIR,
+    BOOTSTRAP_EXPERIMENTS_NO_EFFECT_DIR,
     N_SUBJECTS_SPACE,
     BOOTSTRAP_FILE,
 )
@@ -28,11 +28,11 @@ def main(
 	draws_space,
 	n_subjects_space,
 	models,
-    weak_control,
+    no_effect,
 	n_jobs=-1
 ):
     build_dir = BOOTSTRAP_EXPERIMENTS_DIR
-    if weak_control: build_dir = BOOTSTRAP_EXPERIMENTS_WEAK_DIR
+    if no_effect: build_dir = BOOTSTRAP_EXPERIMENTS_NO_EFFECT_DIR
     os.makedirs(build_dir, exist_ok=True)
 
     src = os.path.join(BOOTSTRAP_DIR, BOOTSTRAP_FILE)
@@ -74,7 +74,7 @@ def main(
             curr_df = DF[ind].reset_index(drop=True).copy()
             assert curr_df[model.features[0]].nunique() == 1
             curr_df[model.features[0]] = new_subject_name
-            if weak_control and flag[new_subject_name]:
+            if no_effect and flag[new_subject_name]:
                 curr_df[model.features[1]] = (
                     curr_df[model.features[1]]
                     .replace({0: 1, 1: 0})
@@ -141,11 +141,11 @@ if __name__ == "__main__":
         HierarchicalBayesianModel
     ]
 
-    weak_control = True
+    no_effect = True
     main(
         draws_space=draws_space,
         n_subjects_space=n_subjects_space,
         models=models,
-        weak_control=weak_control,
+        no_effect=no_effect,
         n_jobs=n_jobs
     )

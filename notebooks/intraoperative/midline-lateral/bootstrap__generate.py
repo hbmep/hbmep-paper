@@ -5,7 +5,6 @@ import logging
 import pandas as pd
 from jax import random
 import numpy as np
-from numpyro import distributions as dist
 
 from hbmep.config import Config
 from hbmep.model import BaseModel
