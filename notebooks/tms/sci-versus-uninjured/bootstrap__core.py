@@ -107,6 +107,8 @@ def main(
         _, posterior_samples = model.run_inference(df=df)
 
         # Save
+        a_loc_delta = posterior_samples["a_loc_delta"]
+        np.save(os.path.join(model.build_dir, "a_loc_delta.npy"), a_loc_delta)
         a_loc = posterior_samples["a_loc"]
         np.save(os.path.join(model.build_dir, "a_loc.npy"), a_loc)
 
@@ -125,10 +127,10 @@ def main(
 
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
-        a_loc = None
+        a_loc_delta, a_loc, = None, None
         del config, df, prediction_df, encoder_dict, _
         del model, posterior_samples, posterior_predictive
-        del a_loc
+        del a_loc_delta, a_loc
         gc.collect()
 
 
