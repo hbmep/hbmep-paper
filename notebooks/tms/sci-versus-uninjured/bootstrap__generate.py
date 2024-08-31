@@ -39,6 +39,12 @@ def main():
 
     # Load data
     df = pd.read_csv(DATA_PATH)
+    df[model.features[1]] = (
+        df[model.features[1]]
+        .replace({
+            "Uninjured": "NOT_SCI"
+        })
+    )
     df, encoder_dict = model.load(df=df)
 
     subjects = (

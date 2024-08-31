@@ -26,10 +26,41 @@ class HierarchicalBayesianModel(GammaModel):
         feature0 = features[..., 0]
         feature1 = features[..., 1]
 
-        # Global priors
-        a_loc_loc_scale = numpyro.sample("a_loc_loc_scale", dist.HalfNormal(50.))
-        a_loc_scale = numpyro.sample("a_loc_scale", dist.HalfNormal(50.))
+        n_fixed = 1
+        n_delta = n_features[1] - 1
 
+        # Fixed
+        a_loc_fixed_loc = numpyro.sample(
+            "a_loc_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
+        )
+        a_loc_fixed_scale = numpyro.sample(
+            "a_loc_fixed_scale", dist.HalfNormal(50.)
+        )
+
+        with numpyro.plate(site.n_response, self.n_response):
+            with numpyro.plate("n_fixed", n_fixed):
+                a_loc_fixed = numpyro.sample(
+                    "a_loc_fixed", dist.TruncatedNormal(
+                        a_loc_fixed_loc, a_loc_fixed_scale, low=0
+                    )
+                )
+
+        # Delta
+        a_loc_delta_scale = numpyro.sample(
+            "a_loc_delta_scale", dist.HalfNormal(50.)
+        )
+
+        with numpyro.plate(site.n_response, self.n_response):
+            with numpyro.plate("n_delta", n_delta):
+                a_loc_delta = numpyro.sample(
+                    "a_loc_delta", dist.Normal(0., a_loc_delta_scale)
+                )
+                a_loc_fixed_plus_delta = numpyro.deterministic(
+                    "a_loc_fixed_plus_delta",
+                    jnp.maximum(1e-6, a_loc_fixed + a_loc_delta)
+                )
+
+        # Global priors
         a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
         v_scale = numpyro.sample("v_scale", dist.HalfNormal(5.))
@@ -41,14 +72,9 @@ class HierarchicalBayesianModel(GammaModel):
         c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
 
         with numpyro.plate(site.n_response, self.n_response):
-            a_loc_loc = numpyro.sample(
-                "a_loc_loc", dist.TruncatedNormal(50., a_loc_loc_scale, low=0)
-            )
-
             with numpyro.plate(site.n_features[1], n_features[1]):
-                # Hyper-priors
-                a_loc = numpyro.sample(
-                    "a_loc", dist.TruncatedNormal(a_loc_loc, a_loc_scale, low=0)
+                a_loc = numpyro.deterministic(
+                    "a_loc", jnp.concatenate([a_loc_fixed, a_loc_fixed_plus_delta])
                 )
 
                 with numpyro.plate(site.n_features[0], n_features[0]):
