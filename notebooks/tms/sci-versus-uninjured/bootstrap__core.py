@@ -92,9 +92,10 @@ def main(
         subjects = sorted(subjects, key=lambda x: (x[1], x[0]))
 
         df = []
-        for new_subject_name, (subject_ind, _) in enumerate(subjects):
+        for new_subject_name, (subject_ind, new_group_ind) in enumerate(subjects):
             ind = DF[model.features[0]] == subject_ind
             curr_df = DF[ind].reset_index(drop=True).copy()
+            curr_df[model.features[1]] = new_group_ind
             assert curr_df[model.features[0]].nunique() == 1
             curr_df[model.features[0]] = new_subject_name
             df.append(curr_df)
