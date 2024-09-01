@@ -85,11 +85,9 @@ def main(
             right = [(*c, 1) for c in right]
 
         df = []
-        for (
-            new_subject_name,
-            (l_subject, l_condition, l_new_condition),
-            (r_subject, r_condition, r_new_condition)
-        ) in enumerate(zip(left, right)):
+        for new_subject_name, (l, r) in enumerate(zip(left, right)):
+            l_subject, l_condition, l_new_condition = l
+            r_subject, r_condition, r_new_condition = r
             ind = (
                 DF[model.features]
                 .apply(tuple, axis=1)
@@ -161,7 +159,8 @@ def main(
 
 if __name__ == "__main__":
     # Usage: python -m bootstrap__core.py 0 100
-    lo, hi = list(map(int, sys.argv[1:]))
+    # lo, hi = list(map(int, sys.argv[1:]))
+    lo, hi = 0, 1
 
     # Experiment space
     draws_space = range(lo, hi)
@@ -179,5 +178,5 @@ if __name__ == "__main__":
         n_subjects_space=n_subjects_space,
         models=models,
         no_effect=no_effect,
-        n_jobs=n_jobs
+        n_jobs=1
     )
