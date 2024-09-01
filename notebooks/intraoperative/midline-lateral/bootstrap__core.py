@@ -9,6 +9,7 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from hbmep.config import Config
+from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
 from models import HierarchicalBayesianModel
@@ -24,6 +25,7 @@ from constants import (
 logger = logging.getLogger(__name__)
 
 
+@timing
 def main(
 	draws_space,
 	n_subjects_space,
@@ -37,12 +39,20 @@ def main(
 
     src = os.path.join(BOOTSTRAP_DIR, BOOTSTRAP_FILE)
     with open(src, "rb") as f:
-        DF, _, SUBJECTS, PERMUTATIONS, FLAGS = pickle.load(f)
+        (
+            DF,
+            _,
+            SUBJECTS,
+            SUBJECTS_PERMUTATIONS,
+            COMBINATIONS,
+            COMBINATIONS_PERMUTATIONS,
+        ) = pickle.load(f)
 
 
     def run_experiment(n_subjects, draw, M):
         # Build model
         config = Config(toml_path=TOML_PATH)
+        config.MCMC_PARAMS["num_warmup"] = 4000
         config.MCMC_PARAMS["num_samples"] = 1000
         config.MCMC_PARAMS["thinning"] = 1
         config.BUILD_DIR = os.path.join(
@@ -61,24 +71,46 @@ def main(
         )
 
         # Load data
-        permutation = PERMUTATIONS[draw, :n_subjects]
-        flag = FLAGS[draw, :n_subjects]
+        subjects = SUBJECTS_PERMUTATIONS[draw, :n_subjects]
+        subjects = [SUBJECTS[i] for i in subjects]
+        left = [(s, 0, 0) for s in subjects]
+        right = [(s, 1, 1) for s in subjects]
 
-        subjects = [SUBJECTS[p] for p in permutation]
-        subjects = [s[1] for s in subjects]
-        subjects = sorted(subjects)
+        if no_effect:
+            combinations = COMBINATIONS_PERMUTATIONS[draw, :]
+            combinations = [COMBINATIONS[i] for i in combinations]
+            left = combinations[:n_subjects]
+            right = combinations[-n_subjects:]
+            left = [(*c, 0) for c in left]
+            right = [(*c, 1) for c in right]
 
         df = []
-        for new_subject_name, subject_name in enumerate(subjects):
-            ind = DF[model.features[0]] == subject_name
+        for (
+            new_subject_name,
+            (l_subject, l_condition, l_new_condition),
+            (r_subject, r_condition, r_new_condition)
+        ) in enumerate(zip(left, right)):
+            ind = (
+                DF[model.features]
+                .apply(tuple, axis=1)
+                .isin([(l_subject, l_condition)])
+            )
             curr_df = DF[ind].reset_index(drop=True).copy()
             assert curr_df[model.features[0]].nunique() == 1
+            assert curr_df[model.features[1]].nunique() == 1
             curr_df[model.features[0]] = new_subject_name
-            if no_effect and flag[new_subject_name]:
-                curr_df[model.features[1]] = (
-                    curr_df[model.features[1]]
-                    .replace({0: 1, 1: 0})
-                )
+            curr_df[model.features[1]] = l_new_condition
+            df.append(curr_df)
+            ind = (
+                DF[model.features]
+                .apply(tuple, axis=1)
+                .isin([(r_subject, r_condition)])
+            )
+            curr_df = DF[ind].reset_index(drop=True).copy()
+            assert curr_df[model.features[0]].nunique() == 1
+            assert curr_df[model.features[1]].nunique() == 1
+            curr_df[model.features[0]] = new_subject_name
+            curr_df[model.features[1]] = r_new_condition
             df.append(curr_df)
 
         df = pd.concat(df, ignore_index=True).copy()
