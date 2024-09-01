@@ -64,13 +64,8 @@ class HierarchicalBayesianModel(GammaModel):
                     a_delta = numpyro.sample(
                         "a_delta", dist.Normal(a_delta_loc, a_delta_scale)
                     )
-
-                    # Penalty for negative a
-                    penalty_for_negative_a = (
-                        jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
-                    )
-                    numpyro.factor(
-                        "penalty_for_negative_a", -penalty_for_negative_a
+                    a_fixed_plus_delta = numpyro.deterministic(
+                        "a_fixed_plus_delta", jnp.maximum(1e-6, a_fixed + a_delta)
                     )
 
         # Hyper-priors
@@ -89,7 +84,7 @@ class HierarchicalBayesianModel(GammaModel):
                     # Priors
                     a = numpyro.deterministic(
                         site.a,
-                        jnp.concatenate([a_fixed, a_fixed + a_delta], axis=1)
+                        jnp.concatenate([a_fixed, a_fixed_plus_delta], axis=1)
                     )
 
                     b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
