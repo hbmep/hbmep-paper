@@ -3,18 +3,16 @@ import pickle
 import logging
 
 import arviz as az
-import pandas as pd
 
 from hbmep.config import Config
-from hbmep.model import BaseModel
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
 from models import (
     HierarchicalBayesianModel,
-    # NonHierarchicalBayesianModel,
-    # MaximumLikelihoodModel,
-    # NelderMeadOptimization,
+    NonHierarchicalBayesianModel,
+    MaximumLikelihoodModel,
+    NelderMeadOptimization,
 )
 from constants import (
     TOML_PATH,
@@ -31,7 +29,7 @@ def main(M):
     # Load data
     src = os.path.join(BOOTSTRAP_DIR, BOOTSTRAP_FILE)
     with open(src, "rb") as f:
-        df, encoder_dict, _, _, _ = pickle.load(f)
+        df, encoder_dict, _, _, _, _ = pickle.load(f)
 
     match M.NAME:
         case HierarchicalBayesianModel.NAME:
@@ -169,8 +167,8 @@ def main(M):
 
 
 if __name__ == "__main__":
-    M = HierarchicalBayesianModel
+    # M = HierarchicalBayesianModel
     # M = NonHierarchicalBayesianModel
     # M = MaximumLikelihoodModel
-    # M = NelderMeadOptimization
+    M = NelderMeadOptimization
     main(M=M)

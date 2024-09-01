@@ -43,31 +43,47 @@ def main():
     df = df[ind].reset_index(drop=True).copy()
     df, encoder_dict = model.load(df=df)
 
-    # Get subjects and their encodings
-    subjects = encoder_dict[model.features[0]].classes_
-    subjects_encoded = encoder_dict[model.features[0]].transform(subjects)
-    subjects = list(zip(subjects, subjects_encoded))
-    logger.info(subjects)
-
-    # Generate N permutations
+    # Generate bootstrap permutations (with replacement)
+    subjects = df[model.features[0]].unique()
+    subjects = sorted(subjects)
     rng_key = random.PRNGKey(0)
-    ind = np.arange(0, len(subjects), 1)
-    permutations = random.choice(
+    subjects_permutations = random.choice(
         rng_key,
-        ind,
+        np.arange(len(subjects)),
         shape=(NUM_BOOTSTRAPS, len(subjects),),
         replace=True
     )
-    permutations = np.array(permutations)
+    subjects_permutations = np.array(subjects_permutations)
 
+    # Generate null distribution
     rng_key, _ = random.split(rng_key)
-    flags = random.bernoulli(rng_key, .5, (NUM_BOOTSTRAPS, len(subjects),))
-    flags = np.array(flags)
+    combinations = (
+        df[model.features]
+        .apply(tuple, axis=1)
+        .unique()
+    )
+    combinations = sorted(combinations)
+    combinations_permutations = random.choice(
+        rng_key,
+        np.arange(len(combinations)),
+        shape=(NUM_BOOTSTRAPS, len(combinations),),
+        replace=True
+    )
+    combinations_permutations = np.array(combinations_permutations)
 
     dest = os.path.join(model.build_dir, BOOTSTRAP_FILE)
     with open(dest, "wb") as f:
-        pickle.dump((df, encoder_dict, subjects, permutations, flags), f)
-
+        pickle.dump(
+            (
+                df,
+                encoder_dict,
+                subjects,
+                subjects_permutations,
+                combinations,
+                combinations_permutations,
+            ),
+            f
+        )
     logger.info(f"Saved to {dest}")
     return
 
