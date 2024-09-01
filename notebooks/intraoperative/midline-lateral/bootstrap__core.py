@@ -159,8 +159,7 @@ def main(
 
 if __name__ == "__main__":
     # Usage: python -m bootstrap__core.py 0 100
-    # lo, hi = list(map(int, sys.argv[1:]))
-    lo, hi = 0, 1
+    lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
     draws_space = range(lo, hi)
@@ -178,5 +177,5 @@ if __name__ == "__main__":
         n_subjects_space=n_subjects_space,
         models=models,
         no_effect=no_effect,
-        n_jobs=1
+        n_jobs=n_jobs
     )
