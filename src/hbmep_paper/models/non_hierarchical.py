@@ -36,14 +36,14 @@ class NonHierarchicalBaseModel(BaseModel):
         def body_run_inference(combination, response, destination_path):
             nonlocal df
             ind = df[self.features].apply(tuple, axis=1).isin([combination])
-            df = df[ind].reset_index(drop=True).copy()
-            df, _ = self.load(df=df)
+            df_ = df[ind].reset_index(drop=True).copy()
+            df_, _ = self.load(df=df_)
 
             self.response = [response]
             self.n_response = len(self.response)
 
             _, posterior_samples = BaseModel.run_inference(
-                self, df, sampler, **kwargs
+                self, df_, sampler, **kwargs
             )
             dest = os.path.join(temp_dir, destination_path)
             with open(dest, "wb") as f:
