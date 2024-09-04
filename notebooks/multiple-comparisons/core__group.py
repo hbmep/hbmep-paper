@@ -15,7 +15,7 @@ from hbmep.utils import timing
 from hbmep_paper.utils import setup_logging
 from models__paired import (
     NonHierarchicalBayesianModel,
-#     MaximumLikelihoodModel,
+    MaximumLikelihoodModel,
 #     NelderMeadOptimization,
 )
 from models__group import (
@@ -161,7 +161,7 @@ def main(
                 gc.collect()
 
             # Non-hierarchical models: non-hierarchical Bayesian and Maximum Likelihood
-            case NonHierarchicalBayesianModel.NAME:
+            case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -329,7 +329,7 @@ if __name__ == "__main__":
 
     # Run non-hierarchical models including
     # non-hierarchical Bayesian and Maximum Likelihood
-    n_jobs = 1
+    n_jobs = -1
     n_subjects_space = N_SUBJECTS_SPACE[-1:]
     models = [
         NonHierarchicalBayesianModel,

@@ -343,7 +343,7 @@ class NonHierarchicalBayesianModel(NonHierarchicalBaseModel, GammaModel):
 
     def __init__(self, config: Config):
         super(NonHierarchicalBayesianModel, self).__init__(config=config)
-        self.n_jobs = -1
+        self.n_jobs = 1
 
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
