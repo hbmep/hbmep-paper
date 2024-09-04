@@ -16,7 +16,7 @@ from hbmep_paper.utils import setup_logging
 from models__paired import (
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-#     NelderMeadOptimization,
+    NelderMeadOptimization,
 )
 from models__group import (
     Simulator,
@@ -223,67 +223,67 @@ def main(
                 del a_true, a_pred
                 gc.collect()
 
-            # # This is also a non-hierarchical method. Internally, it will
-            # # run separately on individual recruitment curves
-            # case "nelder_mead_optimization":
-            #     # Load data
-            #     ind = (
-            #         (simulation_df[simulator.features[0]] < n_subjects) &
-            #         (simulation_df[REP] < n_reps)
-            #     )
-            #     df = simulation_df[ind].reset_index(drop=True).copy()
-            #     df[simulator.response] = ppd_obs[draw, ind, :]
+            # This is also a non-hierarchical method. Internally, it will
+            # run separately on individual recruitment curves
+            case "nelder_mead_optimization":
+                # Load data
+                ind = (
+                    (simulation_df[simulator.features[0]] < n_subjects) &
+                    (simulation_df[REP] < n_reps)
+                )
+                df = simulation_df[ind].reset_index(drop=True).copy()
+                df[simulator.response] = ppd_obs[draw, ind, :]
 
-            #     ind = (df[simulator.response] > 0).all(axis=1)
-            #     df = df[ind].reset_index(drop=True).copy()
+                ind = (df[simulator.response] > 0).all(axis=1)
+                df = df[ind].reset_index(drop=True).copy()
 
-            #     # Build model
-            #     config = Config(toml_path=TOML_PATH)
-            #     config.BUILD_DIR = os.path.join(
-            #         build_dir,
-            #         draw_dir,
-            #         n_subjects_dir,
-            #         n_reps_dir,
-            #         n_pulses_dir,
-            #         M.NAME
-            #     )
-            #     model = M(config=config)
+                # Build model
+                config = Config(toml_path=TOML_PATH)
+                config.BUILD_DIR = os.path.join(
+                    build_dir,
+                    draw_dir,
+                    n_subjects_dir,
+                    n_reps_dir,
+                    n_pulses_dir,
+                    M.NAME
+                )
+                model = M(config=config)
 
-            #     # Set up logging
-            #     model._make_dir(model.build_dir)
-            #     setup_logging(
-            #         dir=model.build_dir,
-            #         fname="logs"
-            #     )
+                # Set up logging
+                os.makedirs(model.build_dir, exist_ok=True)
+                setup_logging(
+                    dir=model.build_dir,
+                    fname="logs"
+                )
 
-            #     # Run inference
-            #     df, encoder_dict = model.load(df=df)
-            #     params = model.run_inference(df=df)
+                # Run inference
+                df, encoder_dict = model.load(df=df)
+                params = model.run_inference(df=df)
 
-            #     # Predictions and recruitment curves
-            #     prediction_df = model.make_prediction_dataset(df=df)
-            #     prediction_df = model.predict(df=prediction_df, params=params)
-            #     model.render_recruitment_curves(
-            #         df=df,
-            #         encoder_dict=encoder_dict,
-            #         params=params,
-            #         prediction_df=prediction_df,
-            #     )
+                # Predictions and recruitment curves
+                prediction_df = model.make_prediction_dataset(df=df)
+                prediction_df = model.predict(df=prediction_df, params=params)
+                model.render_recruitment_curves(
+                    df=df,
+                    encoder_dict=encoder_dict,
+                    params=params,
+                    prediction_df=prediction_df,
+                )
 
-            #     # Compute error and save results
-            #     a_true = ppd_a[draw, :n_subjects, ...]
-            #     a_pred = params[site.a]
-            #     assert a_pred.shape == a_true.shape
-            #     np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-            #     np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = params[site.a]
+                assert a_pred.shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-            #     config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
-            #     model, params = None, None
-            #     a_true, a_pred = None, None
-            #     del config, df, prediction_df, encoder_dict, _
-            #     del model, params
-            #     del a_true, a_pred
-            #     gc.collect()
+                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
+                model, params = None, None
+                a_true, a_pred = None, None
+                del config, df, prediction_df, encoder_dict, _
+                del model, params
+                del a_true, a_pred
+                gc.collect()
 
             case _:
                 raise ValueError(f"Invalid model {M.NAME}.")
@@ -327,19 +327,19 @@ if __name__ == "__main__":
     #     HierarchicalBayesianModel
     # ]
 
-    # Run non-hierarchical models including
-    # non-hierarchical Bayesian and Maximum Likelihood
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
+    # n_jobs = 1
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     # MaximumLikelihoodModel
+    # ]
+
+    # Run non-hierarchical Nelder-Mead optimization
     n_jobs = -1
     n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    models = [
-        NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel
-    ]
-
-    # # Run non-hierarchical Nelder-Mead optimization
-    # n_jobs = -1
-    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # models = [NelderMeadOptimization]
+    models = [NelderMeadOptimization]
 
     # Run for simulation with effect
     key = "with_effect"
