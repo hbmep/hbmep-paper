@@ -417,11 +417,12 @@ class NonHierarchicalBayesianModel(NonHierarchicalBaseModel, GammaModel):
                 )
 
 
-class MaximumLikelihoodModel(GammaModel):
+class MaximumLikelihoodModel(NonHierarchicalBaseModel, GammaModel):
     NAME = "maximum_likelihood_model"
 
     def __init__(self, config: Config):
         super(MaximumLikelihoodModel, self).__init__(config=config)
+        self.n_jobs = 1
 
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
