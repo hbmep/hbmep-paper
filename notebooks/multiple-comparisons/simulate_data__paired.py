@@ -10,9 +10,8 @@ from hbmep.config import Config
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
-from models__paired import LearnPosteriorModel
-from models__group import Simulator
-from utils import generate_group_simulation_dirs
+from models__paired import LearnPosteriorModel, Simulator
+from utils import generate_paired_simulation_dirs
 from constants__paired import (
     TOML_PATH,
     LEARN_POSTERIOR_DIR,
@@ -28,12 +27,14 @@ POSTERIOR_PATH = os.path.join(LEARN_POSTERIOR_DIR, INFERENCE_FILE)
 MIN_VALID_DRAWS = 2000
 
 
-def main(a_loc_delta, build_dir):
+def main(a_delta_loc, a_delta_scale, build_dir):
     # Build simulator
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = build_dir
     simulator = Simulator(
-        config=config, a_loc_delta=a_loc_delta
+        config=config,
+        a_delta_loc=a_delta_loc,
+        a_delta_scale=a_delta_scale
     )
 
     # Set up logging
@@ -42,7 +43,8 @@ def main(a_loc_delta, build_dir):
         dir=simulator.build_dir,
         fname=os.path.basename(__file__)
     )
-    logger.info(f"a_loc_delta: {a_loc_delta}")
+    logger.info(f"a_delta_loc: {a_delta_loc}")
+    logger.info(f"a_delta_scale: {a_delta_scale}")
     logger.info(f"build_dir: {build_dir}")
 
     # Create template dataframe for simulation
@@ -78,7 +80,10 @@ def main(a_loc_delta, build_dir):
     for u, v in posterior_samples.items():
         logger.info(f"{u}: {v.shape}")
 
-    # a_loc (4000,)      -> a_loc_fixed (4000, 1, 4)
+    # a_loc (4000,)      -> a_fixed_loc (4000,)
+    # a_scale (4000,)    -> a_fixed_scale (4000,)
+    # ... generates a_fixed (4000, n_subjects, 1, 4)
+    # ... generates a_delta (4000, n_subjects, 1, 4)
 
     # Exclude priors
     present_sites = sorted(list(posterior_samples.keys()))
@@ -99,9 +104,8 @@ def main(a_loc_delta, build_dir):
     logger.info(f"Remaining sites: {remaining_sites}")
 
     # Rename sites
-    posterior_samples["a_loc_fixed"] = posterior_samples.pop("a_loc")
-    posterior_samples["a_loc_fixed"] = posterior_samples["a_loc_fixed"][:, None, None]
-    posterior_samples["a_loc_fixed"] = np.repeat(posterior_samples["a_loc_fixed"], repeats=4, axis=-1)
+    posterior_samples["a_fixed_loc"] = posterior_samples.pop("a_loc")
+    posterior_samples["a_fixed_scale"] = posterior_samples.pop("a_scale")
     logger.info(f"Renamed sites: {sorted(list(posterior_samples.keys()))}")
 
     # Simulate
@@ -115,6 +119,13 @@ def main(a_loc_delta, build_dir):
 
     for u, v in simulation_ppd.items():
         logger.info(f"{u}: {v.shape}")
+
+    # Exclude invalid draws based on negative thresholds
+    flag_valid_draws = (simulation_ppd[site.a] > 0).all(axis=(1, 2, 3))
+    assert flag_valid_draws.sum() > MIN_VALID_DRAWS
+    logger.info(f"Valid draws: {flag_valid_draws.mean() * 100:.2f}%")
+    for u, v in simulation_ppd.items():
+        simulation_ppd[u] = v[flag_valid_draws, ...]
 
     # Ensure positive observations
     assert (simulation_ppd[site.obs] > 0).all()
@@ -142,12 +153,12 @@ def main(a_loc_delta, build_dir):
 
 
 if __name__ == "__main__":
-    simulation_data_dirs = generate_group_simulation_dirs()
+    simulation_data_dirs = generate_paired_simulation_dirs()
 
     key = "with_effect"
-    a_loc_delta, build_dir = simulation_data_dirs[key]
-    main(a_loc_delta, build_dir)
+    a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
+    main(a_delta_loc, a_delta_scale, build_dir)
 
     key = "no_effect"
-    a_loc_delta, build_dir = simulation_data_dirs[key]
-    main(a_loc_delta, build_dir)
+    a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
+    main(a_delta_loc, a_delta_scale, build_dir)

@@ -8,10 +8,15 @@ from constants__group import BUILD_DIR as BUILD_DIR_GROUP
 
 def generate_paired_simulation_dirs():
     return {
-        "strong_control": (
-            np.array([0, 0, -4, 6]),
-            np.array([2.5, 4., 2.5, 3.5]),
-            os.path.join(BUILD_DIR_PAIRED, "strong_control")
+        "with_effect": (
+            np.array([6., 4., -7.5, 8.]),
+            np.array([2.5, 3., 3.5, 4.]),
+            os.path.join(BUILD_DIR_PAIRED, "with_effect")
+        ),
+        "no_effect": (
+            np.array([0., 0., 0., 0.]),
+            np.array([2.5, 3., 3.5, 4.]),
+            os.path.join(BUILD_DIR_PAIRED, "no_effect")
         )
     }
 
