@@ -124,44 +124,39 @@ class Simulator(GammaModel):
                     )
 
         # Delta
-        a_delta_loc, a_delta_scale = self.a_delta_loc, self.a_delta_scale
+        # a_delta_loc_scale = numpyro.sample(
+        #     "a_delta_loc_scale", dist.HalfNormal(50.)
+        # )
+        # a_delta_scale = numpyro.sample(
+        #     "a_delta_scale", dist.HalfNormal(50.)
+        # )
+        a_delta_loc, a_delta_scale = (
+            self.a_delta_loc, self.a_delta_scale
+        )
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
+                # a_delta_loc = numpyro.sample(
+                #     "a_delta_loc",dist.Normal(0., a_delta_loc_scale)
+                # )
+
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_delta = numpyro.sample(
                         "a_delta", dist.Normal(a_delta_loc, a_delta_scale)
                     )
-
-                    # Penalty for negative a
-                    penalty_for_negative_a = (
-                        jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
-                    )
-                    numpyro.factor(
-                        "penalty_for_negative_a", -penalty_for_negative_a
+                    a_fixed_plus_delta = numpyro.deterministic(
+                        "a_fixed_plus_delta", jnp.maximum(1e-6, a_fixed + a_delta)
                     )
 
         # Hyper-priors
-        b_scale = numpyro.sample(
-            "b_scale", dist.HalfNormal(5.)
-        )
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
-        L_scale = numpyro.sample(
-            "L_scale", dist.HalfNormal(.5)
-        )
-        ell_scale = numpyro.sample(
-            "ell_scale", dist.HalfNormal(10.)
-        )
-        H_scale = numpyro.sample(
-            "H_scale", dist.HalfNormal(5.)
-        )
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
 
-        c_1_scale = numpyro.sample(
-            "c_1_scale", dist.HalfNormal(5.)
-        )
-        c_2_scale = numpyro.sample(
-            "c_2_scale", dist.HalfNormal(5.)
-        )
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
@@ -169,9 +164,8 @@ class Simulator(GammaModel):
                     # Priors
                     a = numpyro.deterministic(
                         site.a,
-                        jnp.concatenate([a_fixed, a_fixed + a_delta], axis=1)
+                        jnp.concatenate([a_fixed, a_fixed_plus_delta], axis=1)
                     )
-
                     b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
 
                     L = numpyro.sample(site.L, dist.HalfNormal(L_scale))
@@ -259,20 +253,15 @@ class HierarchicalBayesianModel(GammaModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
                 a_delta_loc = numpyro.sample(
-                    "a_delta_loc", dist.Normal(0., a_delta_loc_scale)
+                    "a_delta_loc",dist.Normal(0., a_delta_loc_scale)
                 )
 
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_delta = numpyro.sample(
                         "a_delta", dist.Normal(a_delta_loc, a_delta_scale)
                     )
-
-                    # Penalty for negative a
-                    penalty_for_negative_a = (
-                        jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
-                    )
-                    numpyro.factor(
-                        "penalty_for_negative_a", -penalty_for_negative_a
+                    a_fixed_plus_delta = numpyro.deterministic(
+                        "a_fixed_plus_delta", jnp.maximum(1e-6, a_fixed + a_delta)
                     )
 
         # Hyper-priors
@@ -291,17 +280,26 @@ class HierarchicalBayesianModel(GammaModel):
                     # Priors
                     a = numpyro.deterministic(
                         site.a,
-                        jnp.concatenate([a_fixed, a_fixed + a_delta], axis=1)
+                        jnp.concatenate([a_fixed, a_fixed_plus_delta], axis=1)
                     )
 
-                    b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
+                    b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
+                    b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
 
-                    L = numpyro.sample(site.L, dist.HalfNormal(L_scale))
-                    ell = numpyro.sample(site.ell, dist.HalfNormal(ell_scale))
-                    H = numpyro.sample(site.H, dist.HalfNormal(H_scale))
+                    L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
+                    L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
 
-                    c_1 = numpyro.sample(site.c_1, dist.HalfNormal(c_1_scale))
-                    c_2 = numpyro.sample(site.c_2, dist.HalfNormal(c_2_scale))
+                    ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                    ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
+
+                    H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
+                    H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
+
+                    c_1_raw = numpyro.sample("c_1_raw", dist.HalfNormal(scale=1))
+                    c_1 = numpyro.deterministic(site.c_1, jnp.multiply(c_1_scale, c_1_raw))
+
+                    c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
+                    c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -343,7 +341,7 @@ class NonHierarchicalBayesianModel(NonHierarchicalBaseModel, GammaModel):
 
     def __init__(self, config: Config):
         super(NonHierarchicalBayesianModel, self).__init__(config=config)
-        self.n_jobs = 1
+        self.n_jobs = -1
 
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
@@ -422,7 +420,7 @@ class MaximumLikelihoodModel(NonHierarchicalBaseModel, GammaModel):
 
     def __init__(self, config: Config):
         super(MaximumLikelihoodModel, self).__init__(config=config)
-        self.n_jobs = 1
+        self.n_jobs = -1
 
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
@@ -481,16 +479,24 @@ class MaximumLikelihoodModel(NonHierarchicalBaseModel, GammaModel):
                 )
 
 
-# class NelderMeadOptimization(BoundedOptimization):
-#     NAME = "nelder_mead_optimization"
+class NelderMeadOptimization(ConstrainedOptimization):
+    NAME = "nelder_mead_optimization"
 
-#     def __init__(self, config: Config):
-#         super(NelderMeadOptimization, self).__init__(config=config)
-#         self.solver = "Nelder-Mead"
-#         self.functional = F.rectified_logistic
-#         self.named_params = [site.a, site.b, site.L, site.ell, site.H]
-#         self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
-#         self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
-#         self.num_points = 1000
-#         self.num_iters = 100
-#         self.n_jobs = -1
+    def __init__(self, config: Config):
+        super(NelderMeadOptimization, self).__init__(config=config)
+        # Required
+        self.method = "Nelder-Mead"
+        self.named_args = [site.a, site.b, site.L, site.ell, site.H]
+        self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-4, .1), (1e-2, 5), (.5, 5)]
+        self.num_reinit = 100
+        self.n_jobs = -1
+
+    def functional(self, x, a, b, L, ell, H):
+        return F.rectified_logistic(
+            x, a, b, L, ell, H
+        )
+
+    def cost_function(self, x, y_obs, *args):
+        y_pred = self.functional(x, *args)
+        return np.sum((y_obs - y_pred) ** 2)
