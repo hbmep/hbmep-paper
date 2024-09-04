@@ -29,7 +29,7 @@ class NonHierarchicalBaseModel(BaseModel):
         sampler: MCMCKernel = None,
         **kwargs
     ):
-        response = self.response
+        response_ = self.response
         combinations = self._get_combinations(df, self.features)
         temp_dir = os.path.join(self.build_dir, "optimize_results")
 
@@ -49,6 +49,10 @@ class NonHierarchicalBaseModel(BaseModel):
             with open(dest, "wb") as f:
                 pickle.dump((posterior_samples,), f)
 
+            ind, df_, _, posterior_samples = None, None, None, None
+            del ind, df_, _, posterior_samples
+            return
+
         if os.path.exists(temp_dir): shutil.rmtree(temp_dir)
         os.makedirs(temp_dir, exist_ok=False)
 
@@ -60,10 +64,10 @@ class NonHierarchicalBaseModel(BaseModel):
                     os.path.join(temp_dir, f"{'_'.join(map(str, combination))}_{response}.pkl")
                 )
                 for combination in combinations
-                for response in self.response
+                for response in response_
             )
 
-        self.response = response    # Not sure if this is necessary to reset
+        self.response = response_    # Not sure if this is necessary to reset
         self.n_response = len(self.response)
         n_features = (
             df[self.features].max().astype(int).to_numpy() + 1
