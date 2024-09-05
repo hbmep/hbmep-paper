@@ -223,9 +223,8 @@ def main(
                 del a_true, a_pred
                 gc.collect()
 
-            # This is also a non-hierarchical method. Internally, it will
-            # run separately on individual recruitment curves
-            case "nelder_mead_optimization":
+            # Non-hierarchical models: Nelder-Mead optimization
+            case NelderMeadOptimization.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -310,7 +309,7 @@ def main(
 
 
 if __name__ == "__main__":
-    # Usage: python -m core__group 0 2000
+    # Usage: python -m core__group 0 500
     lo, hi = list(map(int, sys.argv[1:]))
     simulation_data_dirs = generate_group_simulation_dirs()
 
@@ -320,12 +319,12 @@ if __name__ == "__main__":
     # Uncomment the following to run
     # experiment for different models
 
-    # # Run hierarchical models
-    # n_jobs = -1
-    # n_subjects_space = N_SUBJECTS_SPACE
-    # models = [
-    #     HierarchicalBayesianModel
-    # ]
+    # Run hierarchical models
+    n_jobs = -1
+    n_subjects_space = N_SUBJECTS_SPACE
+    models = [
+        HierarchicalBayesianModel
+    ]
 
     # # Run non-hierarchical models including
     # # non-hierarchical Bayesian and Maximum Likelihood
@@ -336,10 +335,10 @@ if __name__ == "__main__":
     #     # MaximumLikelihoodModel
     # ]
 
-    # Run non-hierarchical Nelder-Mead optimization
-    n_jobs = -1
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    models = [NelderMeadOptimization]
+    # # Run non-hierarchical Nelder-Mead optimization
+    # n_jobs = -1
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [NelderMeadOptimization]
 
     # Run for simulation with effect
     key = "with_effect"
