@@ -66,7 +66,7 @@ def main(
     gc.collect()
 
     # Set up logging
-    simulator._make_dir(build_dir)
+    os.makedirs(build_dir, exist_ok=True)
     setup_logging(
         dir=build_dir,
         fname=os.path.basename(__file__)
