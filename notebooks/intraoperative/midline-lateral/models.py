@@ -328,7 +328,9 @@ class NelderMeadOptimization(ConstrainedOptimization):
         self.n_jobs = -1
 
     def functional(self, x, a, b, L, ell, H):
-        return F.rectified_logistic(x=x, a=a, b=b, L=L, ell=ell, H=H)
+        return F.rectified_logistic(
+            x, a, b, L, ell, H
+        )
 
     def cost_function(self, x, y_obs, *args):
         y_pred = self.functional(x, *args)
