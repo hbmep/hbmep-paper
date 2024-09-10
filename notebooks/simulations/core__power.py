@@ -87,7 +87,7 @@ def main(
         draw_dir = f"d{draw}"
 
         match M.NAME:
-            case "hierarchical_bayesian_model":
+            case HierarchicalBayesianModel.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -157,9 +157,8 @@ def main(
                 del a_delta_loc, a_delta_scale
                 gc.collect()
 
-            # Non-hierarchical models: non-hierarchical Bayesian
-            # and Maximum Likelihood
-            case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
+            # Non-hierarchical models: non-hierarchical Bayesian and Maximum Likelihood
+            case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME:
                 for subject in range(n_subjects):
                     for intervention in range(2):
                         sub_dir = f"subject{subject}"
@@ -234,7 +233,7 @@ def main(
 
             # This is also a non-hierarchical method. Internally, it will
             # run separately on individual recruitment curves
-            case "nelder_mead_optimization":
+            case NelderMeadOptimization.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
