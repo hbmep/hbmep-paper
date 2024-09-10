@@ -2,7 +2,6 @@ import os
 import sys
 import gc
 import pickle
-import argparse
 import logging
 
 import pandas as pd
@@ -84,7 +83,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
         draw_dir = f"d{draw}"
 
         match M.NAME:
-            case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
+            case HierarchicalBayesianModel.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -118,27 +117,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
 
                 # Run inference
                 df, encoder_dict = model.load(df=df)
-
-                match M.NAME:
-                    case "svi_hierarchical_bayesian_model":
-                        svi_result, posterior_samples = model.run_inference(df=df)
-                        losses = svi_result.losses
-
-                        fig, axes = plt.subplots(
-                            1, 1, figsize=(5, 5), constrained_layout=True, squeeze=False
-                        )
-                        ax = axes[0, 0]
-                        sns.lineplot(x=range(len(losses[-2000:])), y=losses[-2000:], ax=ax)
-                        dest = os.path.join(model.build_dir, "losses.png")
-                        fig.savefig(dest)
-                        logger.info(f"Losses plot saved at {dest}")
-
-                        fig, ax = None, None
-                        svi_result, losses, dest = None, None, None
-                        del fig, ax, svi_result, losses, dest
-
-                    case _:
-                        _, posterior_samples = model.run_inference(df=df)
+                _, posterior_samples = model.run_inference(df=df)
 
                 # Predictions and recruitment curves
                 prediction_df = model.make_prediction_dataset(df=df)
@@ -168,9 +147,8 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
                 del a_true, a_pred
                 gc.collect()
 
-            # Non-hierarchical models: non-hierarchical Bayesian
-            # and Maximum Likelihood
-            case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
+            # Non-hierarchical models: non-hierarchical Bayesian and Maximum Likelihood
+            case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME:
                 for subject in range(n_subjects):
                     sub_dir = f"subject{subject}"
 
@@ -240,7 +218,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
 
             # This is also a non-hierarchical method. Internally, it will
             # run separately on individual recruitment curves
-            case "nelder_mead_optimization":
+            case NelderMeadOptimization.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
