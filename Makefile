@@ -13,7 +13,9 @@ build-base:
 build: build-base
 	@source .venv/bin/activate && \
 	pip install --upgrade pip && \
-	pip install -e .
+	pip install -e . && \
+	pip install -e ../hbmep
+
 
 notebook:
 	@source .venv/bin/activate && \
