@@ -9,6 +9,7 @@ from numpyro.infer import Predictive, SVI, Trace_ELBO
 
 logger = logging.getLogger(__name__)
 FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+DATEFMT = "%b-%d-%Y %I:%M:%S %p"
 
 
 def setup_logging(dir, fname, level=logging.INFO):
@@ -18,6 +19,7 @@ def setup_logging(dir, fname, level=logging.INFO):
     )
     logging.basicConfig(
         format=FORMAT,
+        datefmt=DATEFMT,
         level=level,
         handlers=[
             logging.FileHandler(dest, mode="w"),
