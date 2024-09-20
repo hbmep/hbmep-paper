@@ -59,7 +59,14 @@ def main():
         df = df[ind].reset_index(drop=True).copy()
         df, encoder_dict = model.load(df=df)
         logger.info(f"{df.shape[0]} observations")
-        mcmc, posterior_samples = model.run(df=df)
+        mcmc, posterior_samples = model.run(
+            df=df,
+            extra_fields=[
+                "potential_energy",
+                "num_steps",
+                "accept_prob",
+            ]
+        )
 
         # Save posterior
         dest = os.path.join(model.build_dir, INFERENCE_FILE)
