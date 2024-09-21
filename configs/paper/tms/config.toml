@@ -1,18 +1,20 @@
 [paths]
-csv = ""
-build_dir = "/home/vishu/repos/hbmep-paper/reports/paper/tms/"
+csv_path = ""
+build_directory = "/home/vishu/repos/hbmep-paper/reports/paper/tms/"
 
-[vars]
+[variables]
 #subject = "participant"
-features = ["participant_condition", "participant"]
+features = ["participant", "participant_condition"]
 intensity = "TMSInt"
 # response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
-response = ['AUC_ADM', 'AUC_APB', 'AUC_Biceps', 'AUC_ECR', 'AUC_FCR', 'AUC_Triceps']
+# response = ['AUC_ADM', 'AUC_APB', 'AUC_Biceps', 'AUC_ECR', 'AUC_FCR', 'AUC_Triceps']
+response = ['AUC_FCR']
 
 [mcmc]
-chains = 4
-warmup = 5000
-samples = 1000
+num_chains = 4
+num_warmup = 5000
+num_samples = 1000
+thinning = 1
 
 [model]
 link = "fixed"
@@ -26,5 +28,5 @@ mep_response = ['AUC_ADM', 'AUC_APB', 'AUC_Biceps', 'AUC_ECR', 'AUC_FCR', 'AUC_T
 mep_time_range = [-0.15, 0.15]
 mep_size_time_range = [0.015, 0.075]
 
-[aesthetics]
+[misc]
 base = 10

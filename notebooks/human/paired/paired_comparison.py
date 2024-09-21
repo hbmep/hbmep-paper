@@ -23,10 +23,12 @@ import jax
 import jax.numpy as jnp
 from jax import grad, vmap
 
+import toml
+
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
 from hbmep.model import BaseModel
-from hbmep.model import functional as F
+from hbmep.nn import functional as F
 
 # In[10]:
 class LearnPosterior(BaseModel):
@@ -43,24 +45,12 @@ class LearnPosterior(BaseModel):
     #         grad = jax.vmap(grad)
     #     return grad(x, **kwargs)
 
-    def _model(self, features, intensity, response_obs=None):
-        features, n_features = features
-        intensity, n_data = intensity
-        intensity = intensity.reshape(-1, 1)
-        intensity = np.tile(intensity, (1, self.n_response))
+    def _model(self, intensity, features, response_obs=None):
+        n_data = intensity.shape[0]
+        n_features = np.max(features, axis=0) + 1
+        feature0 = features[..., 0]
+        feature1 = features[..., 1]
 
-        feature0 = features[0].reshape(-1, )
-        feature1 = features[1].reshape(-1, )
-
-        # subject, n_subject = subject
-        # features, n_features = features
-        # intensity, n_data = intensity
-
-        # intensity = intensity.reshape(-1, 1)
-        # intensity = np.tile(intensity, (1, self.n_response))
-
-        # feature0 = features[0].reshape(-1,)
-        # n_feature0 = n_features[0]
         a_low = 0
 
         """ Global Priors """
@@ -75,8 +65,8 @@ class LearnPosterior(BaseModel):
         # ell_scale_global_scale = numpyro.sample("ell_scale_global_scale", dist.HalfNormal(100))
         H_scale_global_scale = numpyro.sample("H_scale_global_scale", dist.HalfNormal(20))
 
-        g_1_scale_global_scale = numpyro.sample("g_1_scale_global_scale", dist.HalfNormal(5))
-        g_2_scale_global_scale = numpyro.sample("g_2_scale_global_scale", dist.HalfNormal(5))
+        c_1_scale_global_scale = numpyro.sample("c_1_scale_global_scale", dist.HalfNormal(5))
+        c_2_scale_global_scale = numpyro.sample("c_2_scale_global_scale", dist.HalfNormal(5))
 
         """ Outlier Distribution """
         outlier_prob = numpyro.sample("outlier_prob", dist.Uniform(0., .01))
@@ -108,11 +98,11 @@ class LearnPosterior(BaseModel):
                 H_scale_raw = numpyro.sample("H_scale_raw", dist.HalfNormal(scale=1))
                 H_scale = numpyro.deterministic("H_scale", jnp.multiply(H_scale_global_scale, H_scale_raw))
 
-                g_1_scale_raw = numpyro.sample("g_1_scale_raw", dist.HalfNormal(scale=1))
-                g_1_scale = numpyro.deterministic("g_1_scale", jnp.multiply(g_1_scale_global_scale, g_1_scale_raw))
+                c_1_scale_raw = numpyro.sample("c_1_scale_raw", dist.HalfNormal(scale=1))
+                c_1_scale = numpyro.deterministic("c_1_scale", jnp.multiply(c_1_scale_global_scale, c_1_scale_raw))
 
-                g_2_scale_raw = numpyro.sample("g_2_scale_raw", dist.HalfNormal(scale=1))
-                g_2_scale = numpyro.deterministic("g_2_scale", jnp.multiply(g_2_scale_global_scale, g_2_scale_raw))
+                c_2_scale_raw = numpyro.sample("c_2_scale_raw", dist.HalfNormal(scale=1))
+                c_2_scale = numpyro.deterministic("c_2_scale", jnp.multiply(c_2_scale_global_scale, c_2_scale_raw))
 
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     """ Priors """
@@ -122,9 +112,6 @@ class LearnPosterior(BaseModel):
 
                     b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
                     b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
-
-                    v_raw = numpyro.sample("v_raw", dist.HalfNormal(scale=1))
-                    v = numpyro.deterministic(site.v, jnp.multiply(v_scale, v_raw))
 
                     L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
                     L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
@@ -136,11 +123,11 @@ class LearnPosterior(BaseModel):
                     H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
                     H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
 
-                    g_1_raw = numpyro.sample("g_1_raw", dist.HalfCauchy(scale=1))
-                    g_1 = numpyro.deterministic(site.g_1, jnp.multiply(g_1_scale, g_1_raw))
+                    c_1_raw = numpyro.sample("c_1_raw", dist.HalfNormal(scale=1))
+                    c_1 = numpyro.deterministic(site.c_1, jnp.multiply(c_1_scale, c_1_raw))
 
-                    g_2_raw = numpyro.sample("g_2_raw", dist.HalfCauchy(scale=1))
-                    g_2 = numpyro.deterministic(site.g_2, jnp.multiply(g_2_scale, g_2_raw))
+                    c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
+                    c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -151,7 +138,6 @@ class LearnPosterior(BaseModel):
                         x=intensity,
                         a=a[feature0, feature1],
                         b=b[feature0, feature1],
-                        v=v[feature0, feature1],
                         L=L[feature0, feature1],
                         ell=ell[feature0, feature1],
                         H=H[feature0, feature1]
@@ -159,7 +145,7 @@ class LearnPosterior(BaseModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    g_1[feature0, feature1] + jnp.true_divide(g_2[feature0, feature1], mu)
+                    1/c_1[feature0, feature1] + jnp.true_divide(1/c_2[feature0, feature1], mu)
                 )
 
                 gradient = numpyro.deterministic(
@@ -168,7 +154,6 @@ class LearnPosterior(BaseModel):
                     intensity,
                     a[feature0, feature1],
                     b[feature0, feature1],
-                    v[feature0, feature1],
                     L[feature0, feature1],
                     ell[feature0, feature1],
                     H[feature0, feature1]
@@ -215,15 +200,15 @@ if __name__ == "__main__":
 
     # %%
     str_date = datetime.today().strftime('%Y-%m-%dT%H%M')
-    str_date = '2023-12-07T0935'  # str_date = '2023-12-04T2113'
-    stim_type = 'TMS'
-    # stim_type = 'TSCS'
+    str_date = '2024-09-21T2039'  # str_date = '2023-12-04T2113'
+    # stim_type = 'TMS'
+    stim_type = 'TSCS'
     toml_path = Path(r"/home/mcintosh/Local/gitprojects/hbmep-paper/configs/paper/tms/config.toml")
-    build_dir = Path(r'/home/mcintosh/Cloud/Research/reports/2023/2023-11-30_paired_recruitment') / str_date / (
+    build_dir = Path(r'/home/mcintosh/Cloud/Research/reports/2024/2024-09-20_paired_recruitment') / str_date / (
                 stim_type + '_paired') / 'info'
     fig_format = 'png'
     fig_dpi = 300
-    fig_size = (20, 12)
+    fig_size = (8, 8)
 
     # %%
     if not os.path.exists(build_dir):
@@ -244,11 +229,11 @@ if __name__ == "__main__":
     # In[11]:
     if stim_type == 'TMS':
         stim_type_alt = 'TMS'
-        mapping = {'RE2': 'Sub-tSCS', 'RE3': 'Supra-tSCS', 'REC': 'TMS-only'}
+        mapping = {'RE2': 'Sub-tSCS', 'RE3': 'Supra-tSCS', 'REC': 'TMS-only', 'RE4': 'XSupra-tSCS'}
         xlim = [0, 80]
     elif stim_type == 'TSCS':
         stim_type_alt = 'TSS'
-        mapping = {'RE2': 'Sub-TMS', 'RE3': 'Supra-TMS', 'REC': 'tSCS-only'}
+        mapping = {'RE2': 'Sub-TMS', 'RE3': 'Supra-TMS', 'REC': 'tSCS-only', 'RE4': 'XSupra-TMS'}
         xlim = [0, 80]
     else:
         raise Exception
@@ -263,25 +248,97 @@ if __name__ == "__main__":
     model = LearnPosterior(config=config)
 
     # In[12]:
-    src = "/home/mcintosh/Local/temp/test_hbmep/data/proc_2023-11-29_paired.csv"
-    df = pd.read_csv(src)
+    ni = False
+    if ni:
+        src = "/home/mcintosh/Cloud/Research/reports/2024/2023-11-30_paired_recruitment/data/data_ni_2023-11_29/proc_2023-11-29_paired.csv"
+        df = pd.read_csv(src)
 
-    src = "/home/mcintosh/Local/temp/test_hbmep/data/proc_2023-11-29_paired.npy"
-    mat = np.load(src)
+        src = "/home/mcintosh/Cloud/Research/reports/2024/2023-11-30_paired_recruitment/data/data_ni_2023-11_29/proc_2023-11-29_paired.npy"
+        mat = np.load(src)
 
-    subset = ["SCA04", "SCA07", "SCA11"]
-    #
-    ind = df[model.features[1]].isin(subset)
-    df = df[ind].reset_index(drop=True).copy()
-    mat = mat[ind, ...]
+        subset = ["SCA04", "SCA07", "SCA11"]
+        #
+        ind = df[model.features[1]].isin(subset)
+        df = df[ind].reset_index(drop=True).copy()
+        mat = mat[ind, ...]
 
-    ind = df['stim_type'].isin([stim_type_alt])
-    df = df[ind].reset_index(drop=True).copy()
-    mat = mat[ind, ...]
+        ind = df['stim_type'].isin([stim_type_alt])
+        df = df[ind].reset_index(drop=True).copy()
+        mat = mat[ind, ...]
 
-    df, encoder_dict = model.load(df=df)
+        df, encoder_dict = model.load(df=df)
 
-    orderby = lambda x: (x[1], x[0])
+        orderby = lambda x: (x[1], x[0])
+    else:
+
+        csv_path = '/home/mcintosh/Cloud/Research/reports/2024/2024-09-20_paired_recruitment/data/data_io/np_scapptio098_2drecruit/out_info.csv'
+        toml_path = '/home/mcintosh/Cloud/Research/reports/2024/2024-09-20_paired_recruitment/data/data_io/np_scapptio098_2drecruit/out_info.toml'
+        df = pd.read_csv(csv_path)
+
+        df = df[(df['datetime_posix'] < 63132884.5017998) | (df['datetime_posix'] >= 63132941.538105)]  # not sure...
+        df = df.reset_index(drop=True).copy()
+
+        # Convert 'set_group' to string
+        df['set_group'] = df['set_group'].astype(str)
+
+        with open(toml_path, 'r') as f:
+            toml_data = toml.load(f)
+        channels = toml_data.get('channels', [])
+        rename_dict = {f'auc_sccx_{i + 1}': f'AUC_{channel}' for i, channel in enumerate(channels)}
+        df.rename(columns=rename_dict, inplace=True)
+
+        g = list(rename_dict.values())
+        target_side = 'L'
+        for gg in g:
+            if gg.startswith(f'AUC_{target_side}'):
+                gg_ = gg.replace(f'AUC_{target_side}', 'AUC_')
+                df.loc[:, gg_] = df.loc[:, gg].copy()
+
+        if stim_type == 'TMS':
+            set_groups1 = ['gcxramp-001', 'gcxramp-002', 'gcxramp-003', 'gcxramp-004']
+            alt_names1 = ['REC', 'RE2', 'RE3', 'RE4']
+        elif stim_type == 'TSCS':
+            set_groups1 = ['gscramp-001', 'gscramp-002']
+            alt_names1 = ['REC', 'RE2']
+
+        for ix, set_group in enumerate(set_groups1):
+            case_local = df['set_group'] == set_group
+            df.loc[case_local, 'stim_type'] = stim_type_alt
+            df.loc[case_local, 'protocol'] = alt_names1[ix]
+
+        if stim_type == 'TMS':
+            # hack specifici to this dataset becaause I missed CX baselines
+            vec_target_protocol = ['RE2', 'RE3', 'RE4']
+            for target_protocol in vec_target_protocol:
+                tolerance = 1.5e-4
+                sc_int = df.loc[df.loc[:, 'protocol'] == target_protocol, 'sc_current'].mean()
+                mask = (df['set_group'] == 'gscramp-001') & (np.abs(df['sc_current'] - sc_int) <= tolerance)
+                df.loc[mask, 'protocol'] = target_protocol
+                df.loc[mask, 'stim_type'] = stim_type_alt
+
+        # df.rename(columns={'alias': 'participant'}, inplace=True)
+        df.rename(columns={'cx_voltage': 'TMSInt'}, inplace=True)
+        df.rename(columns={'sc_current': 'TSCSInt'}, inplace=True)
+
+        df['TSCSInt'] = df['TSCSInt'] * 1e3 * 10  # mA to something on the order 0-100
+
+        df = df[np.invert(df.loc[:, config.RESPONSE].isna().any(axis=1))]
+
+
+        ind = df['stim_type'].isin([stim_type_alt])
+        df = df[ind].reset_index(drop=True).copy()
+
+        if stim_type == 'TMS':
+            for target_protocol in vec_target_protocol:
+                mask = (df['protocol'] == target_protocol)
+                plt.plot(df.loc[mask, 'TMSInt'], df.loc[mask, 'AUC_FCR'], 'o')
+                plt.show()
+
+        df, encoder_dict = model.load(df=df)
+
+        orderby = lambda x: (x[1], x[0])
+
+        mat = None
 
     # %%
     dest = Path(build_dir).parent / "inference"
@@ -332,6 +389,7 @@ if __name__ == "__main__":
 
     n_muscles = len(model.response)
     conditions = list(encoder_dict[model.features[0]].inverse_transform(np.unique(df[model.features])))
+    assert conditions[-1] == "REC", 'LAST ONE HAS TO BE REC!!!'
     conditions = [mapping[conditions[ix]] for ix in range(len(conditions))]
     participants = list(encoder_dict[model.features[1]].inverse_transform(np.unique(df[model.features[1]])))
 
@@ -363,15 +421,15 @@ if __name__ == "__main__":
     # %%
     _posterior_samples['max_facilitation_value'] = np.zeros(_posterior_samples['H'].shape)
     _posterior_samples['max_facilitation_location'] = np.zeros(_posterior_samples['H'].shape)
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10))
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=(15, 10), squeeze=False)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
             for ix_cond in range(len(conditions) - 1):
                 first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
-                first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+                first_column_base = pp[ix_p][-1][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
                 Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
-                     (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+                     (first_column_active + pp[ix_p][-1][site.mu][:, :, ix_muscle]))
                 a_mea = np.mean(_posterior_samples[site.a][:, ix_cond, ix_p, ix_muscle])
                 Y = (Y - 1) * 100
                 x = df_template[model.intensity].values
@@ -384,7 +442,7 @@ if __name__ == "__main__":
                 _posterior_samples['max_facilitation_location'][:, ix_cond, ix_p, ix_muscle] = x_
 
     # %% Basic recruitment curve
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size, squeeze=False)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
@@ -423,7 +481,7 @@ if __name__ == "__main__":
     fig.savefig(Path(model.build_dir) / f"REC.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %% Recruitment curve - abscissa rescaled to MT.
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size, squeeze=False)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
@@ -464,7 +522,7 @@ if __name__ == "__main__":
     fig.savefig(Path(model.build_dir) / f"REC_MT.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size, squeeze=False)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
@@ -494,7 +552,7 @@ if __name__ == "__main__":
     list_params = [site.a, site.H, 'max_grad', 'H+L']
     for ix_params in range(len(list_params)):
         str_p = list_params[ix_params]
-        fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+        fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size, squeeze=False)
         for ix_p in range(len(participants)):
             for ix_muscle in range(n_muscles):
                 for ix_cond in range(len(conditions)):
@@ -534,7 +592,7 @@ if __name__ == "__main__":
     list_params = ['max_facilitation_value', 'max_facilitation_location']
     for ix_params in range(len(list_params)):
         str_p = list_params[ix_params]
-        fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+        fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size, squeeze=False)
         for ix_p in range(len(participants)):
             for ix_muscle in range(n_muscles):
                 for ix_cond in range(0, 1):
@@ -579,15 +637,15 @@ if __name__ == "__main__":
     plt.close()
 
     # %%
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size, squeeze=False)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
             for ix_cond in range(len(conditions) - 1):
                 first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
-                first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+                first_column_base = pp[ix_p][-1][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
                 Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) /
-                     (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+                     (first_column_active + pp[ix_p][-1][site.mu][:, :, ix_muscle]))
 
                 Y = (Y - 1) * 100
                 x = df_template[model.intensity].values
@@ -622,15 +680,15 @@ if __name__ == "__main__":
     fig.savefig(Path(model.build_dir) / f"REC_MT_cond_norm.{fig_format}", format=fig_format, dpi=fig_dpi)
 
     # %%
-    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size)
+    fig, axs = plt.subplots(len(participants), n_muscles, figsize=fig_size, squeeze=False)
     for ix_p in range(len(participants)):
         for ix_muscle in range(n_muscles):
             ax = axs[ix_p, ix_muscle]
             for ix_cond in range(len(conditions) - 1):
                 first_column_active = pp[ix_p][ix_cond][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
-                first_column_base = pp[ix_p][2][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
+                first_column_base = pp[ix_p][-1][site.mu][:, :, ix_muscle][:, 0].reshape(-1, 1)
                 Y = ((pp[ix_p][ix_cond][site.mu][:, :, ix_muscle] + first_column_base) -
-                     (first_column_active + pp[ix_p][2][site.mu][:, :, ix_muscle]))
+                     (first_column_active + pp[ix_p][-1][site.mu][:, :, ix_muscle]))
 
                 x = df_template[model.intensity].values
                 y = np.mean(Y, 0)

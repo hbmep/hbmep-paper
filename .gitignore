@@ -7,3 +7,4 @@ reports/
 dist/
 build/
 /.idea/
+dnc_*
