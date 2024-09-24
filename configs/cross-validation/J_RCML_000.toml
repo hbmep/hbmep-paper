@@ -9,9 +9,9 @@ response = ['LADM', 'LBiceps', 'LDeltoid', 'LECR', 'LFCR', 'LTriceps']
 
 [mcmc]
 num_chains = 4
-num_warmup = 6000
-num_samples = 2000
-thinning = 1
+num_warmup = 4000
+num_samples = 4000
+thinning = 4
 
 [optional-mep-data]
 # This is a .npy file with shape: (No. of rows in csv) x (time) x (No. of responses)
