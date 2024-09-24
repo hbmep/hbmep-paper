@@ -5,7 +5,8 @@ import numpyro
 import numpyro.distributions as dist
 
 from hbmep.config import Config
-from hbmep.nn import functional as F
+from hbmep import functional as F
+from hbmep import smooth_functional as S
 from hbmep.model import GammaModel
 from hbmep.model.utils import Site as site
 
@@ -64,29 +65,26 @@ class RectifiedLogistic(GammaModel):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_logistic(
+                    S.rectified_logistic(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
                         L=L[feature0],
                         ell=ell[feature0],
-                        H=H[feature0]
+                        H=H[feature0],
+                        eps=0.0077
                     )
                 )
+
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
                     self.concentration(mu, beta)
                 )
 
-                # Observation
                 numpyro.sample(
                     site.obs,
                     dist.Gamma(concentration=alpha, rate=beta),
@@ -157,13 +155,10 @@ class Logistic5(GammaModel):
                         H=H[feature0]
                     )
                 )
+
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -235,13 +230,10 @@ class Logistic4(GammaModel):
                         H=H[feature0]
                     )
                 )
+
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -308,13 +300,10 @@ class RectifiedLinear(GammaModel):
                         L=L[feature0]
                     )
                 )
+
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -378,31 +367,26 @@ class MixtureModel(GammaModel):
                 c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                 c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
-        # Outlier Distribution
-        outlier_prob = numpyro.sample(site.outlier_prob, dist.Uniform(0., .01))
-        outlier_scale = numpyro.sample(site.outlier_scale, dist.HalfNormal(10))
+        q = numpyro.sample(site.outlier_prob, dist.Uniform(0., 0.01))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_logistic(
+                    S.rectified_logistic(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
                         L=L[feature0],
                         ell=ell[feature0],
-                        H=H[feature0]
+                        H=H[feature0],
+                        eps=0.0077
                     )
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -410,22 +394,13 @@ class MixtureModel(GammaModel):
                 )
 
                 # Mixture
-                q = numpyro.deterministic(
-                    site.q, outlier_prob * jnp.ones((n_data, self.n_response))
-                )
-                bg_scale = numpyro.deterministic(
-                    site.bg_scale,
-                    outlier_scale * jnp.ones((n_data, self.n_response))
-                )
-
                 mixing_distribution = dist.Categorical(
                     probs=jnp.stack([1 - q, q], axis=-1)
                 )
                 component_distributions=[
                     dist.Gamma(concentration=alpha, rate=beta),
-                    dist.HalfNormal(scale=bg_scale)
+                    dist.HalfNormal(scale=L[feature0] + H[feature0])
                 ]
-
                 Mixture = dist.MixtureGeneral(
                     mixing_distribution=mixing_distribution,
                     component_distributions=component_distributions
@@ -442,5 +417,5 @@ class MixtureModel(GammaModel):
                 # Until here, where we can track the membership probability of each sample
                 log_probs = Mixture.component_log_probs(y_)
                 numpyro.deterministic(
-                    "p", log_probs - jax.nn.logsumexp(log_probs, axis=-1, keepdims=True)
+                    site.p, log_probs - jax.nn.logsumexp(log_probs, axis=-1, keepdims=True)
                 )
