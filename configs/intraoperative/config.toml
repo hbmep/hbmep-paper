@@ -9,9 +9,9 @@ response = ["Biceps", "Triceps", "APB", "ADM"]
 
 [mcmc]
 num_chains = 4
-num_warmup = 4000
-num_samples = 4000
-thinning = 4
+num_warmup = 2000
+num_samples = 2000
+thinning = 2
 
 [misc]
 base = 1
