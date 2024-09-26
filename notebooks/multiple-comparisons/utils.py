@@ -28,12 +28,8 @@ def generate_paired_simulation_dirs():
 
 def generate_group_simulation_dirs():
     return {
-        "with_effect": (
-            np.array([9., 12., -8., 13.]),
-            os.path.join(BUILD_DIR_GROUP, "with_effect")
+        "sc1": (
+            np.array([0., 13., 0., 8.]),
+            os.path.join(BUILD_DIR_GROUP, "sc1")
         ),
-        "no_effect": (
-            np.array([0., 0., 0., 0.]),
-            os.path.join(BUILD_DIR_GROUP, "no_effect")
-        )
     }
