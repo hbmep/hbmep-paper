@@ -7,13 +7,14 @@ import numpyro.distributions as dist
 from hbmep.config import Config
 from hbmep import functional as F
 from hbmep import smooth_functional as S
-from hbmep.model import GammaModel
+from hbmep.model import (
+    GammaModel,
+    NonHierarchicalBaseModel,
+    BoundConstrainedOptimization
+)
 from hbmep.model.utils import Site as site
 
-# from hbmep_paper.models import (
-#     NonHierarchicalBaseModel,
-#     ConstrainedOptimization
-# )
+EPS = 1e-3
 
 
 class LearnPosterior(GammaModel):
@@ -28,17 +29,17 @@ class LearnPosterior(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 50., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 30., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
 
-        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
         H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
@@ -68,7 +69,7 @@ class LearnPosterior(GammaModel):
                         L=L[feature0],
                         ell=ell[feature0],
                         H=H[feature0],
-                        eps=0.0077
+                        eps=EPS
                     )
                 )
                 beta = numpyro.deterministic(
@@ -111,10 +112,10 @@ class Simulator(GammaModel):
 
         # Fixed
         a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
+            "a_fixed_loc", dist.TruncatedNormal(50., 30., low=0)
         )
         a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(50.)
+            "a_fixed_scale", dist.HalfNormal(30.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
@@ -140,7 +141,7 @@ class Simulator(GammaModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
                 # a_delta_loc_scale_raw = numpyro.sample(
-                #     "a_delta_loc_scale_raw", dist.HalfCauchy(1.)
+                #     "a_delta_loc_scale_raw", dist.HalfCauchy(scale=1.)
                 # )
                 # a_delta_loc_scale = numpyro.deterministic(
                 #     "a_delta_loc_scale", a_delta_loc_scale_scale * a_delta_loc_scale_raw
@@ -171,14 +172,14 @@ class Simulator(GammaModel):
                     a_fixed_plus_delta = a_fixed + a_delta
 
         # Hyper-priors
-        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
         H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
@@ -249,10 +250,10 @@ class HierarchicalBayesianModel(GammaModel):
 
         # Fixed
         a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
+            "a_fixed_loc", dist.TruncatedNormal(50., 30., low=0)
         )
         a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(50.)
+            "a_fixed_scale", dist.HalfNormal(30.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
@@ -275,7 +276,7 @@ class HierarchicalBayesianModel(GammaModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
                 a_delta_loc_scale_raw = numpyro.sample(
-                    "a_delta_loc_scale_raw", dist.HalfCauchy(1.)
+                    "a_delta_loc_scale_raw", dist.HalfCauchy(scale=1.)
                 )
                 a_delta_loc_scale = numpyro.deterministic(
                     "a_delta_loc_scale", a_delta_loc_scale_scale * a_delta_loc_scale_raw
@@ -303,14 +304,14 @@ class HierarchicalBayesianModel(GammaModel):
                     a_fixed_plus_delta = jax.nn.softplus(a_fixed + a_delta)
 
         # Hyper-priors
-        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
         H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
@@ -351,7 +352,7 @@ class HierarchicalBayesianModel(GammaModel):
                         L=L[feature0, feature1],
                         ell=ell[feature0, feature1],
                         H=H[feature0, feature1],
-                        eps=0.0077
+                        eps=EPS
                     )
                 )
                 beta = numpyro.deterministic(

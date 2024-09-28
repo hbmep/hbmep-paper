@@ -78,8 +78,9 @@ def main(
         M
     ):
         # Required for build directory
-        n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
-        draw_dir = f"d{draw}"
+        n_reps_dir, n_pulses_dir, n_subjects_dir, draw_dir = (
+            f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}", f"d{draw}"
+        )
 
         match M.NAME:
             case HierarchicalBayesianModel.NAME:

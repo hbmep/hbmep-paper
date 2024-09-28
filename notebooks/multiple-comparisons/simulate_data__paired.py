@@ -158,7 +158,3 @@ if __name__ == "__main__":
     key = "sc1"
     a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
     main(a_delta_loc, a_delta_scale, build_dir)
-
-    # key = "no_effect"
-    # a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
-    # main(a_delta_loc, a_delta_scale, build_dir)
