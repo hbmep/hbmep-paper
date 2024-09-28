@@ -33,10 +33,10 @@ def main():
     # Build simulator
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = BUILD_DIR
-    simulator = HierarchicalBayesianModel(config=config)
+    simulator = HierarchicalBayesianModel(config=config, simulate=True)
 
     # Set up logging
-    simulator._make_dir(simulator.build_dir)
+    os.makedirs(simulator.build_dir, exist_ok=True)
     setup_logging(
         dir=simulator.build_dir,
         fname=os.path.basename(__file__)

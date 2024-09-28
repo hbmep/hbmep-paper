@@ -3,10 +3,8 @@ import pickle
 import logging
 
 import pandas as pd
-import arviz as az
 
 from hbmep.config import Config
-from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
 from models__accuracy import HierarchicalBayesianModel
@@ -26,14 +24,16 @@ def main():
     # Build model
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = BUILD_DIR
-    config.MCMC_PARAMS["num_warmup"] = 4000
-    config.MCMC_PARAMS["num_samples"] = 4000
-    config.MCMC_PARAMS["thinning"] = 4
-
+    config.MCMC_PARAMS = {
+        "num_warmup": 4000,
+        "num_samples": 4000,
+        "num_chains": 4,
+        "thinning": 1,
+    }
     model = HierarchicalBayesianModel(config=config)
 
     # Set up logging
-    model._make_dir(model.build_dir)
+    os.makedirs(model.build_dir, exist_ok=True)
     setup_logging(
         dir=model.build_dir,
         fname=os.path.basename(__file__)
@@ -46,7 +46,7 @@ def main():
     df, encoder_dict = model.load(df=df)
 
     # Run inference
-    mcmc, posterior_samples = model.run_inference(df=df)
+    mcmc, posterior_samples = model.run(df=df)
 
     # Save inference data
     dest = os.path.join(model.build_dir, INFERENCE_FILE)
@@ -72,13 +72,13 @@ def main():
     )
 
     # Model evaluation
-    logger.info("Evaluating model ...")
-    inference_data = az.from_numpyro(mcmc)
-    logger.info(az.loo(inference_data, var_name=site.obs))
-    vars_to_exclude = [site.mu, site.alpha, site.beta, site.obs]
-    vars_to_exclude = ["~" + var for var in vars_to_exclude]
-    logger.info(az.summary(inference_data, var_names=vars_to_exclude).to_string())
-
+    summary_df = model.summary(posterior_samples)
+    logger.info(f"Summary:\n{summary_df.to_string()}")
+    dest = os.path.join(model.build_dir, "summary.csv")
+    summary_df.to_csv(dest)
+    logger.info(f"Saved summary to {dest}")
+    logger.info(f"Finished running {model.NAME}")
+    logger.info(f"Saved results to {model.build_dir}")
     return
 
 
