@@ -9,7 +9,7 @@ from constants__group import BUILD_DIR as BUILD_DIR_GROUP
 def generate_paired_simulation_dirs():
     return {
         "sc1": (
-            np.array([7.5, 0., -9, 0.]),
+            np.array([6., 0., -7.5, 0.]),
             np.array([2.5, 3., 3.5, 4.]),
             os.path.join(BUILD_DIR_PAIRED, "sc1")
         ),
