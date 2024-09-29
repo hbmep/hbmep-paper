@@ -312,15 +312,20 @@ if __name__ == "__main__":
 
     # Experiment space
     draws_space = range(lo, hi)
-    n_jobs = -1
     n_pulses_space = N_PULSES_SPACE
 
+    n_jobs = -1
     models = [
         HierarchicalBayesianModel,
-        # NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel,
         # NelderMeadOptimization
     ]
+
+    # n_jobs = 1
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     # MaximumLikelihoodModel,
+    # ]
+
     main(
         draws_space=draws_space,
 		n_pulses_space=n_pulses_space,
