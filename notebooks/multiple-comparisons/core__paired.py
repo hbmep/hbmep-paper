@@ -16,7 +16,7 @@ from hbmep_paper.utils import setup_logging
 from models__paired import (
     Simulator,
     HierarchicalBayesianModel,
-    # NonHierarchicalBayesianModel,
+    NonHierarchicalBayesianModel,
     # MaximumLikelihoodModel,
     # NelderMeadOptimization
 )
@@ -83,7 +83,10 @@ def main(
         )
 
         match M.NAME:
-            case HierarchicalBayesianModel.NAME:
+            case (
+                HierarchicalBayesianModel.NAME
+                | NonHierarchicalBayesianModel.NAME
+            ):
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -130,9 +133,6 @@ def main(
                     prediction_df=prediction_df,
                     posterior_predictive=posterior_predictive
                 )
-                model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
-                summary_df = model.summary(posterior_samples)
-                summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
 
                 # Compute error and save results
                 a_true = ppd_a[draw, :n_subjects, ...]
@@ -141,10 +141,15 @@ def main(
                 np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                 np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                a_delta_loc = posterior_samples["a_delta_loc"]
-                a_delta_scale = posterior_samples["a_delta_scale"]
-                np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
-                np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
+                if M.NAME == HierarchicalBayesianModel.NAME:
+                    model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
+                    summary_df = model.summary(posterior_samples)
+                    summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
+
+                    a_delta_loc = posterior_samples["a_delta_loc"]
+                    a_delta_scale = posterior_samples["a_delta_scale"]
+                    np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
+                    np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
