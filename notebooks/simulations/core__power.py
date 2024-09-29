@@ -249,8 +249,7 @@ def main(
 
 if __name__ == "__main__":
     # Usage: python -m core_power 0 2000
-    # lo, hi = list(map(int, sys.argv[1:]))
-    lo, hi = 0, 10
+    lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
     draws_space = range(lo, hi)
@@ -258,22 +257,21 @@ if __name__ == "__main__":
     # Uncomment the following to run
     # experiment for different models
 
-    # # Run hierarchical model
-    # n_jobs = -1
-    # n_subjects_space = N_SUBJECTS_SPACE
-    # n_subjects_space = [4]
-    # models = [
-    #     HierarchicalBayesianModel
-    # ]
-
-    # Run non-hierarchical models including
-    # non-hierarchical Bayesian and Maximum Likelihood
-    n_jobs = 1
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # Run hierarchical model
+    n_jobs = -1
+    n_subjects_space = N_SUBJECTS_SPACE
     models = [
-        NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel
+        HierarchicalBayesianModel
     ]
+
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
+    # n_jobs = 1
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     # MaximumLikelihoodModel
+    # ]
 
     # # Run non-hierarchical Nelder-Mead optimization
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
