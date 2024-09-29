@@ -179,9 +179,6 @@ class MaximumLikelihoodModel(NonHierarchicalBaseModel, GammaModel):
         super(MaximumLikelihoodModel, self).__init__(config=config)
         self.n_jobs = -1
 
-    def __init__(self, config: Config):
-        super(MaximumLikelihoodModel, self).__init__(config=config)
-
     def _model(self, intensity, features, response_obs=None):
         n_data = intensity.shape[0]
         n_features = np.max(features, axis=0) + 1
