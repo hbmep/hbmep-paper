@@ -84,8 +84,8 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
 
         match M.NAME:
             case (
-                HierarchicalBayesianModel.NAME |
-                NonHierarchicalBayesianModel.NAME
+                HierarchicalBayesianModel.NAME
+                | NonHierarchicalBayesianModel.NAME
             ):
                 # Load data
                 ind = (

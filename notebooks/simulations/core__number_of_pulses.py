@@ -83,7 +83,10 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
         draw_dir = f"d{draw}"
 
         match M.NAME:
-            case HierarchicalBayesianModel.NAME:
+            case (
+                HierarchicalBayesianModel.NAME
+                | NonHierarchicalBayesianModel.NAME
+            ):
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
