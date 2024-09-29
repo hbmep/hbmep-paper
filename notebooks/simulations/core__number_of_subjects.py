@@ -18,7 +18,7 @@ from hbmep_paper.utils import setup_logging
 from models__accuracy import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
-    # MaximumLikelihoodModel,
+    MaximumLikelihoodModel,
     NelderMeadOptimization
 )
 from utils import generate_nested_pulses
@@ -86,7 +86,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
             case (
                 HierarchicalBayesianModel.NAME
                 | NonHierarchicalBayesianModel.NAME
-                | NelderMeadOptimization.NAME
+                | MaximumLikelihoodModel.NAME
             ):
                 # Load data
                 ind = (
