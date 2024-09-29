@@ -258,29 +258,40 @@ if __name__ == "__main__":
     # Uncomment the following to run
     # experiment for different models
 
-    # # Run hierarchical models
-    # n_jobs = -1
-    # n_subjects_space = N_SUBJECTS_SPACE
-    # models = [
-    #     HierarchicalBayesianModel
-    # ]
-
-    # Run non-hierarchical models including
-    # non-hierarchical Bayesian and Maximum Likelihood
-    n_jobs = 1
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # Run hierarchical models
+    n_jobs = -1
+    n_subjects_space = N_SUBJECTS_SPACE
     models = [
-        NonHierarchicalBayesianModel,
-        # MaximumLikelihoodModel
+        HierarchicalBayesianModel
     ]
+
+    # # Run non-hierarchical models including
+    # # non-hierarchical Bayesian and Maximum Likelihood
+    # n_jobs = 1
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [
+    #     NonHierarchicalBayesianModel,
+    #     # MaximumLikelihoodModel
+    # ]
 
     # # Run non-hierarchical Nelder-Mead optimization
     # n_jobs = -1
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [NelderMeadOptimization]
 
+    # # Run strong case 1
+    # key = "sc1"
+    # _, _, simulation_data_dir = simulation_data_dirs[key]
+    # main(
+    #     simulation_data_dir=simulation_data_dir,
+    #     draws_space=draws_space,
+    #     n_subjects_space=n_subjects_space,
+    #     models=models,
+    #     n_jobs=n_jobs
+    # )
+
     # Run strong case 1
-    key = "sc1"
+    key = "weak"
     _, _, simulation_data_dir = simulation_data_dirs[key]
     main(
         simulation_data_dir=simulation_data_dir,
