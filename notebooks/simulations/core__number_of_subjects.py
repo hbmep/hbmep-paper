@@ -19,7 +19,7 @@ from models__accuracy import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     # MaximumLikelihoodModel,
-    # NelderMeadOptimization
+    NelderMeadOptimization
 )
 from utils import generate_nested_pulses
 from constants__accuracy import (
@@ -86,6 +86,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
             case (
                 HierarchicalBayesianModel.NAME
                 | NonHierarchicalBayesianModel.NAME
+                | NelderMeadOptimization.NAME
             ):
                 # Load data
                 ind = (
@@ -150,6 +151,67 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
                 del a_true, a_pred
                 gc.collect()
 
+            case NelderMeadOptimization.NAME:
+                # Load data
+                ind = (
+                    (simulation_df[simulator.features[0]] < n_subjects) &
+                    (simulation_df[REP] < n_reps) &
+                    (simulation_df[simulator.intensity].isin(pulses_map[n_pulses]))
+                )
+                df = simulation_df[ind].reset_index(drop=True).copy()
+                df[simulator.response[0]] = ppd_obs[draw, ind, 0]
+
+                ind = df[simulator.response[0]] > 0
+                df = df[ind].reset_index(drop=True).copy()
+
+                # Build model
+                config = Config(toml_path=TOML_PATH)
+                config.BUILD_DIR = os.path.join(
+                    BUILD_DIR,
+                    draw_dir,
+                    n_subjects_dir,
+                    n_reps_dir,
+                    n_pulses_dir,
+                    M.NAME
+                )
+                model = M(config=config)
+
+                # Set up logging
+                os.makedirs(model.build_dir, exist_ok=True)
+                setup_logging(
+                    dir=model.build_dir,
+                    fname="logs"
+                )
+
+                # Run inference
+                df, encoder_dict = model.load(df=df)
+                params = model.run(df=df)
+
+                # Predictions and recruitment curves
+                prediction_df = model.make_prediction_dataset(df=df)
+                prediction_df = model.predict(df=prediction_df, params=params)
+                model.render_recruitment_curves(
+                    df=df,
+                    encoder_dict=encoder_dict,
+                    params=params,
+                    prediction_df=prediction_df,
+                )
+
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = params[site.a]
+                assert a_pred.shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
+                model, params = None, None
+                a_true, a_pred = None, None
+                del config, df, prediction_df, encoder_dict, _
+                del model, params
+                del a_true, a_pred
+                gc.collect()
+
             case _:
                 raise ValueError(f"Invalid model {M.NAME}.")
 
@@ -183,12 +245,12 @@ if __name__ == "__main__":
     ## Uncomment the following to run
     ## experiment for different models
 
-    # Run hierarchical models
-    n_jobs = -1
-    n_subjects_space = N_SUBJECTS_SPACE
-    models = [
-        HierarchicalBayesianModel
-    ]
+    # # Run hierarchical models
+    # n_jobs = -1
+    # n_subjects_space = N_SUBJECTS_SPACE
+    # models = [
+    #     HierarchicalBayesianModel
+    # ]
 
     # # Run non-hierarchical models including
     # # non-hierarchical Bayesian and Maximum Likelihood
@@ -199,9 +261,10 @@ if __name__ == "__main__":
     #     # MaximumLikelihoodModel
     # ]
 
-    # # Run non-hierarchical Nelder-Mead optimization
-    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # models = [NelderMeadOptimization]
+    # Run non-hierarchical Nelder-Mead optimization
+    n_jobs = -1
+    n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    models = [NelderMeadOptimization]
 
     main(
         draws_space=draws_space,
