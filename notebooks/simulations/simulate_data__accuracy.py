@@ -70,6 +70,10 @@ def main():
     with open(src, "rb") as g:
         _, _, posterior_samples = pickle.load(g)
 
+    logger.info("Learn posterior shapes:")
+    for u, v in posterior_samples.items():
+        logger.info(f"{u}: {v.shape}")
+
     # Exclude priors
     present_sites = sorted(list(posterior_samples.keys()))
     sites_to_exclude = [

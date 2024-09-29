@@ -28,7 +28,7 @@ def main():
         "num_warmup": 4000,
         "num_samples": 4000,
         "num_chains": 4,
-        "thinning": 1,
+        "thinning": 4,
     }
     model = HierarchicalBayesianModel(config=config)
 
