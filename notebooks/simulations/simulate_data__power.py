@@ -42,7 +42,7 @@ def main(a_delta_loc, a_delta_scale, build_dir):
     )
 
     # Set up logging
-    simulator._make_dir(simulator.build_dir)
+    os.makedirs(simulator.build_dir, exist_ok=True)
     setup_logging(
         dir=simulator.build_dir,
         fname=os.path.basename(__file__)
@@ -149,7 +149,7 @@ def main(a_delta_loc, a_delta_scale, build_dir):
 
 if __name__ == "__main__":
     # Simulate data with effect
-    main(-5., 2.5, SIMULATE_DATA_WITH_EFFECT_DIR)
+    main(-6., 2.5, SIMULATE_DATA_WITH_EFFECT_DIR)
 
     # Simulate data with no effect
     main(0, 2.5, SIMULATE_DATA_WITH_NO_EFFECT_DIR)
