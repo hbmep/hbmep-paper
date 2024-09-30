@@ -13,6 +13,11 @@ def generate_paired_simulation_dirs():
             np.array([2.5, 3., 3.5, 4.]),
             os.path.join(BUILD_DIR_PAIRED, "sc1")
         ),
+        "sc2": (
+            np.array([-6., 0., 0., 0.]),
+            np.array([2.5, 3., 3.5, 4.]),
+            os.path.join(BUILD_DIR_PAIRED, "sc2")
+        ),
         "weak": (
             np.array([0., 0., 0., 0.]),
             np.array([2.5, 3., 3.5, 4.]),

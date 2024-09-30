@@ -159,6 +159,10 @@ if __name__ == "__main__":
     # a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
     # main(a_delta_loc, a_delta_scale, build_dir)
 
-    key = "weak"
+    key = "sc2"
     a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
     main(a_delta_loc, a_delta_scale, build_dir)
+
+    # key = "weak"
+    # a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
+    # main(a_delta_loc, a_delta_scale, build_dir)

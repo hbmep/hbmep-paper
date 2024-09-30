@@ -291,7 +291,7 @@ if __name__ == "__main__":
     # )
 
     # Run strong case 1
-    key = "weak"
+    key = "sc2"
     _, _, simulation_data_dir = simulation_data_dirs[key]
     main(
         simulation_data_dir=simulation_data_dir,
@@ -300,3 +300,14 @@ if __name__ == "__main__":
         models=models,
         n_jobs=n_jobs
     )
+
+    # # Run weak case
+    # key = "weak"
+    # _, _, simulation_data_dir = simulation_data_dirs[key]
+    # main(
+    #     simulation_data_dir=simulation_data_dir,
+    #     draws_space=draws_space,
+    #     n_subjects_space=n_subjects_space,
+    #     models=models,
+    #     n_jobs=n_jobs
+    # )
