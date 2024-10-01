@@ -1,6 +1,6 @@
 import os
-import sys
 import gc
+import sys
 import pickle
 import logging
 
@@ -12,7 +12,7 @@ from hbmep.config import Config
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from models import HierarchicalBayesianModel
+from bootstrap_models import HierarchicalBayesianModel
 from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
@@ -115,7 +115,7 @@ def main(
 
         # Run inference
         df, encoder_dict = model.load(df=df)
-        _, posterior_samples = model.run(df=df)
+        _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
 
         # Save
         a_delta_loc = posterior_samples["a_delta_loc"]
@@ -161,8 +161,7 @@ def main(
 
 if __name__ == "__main__":
     # Usage: python -m bootstrap__core.py 0 100
-    # lo, hi = list(map(int, sys.argv[1:]))
-    lo, hi = 0, 1
+    lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
     draws_space = range(lo, hi)
@@ -170,7 +169,6 @@ if __name__ == "__main__":
 
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
-    n_subjects_space = [6]
     models = [
         HierarchicalBayesianModel
     ]

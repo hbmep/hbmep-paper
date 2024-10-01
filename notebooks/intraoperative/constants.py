@@ -2,7 +2,8 @@ import os
 
 
 TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/intraoperative/config.toml"
-DATA_PATH = "/home/vishu/data/hbmep-processed/human/intraoperative/data_om.csv"
+DATA_PATH = "/home/vishu/data/hbmep-processed/human/intraoperative/data.csv"
+DATA_OUTLIERS_MARKED_PATH = "/home/vishu/data/hbmep-processed/human/intraoperative/data_outliers_marked.csv"
 
 INFERENCE_FILE = "inference.pkl"
 NETCODE_FILE = "inference_data.nc"
@@ -17,4 +18,3 @@ NUM_BOOTSTRAPS = 4000
 N_SUBJECTS_SPACE = [2, 4, 6, 8, 10, 13]
 
 BOOTSTRAP_FILE = "bootstrap.pkl"
-IS_OUTLIER = "is_outlier"

@@ -9,9 +9,11 @@ from hbmep import smooth_functional as S
 from hbmep.model import GammaModel
 from hbmep.model.utils import Site as site
 
+EPS = 1e-3
+
 
 class HierarchicalBayesianModel(GammaModel):
-    NAME = "hierarchical_bayesian_model"
+    NAME = "mixture0.01_50k50k50_15depth"
 
     def __init__(self, config: Config):
         super(HierarchicalBayesianModel, self).__init__(config=config)
@@ -27,10 +29,10 @@ class HierarchicalBayesianModel(GammaModel):
 
         # Fixed
         a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(5., 10., low=0.)
+            "a_fixed_loc", dist.TruncatedNormal(5., 5., low=0.)
         )
         a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(10.)
+            "a_fixed_scale", dist.HalfNormal(5.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
@@ -75,20 +77,19 @@ class HierarchicalBayesianModel(GammaModel):
                         jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
                     )
                     numpyro.factor(
-                        "penalty_for_negative_a",
-                        -penalty_for_negative_a
+                        "penalty_for_negative_a", -penalty_for_negative_a
                     )
                     a_fixed_plus_delta = jax.nn.softplus(a_fixed + a_delta)
 
         # Hyper-priors
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
-        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
@@ -117,6 +118,8 @@ class HierarchicalBayesianModel(GammaModel):
                     c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                     c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
+        q = numpyro.sample(site.outlier_prob, dist.Uniform(0., 0.01))
+
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 # Model
@@ -129,10 +132,9 @@ class HierarchicalBayesianModel(GammaModel):
                         L=L[feature0, feature1],
                         ell=ell[feature0, feature1],
                         H=H[feature0, feature1],
-                        eps=0.03
+                        eps=EPS
                     )
                 )
-
                 beta = numpyro.deterministic(
                     site.beta,
                     self.rate(
@@ -146,9 +148,22 @@ class HierarchicalBayesianModel(GammaModel):
                     self.concentration(mu, beta)
                 )
 
+                # Mixture
+                mixing_distribution = dist.Categorical(
+                    probs=jnp.stack([1 - q, q], axis=-1)
+                )
+                component_distributions=[
+                    dist.Gamma(concentration=alpha, rate=beta),
+                    dist.HalfNormal(scale=L[feature0, feature1] + H[feature0, feature1])
+                ]
+                Mixture = dist.MixtureGeneral(
+                    mixing_distribution=mixing_distribution,
+                    component_distributions=component_distributions
+                )
+
                 # Observation
                 numpyro.sample(
                     site.obs,
-                    dist.Gamma(concentration=alpha, rate=beta),
+                    Mixture,
                     obs=response_obs
                 )
