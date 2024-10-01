@@ -148,6 +148,14 @@ def main(
         gc.collect()
 
 
+    logger.info("Bootstrap.")
+    logger.info(f"build_dir: {build_dir}")
+    logger.info(f"n_subjects_space: {', '.join(map(str, n_subjects_space))}")
+    logger.info(f"models: {', '.join([z.NAME for z in models])}")
+    logger.info(f"no_effect: {no_effect}")
+    logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
+    logger.info(f"n_jobs: {n_jobs}")
+
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(n_subjects, draw, M)
