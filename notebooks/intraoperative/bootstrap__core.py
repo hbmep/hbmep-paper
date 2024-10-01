@@ -12,7 +12,7 @@ from hbmep.config import Config
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from bootstrap_models import HierarchicalBayesianModel
+from bootstrap__models import HierarchicalBayesianModel
 from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
