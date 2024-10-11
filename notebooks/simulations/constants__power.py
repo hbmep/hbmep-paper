@@ -8,7 +8,7 @@ TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/simulations/power.toml"
 
 SIMULATE_DATA_DIR__POWER = os.path.join(BUILD_DIR, "power")
 SIMULATE_DATA_WITH_EFFECT_DIR = os.path.join(SIMULATE_DATA_DIR__POWER, "with_effect")
-SIMULATE_DATA_WITH_NO_EFFECT_DIR = os.path.join(SIMULATE_DATA_DIR__POWER, "with_no_effect")
+SIMULATE_DATA_WITH_NO_EFFECT_DIR = os.path.join(SIMULATE_DATA_DIR__POWER, "no_effect")
 
 EXPERIMENTS_WITH_EFFECT_DIR = os.path.join(SIMULATE_DATA_WITH_EFFECT_DIR, "experiments")
 EXPERIMENTS_WITH_NO_EFFECT_DIR = os.path.join(SIMULATE_DATA_WITH_NO_EFFECT_DIR, "experiments")
