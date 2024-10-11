@@ -155,14 +155,6 @@ def main(a_delta_loc, a_delta_scale, build_dir):
 if __name__ == "__main__":
     simulation_data_dirs = generate_paired_simulation_dirs()
 
-    # key = "sc1"
-    # a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
-    # main(a_delta_loc, a_delta_scale, build_dir)
-
-    key = "sc2"
+    key = "sc1"
     a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
     main(a_delta_loc, a_delta_scale, build_dir)
-
-    # key = "weak"
-    # a_delta_loc, a_delta_scale, build_dir = simulation_data_dirs[key]
-    # main(a_delta_loc, a_delta_scale, build_dir)

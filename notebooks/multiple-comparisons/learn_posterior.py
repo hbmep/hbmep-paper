@@ -48,7 +48,7 @@ def main():
     df, encoder_dict = model.load(df=df)
 
     # Run inference
-    mcmc, posterior_samples = model.run(df=df)
+    mcmc, posterior_samples = model.run(df=df, max_tree_depth=15)
 
     # Save inference data
     dest = os.path.join(model.build_dir, INFERENCE_FILE)

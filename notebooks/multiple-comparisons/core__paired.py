@@ -279,19 +279,8 @@ if __name__ == "__main__":
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [NelderMeadOptimization]
 
-    # # Run strong case 1
-    # key = "sc1"
-    # _, _, simulation_data_dir = simulation_data_dirs[key]
-    # main(
-    #     simulation_data_dir=simulation_data_dir,
-    #     draws_space=draws_space,
-    #     n_subjects_space=n_subjects_space,
-    #     models=models,
-    #     n_jobs=n_jobs
-    # )
-
     # Run strong case 1
-    key = "sc2"
+    key = "sc1"
     _, _, simulation_data_dir = simulation_data_dirs[key]
     main(
         simulation_data_dir=simulation_data_dir,
@@ -300,14 +289,3 @@ if __name__ == "__main__":
         models=models,
         n_jobs=n_jobs
     )
-
-    # # Run weak case
-    # key = "weak"
-    # _, _, simulation_data_dir = simulation_data_dirs[key]
-    # main(
-    #     simulation_data_dir=simulation_data_dir,
-    #     draws_space=draws_space,
-    #     n_subjects_space=n_subjects_space,
-    #     models=models,
-    #     n_jobs=n_jobs
-    # )

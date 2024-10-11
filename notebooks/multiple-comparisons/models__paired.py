@@ -29,8 +29,8 @@ class LearnPosterior(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 30., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 50., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
@@ -47,7 +47,6 @@ class LearnPosterior(GammaModel):
                 a = numpyro.sample(
                     site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
                 )
-
                 b = numpyro.sample(site.b, dist.HalfNormal(b_scale))
 
                 L = numpyro.sample(site.L, dist.HalfNormal(L_scale))
@@ -112,10 +111,10 @@ class Simulator(GammaModel):
 
         # Fixed
         a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(50., 30., low=0)
+            "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
         )
         a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(30.)
+            "a_fixed_scale", dist.HalfNormal(50.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
@@ -250,10 +249,10 @@ class HierarchicalBayesianModel(GammaModel):
 
         # Fixed
         a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(50., 30., low=0)
+            "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
         )
         a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(30.)
+            "a_fixed_scale", dist.HalfNormal(50.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
@@ -393,8 +392,8 @@ class NonHierarchicalBayesianModel(NonHierarchicalBaseModel, GammaModel):
             with numpyro.plate(site.n_features[1], n_features[1]):
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     # Hyper-priors
-                    a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 30., low=0))
-                    a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+                    a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 50., low=0))
+                    a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
 
                     b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
