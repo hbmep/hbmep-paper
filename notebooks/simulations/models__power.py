@@ -36,10 +36,10 @@ class Simulator(GammaModel):
 
         # Fixed
         a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(50., 30., low=0)
+            "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
         )
         a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(30.)
+            "a_fixed_scale", dist.HalfNormal(50.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
@@ -143,10 +143,10 @@ class HierarchicalBayesianModel(GammaModel):
 
         # Fixed
         a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(50., 30., low=0)
+            "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
         )
         a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(30.)
+            "a_fixed_scale", dist.HalfNormal(50.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
@@ -261,8 +261,8 @@ class NonHierarchicalBayesianModel(NonHierarchicalBaseModel, GammaModel):
             with numpyro.plate(site.n_features[1], n_features[1]):
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     # Hyper Priors
-                    a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 30., low=0))
-                    a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+                    a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 50., low=0))
+                    a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
 
                     b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
@@ -342,7 +342,6 @@ class MaximumLikelihoodModel(NonHierarchicalBaseModel, GammaModel):
                     a = numpyro.sample(
                         site.a, dist.Uniform(0., 150.)
                     )
-
                     b = numpyro.sample(site.b, dist.Uniform(0., 10.))
 
                     L = numpyro.sample(site.L, dist.Uniform(0., 10.))
