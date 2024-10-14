@@ -1,12 +1,16 @@
 import numpy as np
 import jax.numpy as jnp
+import jax
 import numpyro
 import numpyro.distributions as dist
 
 from hbmep.config import Config
-from hbmep.nn import functional as F
+from hbmep import functional as F
+from hbmep import smooth_functional as S
 from hbmep.model import GammaModel
 from hbmep.model.utils import Site as site
+
+EPS = 1e-3
 
 
 class RectifiedLogistic(GammaModel):
@@ -21,17 +25,17 @@ class RectifiedLogistic(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
-        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
@@ -63,22 +67,19 @@ class RectifiedLogistic(GammaModel):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_logistic(
+                    S.rectified_logistic(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
                         L=L[feature0],
                         ell=ell[feature0],
-                        H=H[feature0]
+                        H=H[feature0],
+                        eps=EPS
                     )
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -105,17 +106,18 @@ class Logistic5(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-        v_scale = numpyro.sample("v_scale", dist.HalfNormal(5.))
+        v_scale = numpyro.sample("v_scale", dist.HalfNormal(1.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
+
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
@@ -158,11 +160,7 @@ class Logistic5(GammaModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -189,15 +187,15 @@ class Logistic4(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
@@ -236,11 +234,7 @@ class Logistic4(GammaModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -267,14 +261,14 @@ class RectifiedLinear(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
@@ -309,11 +303,7 @@ class RectifiedLinear(GammaModel):
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -340,17 +330,17 @@ class MixtureModel(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
-        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[0], n_features[0]):
@@ -377,31 +367,26 @@ class MixtureModel(GammaModel):
                 c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                 c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
-        # Outlier Distribution
-        outlier_prob = numpyro.sample(site.outlier_prob, dist.Uniform(0., .01))
-        outlier_scale = numpyro.sample(site.outlier_scale, dist.HalfNormal(10))
+        q = numpyro.sample(site.outlier_prob, dist.Uniform(0., 0.01))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_logistic(
+                    S.rectified_logistic(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
                         L=L[feature0],
                         ell=ell[feature0],
-                        H=H[feature0]
+                        H=H[feature0],
+                        eps=EPS
                     )
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
@@ -409,30 +394,28 @@ class MixtureModel(GammaModel):
                 )
 
                 # Mixture
-                q = numpyro.deterministic(
-                    site.q, outlier_prob * jnp.ones((n_data, self.n_response))
-                )
-                bg_scale = numpyro.deterministic(
-                    site.bg_scale,
-                    outlier_scale * jnp.ones((n_data, self.n_response))
-                )
-
                 mixing_distribution = dist.Categorical(
                     probs=jnp.stack([1 - q, q], axis=-1)
                 )
                 component_distributions=[
                     dist.Gamma(concentration=alpha, rate=beta),
-                    dist.HalfNormal(scale=bg_scale)
+                    dist.HalfNormal(scale=L[feature0] + H[feature0])
                 ]
-
                 Mixture = dist.MixtureGeneral(
                     mixing_distribution=mixing_distribution,
                     component_distributions=component_distributions
                 )
 
                 # Observation
-                numpyro.sample(
+                y_ = numpyro.sample(
                     site.obs,
                     Mixture,
                     obs=response_obs
+                )
+
+                # Thanks to https://dfm.io/posts/intro-to-numpyro/
+                # Until here, where we can track the membership probability of each sample
+                log_probs = Mixture.component_log_probs(y_)
+                numpyro.deterministic(
+                    site.p, log_probs - jax.nn.logsumexp(log_probs, axis=-1, keepdims=True)
                 )
