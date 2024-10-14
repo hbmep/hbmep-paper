@@ -24,7 +24,7 @@ def generate_paired_simulation_dirs():
 def generate_group_simulation_dirs():
     return {
         "sc1": (
-            np.array([0., 17., 0., 23.]),
+            np.array([18., 0., 0., 0.]),
             os.path.join(BUILD_DIR_GROUP, "sc1")
         ),
     }

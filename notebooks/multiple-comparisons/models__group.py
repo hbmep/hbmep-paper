@@ -47,6 +47,7 @@ class Simulator(GammaModel):
                     )
                 )
 
+
         # # Delta
         # a_loc_delta_scale_scale = numpyro.sample(
         #     "a_loc_delta_scale_scale", dist.HalfNormal(50.)
@@ -56,37 +57,38 @@ class Simulator(GammaModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
                 # a_loc_delta_scale_raw = numpyro.sample(
-                #     "a_loc_delta_scale_raw", dist.HalfCauchy(scale=1.)
+                #     "a_loc_delta_scale_raw", dist.HalfCauchy(1.)
                 # )
                 # a_loc_delta_scale = numpyro.deterministic(
                 #     "a_loc_delta_scale", a_loc_delta_scale_scale * a_loc_delta_scale_raw
                 # )
+
                 # a_loc_delta_raw = numpyro.sample(
                 #     "a_loc_delta_raw", dist.Normal(0., 1.)
                 # )
                 # a_loc_delta = numpyro.deterministic(
                 #     "a_loc_delta", a_loc_delta_scale * a_loc_delta_raw
                 # )
+
                 # # Penalty for negative a_loc
                 # penalty_for_negative_a_loc = (
                 #     jnp.fabs(a_loc_fixed + a_loc_delta) - (a_loc_fixed + a_loc_delta)
                 # )
                 # numpyro.factor(
-                #     "penalty_for_negative_a_loc",
-                #     -penalty_for_negative_a_loc
+                #     "penalty_for_negative_a_loc", -penalty_for_negative_a_loc
                 # )
                 a_loc_fixed_plus_delta = jax.nn.softplus(a_loc_fixed + a_loc_delta)
 
         # Global priors
         a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
-        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
         H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
@@ -99,14 +101,24 @@ class Simulator(GammaModel):
                     a = numpyro.sample(
                         site.a, dist.TruncatedNormal(a_loc, a_scale, low=0)
                     )
-                    b = numpyro.sample(site.b, dist.HalfNormal(scale=b_scale))
 
-                    L = numpyro.sample(site.L, dist.HalfNormal(scale=L_scale))
-                    ell = numpyro.sample(site.ell, dist.HalfNormal(scale=ell_scale))
-                    H = numpyro.sample(site.H, dist.HalfNormal(scale=H_scale))
+                    b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
+                    b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
 
-                    c_1 = numpyro.sample(site.c_1, dist.HalfNormal(scale=c_1_scale))
-                    c_2 = numpyro.sample(site.c_2, dist.HalfNormal(scale=c_2_scale))
+                    L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
+                    L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
+
+                    ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                    ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
+
+                    H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
+                    H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
+
+                    c_1_raw = numpyro.sample("c_1_raw", dist.HalfNormal(scale=1))
+                    c_1 = numpyro.deterministic(site.c_1, jnp.multiply(c_1_scale, c_1_raw))
+
+                    c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
+                    c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -182,42 +194,43 @@ class HierarchicalBayesianModel(GammaModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
                 a_loc_delta_scale_raw = numpyro.sample(
-                    "a_loc_delta_scale_raw", dist.HalfCauchy(scale=1.)
+                    "a_loc_delta_scale_raw", dist.HalfCauchy(1.)
                 )
                 a_loc_delta_scale = numpyro.deterministic(
                     "a_loc_delta_scale", a_loc_delta_scale_scale * a_loc_delta_scale_raw
                 )
+
                 a_loc_delta_raw = numpyro.sample(
                     "a_loc_delta_raw", dist.Normal(0., 1.)
                 )
                 a_loc_delta = numpyro.deterministic(
                     "a_loc_delta", a_loc_delta_scale * a_loc_delta_raw
                 )
+
                 # Penalty for negative a_loc
                 penalty_for_negative_a_loc = (
                     jnp.fabs(a_loc_fixed + a_loc_delta) - (a_loc_fixed + a_loc_delta)
                 )
                 numpyro.factor(
-                    "penalty_for_negative_a_loc",
-                    -penalty_for_negative_a_loc
+                    "penalty_for_negative_a_loc", -penalty_for_negative_a_loc
                 )
                 a_loc_fixed_plus_delta = jax.nn.softplus(a_loc_fixed + a_loc_delta)
 
         # Global priors
         a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
-        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
 
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
         H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
 
         c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
                 a_loc = numpyro.deterministic(
-                    "a_loc", jnp.concatenate([a_loc_fixed, a_loc_fixed_plus_delta], axis=0)
+                    "a_loc", jnp.concatenate([a_loc_fixed, a_loc_fixed_plus_delta])
                 )
 
                 with numpyro.plate(site.n_features[0], n_features[0]):

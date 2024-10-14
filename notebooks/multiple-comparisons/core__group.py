@@ -314,8 +314,7 @@ def main(
 
 if __name__ == "__main__":
     # Usage: python -m core__group 0 500
-    # lo, hi = list(map(int, sys.argv[1:]))
-    lo, hi = 0, 1
+    lo, hi = list(map(int, sys.argv[1:]))
     simulation_data_dirs = generate_group_simulation_dirs()
 
     # Experiment space
@@ -327,7 +326,6 @@ if __name__ == "__main__":
     # Run hierarchical models
     n_jobs = -1
     n_subjects_space = N_SUBJECTS_SPACE
-    n_subjects_space = [6]
     models = [
         HierarchicalBayesianModel
     ]
