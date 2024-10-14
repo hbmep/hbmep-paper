@@ -163,8 +163,7 @@ def main(
 
 if __name__ == "__main__":
     # Usage: python -m bootstrap__core.py 0 100
-    # lo, hi = list(map(int, sys.argv[1:]))
-    lo, hi = 0, 1
+    lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
     draws_space = range(lo, hi)
@@ -172,9 +171,8 @@ if __name__ == "__main__":
 
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
-    n_subjects_space = [4]
     models = [
-        HierarchicalBayesianModelMixtureOff
+        HierarchicalBayesianModel
     ]
 
     no_effect = False
