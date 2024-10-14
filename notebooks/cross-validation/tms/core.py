@@ -20,7 +20,7 @@ from constants import (
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main(M):
     # Load data
     data = pd.read_csv(DATA_PATH)
     # Run inference
@@ -41,9 +41,9 @@ def main():
 
 
 if __name__ == "__main__":
-    # M = RectifiedLogistic
+    M = RectifiedLogistic
     # M = Logistic5
-    M = Logistic4
+    # M = Logistic4
     # M = RectifiedLinear
     # M = MixtureModel
     main(M=M)
