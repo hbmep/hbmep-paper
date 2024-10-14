@@ -13,11 +13,11 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-# from models__paired import (
-#     NonHierarchicalBayesianModel,
-#     MaximumLikelihoodModel,
-#     NelderMeadOptimization,
-# )
+from models__paired import (
+    NonHierarchicalBayesianModel,
+    # MaximumLikelihoodModel,
+    # NelderMeadOptimization,
+)
 from models__group import (
     Simulator,
     HierarchicalBayesianModel,
@@ -87,7 +87,10 @@ def main(
         )
 
         match M.NAME:
-            case HierarchicalBayesianModel.NAME:
+            case (
+                HierarchicalBayesianModel.NAME
+                | NonHierarchicalBayesianModel.NAME
+            ):
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -141,9 +144,6 @@ def main(
                     prediction_df=prediction_df,
                     posterior_predictive=posterior_predictive
                 )
-                model.trace_plot(posterior_samples, var_names=["a_loc_delta"])
-                summary_df = model.summary(posterior_samples)
-                summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
 
                 # Compute error and save results
                 a_true = ppd_a[draw, :n_subjects, ...]
@@ -151,8 +151,13 @@ def main(
                 np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
                 np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                a_loc_delta = posterior_samples["a_loc_delta"]
-                np.save(os.path.join(model.build_dir, "a_loc_delta.npy"), a_loc_delta)
+                if M.NAME == HierarchicalBayesianModel.NAME:
+                    model.trace_plot(posterior_samples, var_names=["a_loc_delta"])
+                    summary_df = model.summary(posterior_samples)
+                    summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
+
+                    a_loc_delta = posterior_samples["a_loc_delta"]
+                    np.save(os.path.join(model.build_dir, "a_loc_delta.npy"), a_loc_delta)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
@@ -164,129 +169,129 @@ def main(
                 del a_loc_delta
                 gc.collect()
 
-            # Non-hierarchical models: non-hierarchical Bayesian and Maximum Likelihood
-            case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME:
-                # Load data
-                ind = (
-                    (simulation_df[simulator.features[0]] < n_subjects) &
-                    (simulation_df[REP] < n_reps)
-                )
-                df = simulation_df[ind].reset_index(drop=True).copy()
-                df[simulator.response] = ppd_obs[draw, ind, :]
+            # # Non-hierarchical models: non-hierarchical Bayesian and Maximum Likelihood
+            # case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME:
+            #     # Load data
+            #     ind = (
+            #         (simulation_df[simulator.features[0]] < n_subjects) &
+            #         (simulation_df[REP] < n_reps)
+            #     )
+            #     df = simulation_df[ind].reset_index(drop=True).copy()
+            #     df[simulator.response] = ppd_obs[draw, ind, :]
 
-                ind = (df[simulator.response] > 0).all(axis=1)
-                df = df[ind].reset_index(drop=True).copy()
+            #     ind = (df[simulator.response] > 0).all(axis=1)
+            #     df = df[ind].reset_index(drop=True).copy()
 
-                # Build model
-                config = Config(toml_path=TOML_PATH)
-                config.BUILD_DIR = os.path.join(
-                    build_dir,
-                    draw_dir,
-                    n_subjects_dir,
-                    n_reps_dir,
-                    n_pulses_dir,
-                    M.NAME
-                )
-                model = M(config=config)
+            #     # Build model
+            #     config = Config(toml_path=TOML_PATH)
+            #     config.BUILD_DIR = os.path.join(
+            #         build_dir,
+            #         draw_dir,
+            #         n_subjects_dir,
+            #         n_reps_dir,
+            #         n_pulses_dir,
+            #         M.NAME
+            #     )
+            #     model = M(config=config)
 
-                # Set up logging
-                os.makedirs(model.build_dir, exist_ok=True)
-                setup_logging(
-                    dir=model.build_dir,
-                    fname="logs"
-                )
+            #     # Set up logging
+            #     os.makedirs(model.build_dir, exist_ok=True)
+            #     setup_logging(
+            #         dir=model.build_dir,
+            #         fname="logs"
+            #     )
 
-                # Run inference
-                df, encoder_dict = model.load(df=df)
-                _, posterior_samples = model.run_inference(df=df)
+            #     # Run inference
+            #     df, encoder_dict = model.load(df=df)
+            #     _, posterior_samples = model.run_inference(df=df)
 
-                # Predictions and recruitment curves
-                prediction_df = model.make_prediction_dataset(df=df)
-                posterior_predictive = model.predict(
-                    df=prediction_df, posterior_samples=posterior_samples
-                )
-                model.render_recruitment_curves(
-                    df=df,
-                    encoder_dict=encoder_dict,
-                    posterior_samples=posterior_samples,
-                    prediction_df=prediction_df,
-                    posterior_predictive=posterior_predictive
-                )
+            #     # Predictions and recruitment curves
+            #     prediction_df = model.make_prediction_dataset(df=df)
+            #     posterior_predictive = model.predict(
+            #         df=prediction_df, posterior_samples=posterior_samples
+            #     )
+            #     model.render_recruitment_curves(
+            #         df=df,
+            #         encoder_dict=encoder_dict,
+            #         posterior_samples=posterior_samples,
+            #         prediction_df=prediction_df,
+            #         posterior_predictive=posterior_predictive
+            #     )
 
-                # Save
-                a_true = ppd_a[draw, :n_subjects, ...]
-                a_pred = posterior_samples[site.a]
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+            #     # Save
+            #     a_true = ppd_a[draw, :n_subjects, ...]
+            #     a_pred = posterior_samples[site.a]
+            #     np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+            #     np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
-                model, posterior_samples, posterior_predictive = None, None, None
-                a_true, a_pred = None, None
-                del config, df, prediction_df, encoder_dict, _
-                del model, posterior_samples, posterior_predictive
-                del a_true, a_pred
-                gc.collect()
+            #     config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
+            #     model, posterior_samples, posterior_predictive = None, None, None
+            #     a_true, a_pred = None, None
+            #     del config, df, prediction_df, encoder_dict, _
+            #     del model, posterior_samples, posterior_predictive
+            #     del a_true, a_pred
+            #     gc.collect()
 
-            # Non-hierarchical models: Nelder-Mead optimization
-            case NelderMeadOptimization.NAME:
-                # Load data
-                ind = (
-                    (simulation_df[simulator.features[0]] < n_subjects) &
-                    (simulation_df[REP] < n_reps)
-                )
-                df = simulation_df[ind].reset_index(drop=True).copy()
-                df[simulator.response] = ppd_obs[draw, ind, :]
+            # # Non-hierarchical models: Nelder-Mead optimization
+            # case NelderMeadOptimization.NAME:
+            #     # Load data
+            #     ind = (
+            #         (simulation_df[simulator.features[0]] < n_subjects) &
+            #         (simulation_df[REP] < n_reps)
+            #     )
+            #     df = simulation_df[ind].reset_index(drop=True).copy()
+            #     df[simulator.response] = ppd_obs[draw, ind, :]
 
-                ind = (df[simulator.response] > 0).all(axis=1)
-                df = df[ind].reset_index(drop=True).copy()
+            #     ind = (df[simulator.response] > 0).all(axis=1)
+            #     df = df[ind].reset_index(drop=True).copy()
 
-                # Build model
-                config = Config(toml_path=TOML_PATH)
-                config.BUILD_DIR = os.path.join(
-                    build_dir,
-                    draw_dir,
-                    n_subjects_dir,
-                    n_reps_dir,
-                    n_pulses_dir,
-                    M.NAME
-                )
-                model = M(config=config)
+            #     # Build model
+            #     config = Config(toml_path=TOML_PATH)
+            #     config.BUILD_DIR = os.path.join(
+            #         build_dir,
+            #         draw_dir,
+            #         n_subjects_dir,
+            #         n_reps_dir,
+            #         n_pulses_dir,
+            #         M.NAME
+            #     )
+            #     model = M(config=config)
 
-                # Set up logging
-                os.makedirs(model.build_dir, exist_ok=True)
-                setup_logging(
-                    dir=model.build_dir,
-                    fname="logs"
-                )
+            #     # Set up logging
+            #     os.makedirs(model.build_dir, exist_ok=True)
+            #     setup_logging(
+            #         dir=model.build_dir,
+            #         fname="logs"
+            #     )
 
-                # Run inference
-                df, encoder_dict = model.load(df=df)
-                params = model.run_inference(df=df)
+            #     # Run inference
+            #     df, encoder_dict = model.load(df=df)
+            #     params = model.run_inference(df=df)
 
-                # Predictions and recruitment curves
-                prediction_df = model.make_prediction_dataset(df=df)
-                prediction_df = model.predict(df=prediction_df, params=params)
-                model.render_recruitment_curves(
-                    df=df,
-                    encoder_dict=encoder_dict,
-                    params=params,
-                    prediction_df=prediction_df,
-                )
+            #     # Predictions and recruitment curves
+            #     prediction_df = model.make_prediction_dataset(df=df)
+            #     prediction_df = model.predict(df=prediction_df, params=params)
+            #     model.render_recruitment_curves(
+            #         df=df,
+            #         encoder_dict=encoder_dict,
+            #         params=params,
+            #         prediction_df=prediction_df,
+            #     )
 
-                # Compute error and save results
-                a_true = ppd_a[draw, :n_subjects, ...]
-                a_pred = params[site.a]
-                assert a_pred.shape == a_true.shape
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+            #     # Compute error and save results
+            #     a_true = ppd_a[draw, :n_subjects, ...]
+            #     a_pred = params[site.a]
+            #     assert a_pred.shape == a_true.shape
+            #     np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+            #     np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
-                config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
-                model, params = None, None
-                a_true, a_pred = None, None
-                del config, df, prediction_df, encoder_dict, _
-                del model, params
-                del a_true, a_pred
-                gc.collect()
+            #     config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
+            #     model, params = None, None
+            #     a_true, a_pred = None, None
+            #     del config, df, prediction_df, encoder_dict, _
+            #     del model, params
+            #     del a_true, a_pred
+            #     gc.collect()
 
             case _:
                 raise ValueError(f"Invalid model {M.NAME}.")
