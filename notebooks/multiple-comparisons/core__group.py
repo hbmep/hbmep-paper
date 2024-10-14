@@ -163,10 +163,12 @@ def main(
                 model, posterior_samples, posterior_predictive = None, None, None
                 a_true, a_pred = None, None
                 a_loc_delta = None
+                summary_df = None
                 del config, df, prediction_df, encoder_dict, _
                 del model, posterior_samples, posterior_predictive
                 del a_true, a_pred
                 del a_loc_delta
+                del summary_df
                 gc.collect()
 
             # # Non-hierarchical models: non-hierarchical Bayesian and Maximum Likelihood
