@@ -11,7 +11,7 @@ from hbmep.model import BaseModel
 
 from hbmep_paper.utils import setup_logging
 from constants import (
-    DATA_OUTLIERS_MARKED_PATH,
+    DATA_PATH,
     TOML_PATH,
     BUILD_DIR,
     BOOTSTRAP_DIR,
@@ -38,13 +38,9 @@ def main():
     )
 
     # Load data
-    IS_OUTLIER = [f"is_outlier_{i}" for i in range(model.n_response)]
-    df = pd.read_csv(DATA_OUTLIERS_MARKED_PATH)
+    df = pd.read_csv(DATA_PATH)
     ind = ~df[model.response].isna().values.any(axis=-1)
     df = df[ind].reset_index(drop=True).copy()
-    ind = df[IS_OUTLIER].values.any(axis=-1)
-    logger.info(f"Number of outliers: {ind.sum()} out of {len(ind)}")
-    df = df[~ind].reset_index(drop=True).copy()
     df, encoder_dict = model.load(df=df)
     logger.info(f"DF shape: {df.shape}")
 

@@ -51,12 +51,6 @@ def main(
     def run_experiment(n_subjects, draw, M):
         # Build model
         config = Config(toml_path=TOML_PATH)
-        config.MCMC_PARAMS = {
-            "num_warmup": 1000,
-            "num_samples": 1000,
-            "num_chains": 4,
-            "thinning": 1,
-        }
         config.BUILD_DIR = os.path.join(
             build_dir,
             f"d{draw}",
@@ -135,9 +129,9 @@ def main(
             prediction_df=prediction_df,
             posterior_predictive=posterior_predictive
         )
-        # model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
-        # summary_df = model.summary(posterior_samples)
-        # summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
+        model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
+        summary_df = model.summary(posterior_samples)
+        summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
 
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
@@ -169,7 +163,8 @@ def main(
 
 if __name__ == "__main__":
     # Usage: python -m bootstrap__core.py 0 100
-    lo, hi = list(map(int, sys.argv[1:]))
+    # lo, hi = list(map(int, sys.argv[1:]))
+    lo, hi = 0, 1
 
     # Experiment space
     draws_space = range(lo, hi)
@@ -177,11 +172,12 @@ if __name__ == "__main__":
 
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
+    n_subjects_space = [4]
     models = [
-        HierarchicalBayesianModel
+        HierarchicalBayesianModelMixtureOff
     ]
 
-    no_effect = True
+    no_effect = False
     main(
         draws_space=draws_space,
         n_subjects_space=n_subjects_space,
