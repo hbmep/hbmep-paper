@@ -156,10 +156,12 @@ def main(
                 model, posterior_samples, posterior_predictive = None, None, None
                 a_true, a_pred = None, None
                 a_delta_loc, a_delta_scale = None, None
+                summary_df = None
                 del config, df, prediction_df, encoder_dict, _
                 del model, posterior_samples, posterior_predictive
                 del a_true, a_pred
                 del a_delta_loc, a_delta_scale
+                del summary_df
                 gc.collect()
 
             # Non-hierarchical models: Nelder-Mead optimization
