@@ -102,7 +102,7 @@ def main(
 
         # Run inference
         df, encoder_dict = model.load(df=df)
-        _, posterior_samples = model.run_inference(df=df)
+        _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
 
         # Save
         a_loc_delta = posterior_samples["a_loc_delta"]
@@ -122,6 +122,9 @@ def main(
             prediction_df=prediction_df,
             posterior_predictive=posterior_predictive
         )
+        model.trace_plot(posterior_samples, var_names=["a_loc_delta"])
+        summary_df = model.summary(posterior_samples)
+        summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
 
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
@@ -131,6 +134,14 @@ def main(
         del a_loc_delta, a_loc
         gc.collect()
 
+
+    logger.info("Bootstrap.")
+    logger.info(f"build_dir: {build_dir}")
+    logger.info(f"n_subjects_space: {', '.join(map(str, n_subjects_space))}")
+    logger.info(f"models: {', '.join([z.NAME for z in models])}")
+    logger.info(f"no_effect: {no_effect}")
+    logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
+    logger.info(f"n_jobs: {n_jobs}")
 
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
