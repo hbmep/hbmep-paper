@@ -88,8 +88,8 @@ class HierarchicalBayesianModel(GammaModel):
                     c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                     c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
-        # Outlier Distribution
-        q = numpyro.sample(site.outlier_prob, dist.Uniform(0., 0.01))
+        # # Outlier Distribution
+        # q = numpyro.sample(site.outlier_prob, dist.Uniform(0., 0.01))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -119,22 +119,23 @@ class HierarchicalBayesianModel(GammaModel):
                     self.concentration(mu, beta)
                 )
 
-                # Mixture
-                mixing_distribution = dist.Categorical(
-                    probs=jnp.stack([1 - q, q], axis=-1)
-                )
-                component_distributions=[
-                    dist.Gamma(concentration=alpha, rate=beta),
-                    dist.HalfNormal(scale=L[feature0, feature1] + H[feature0, feature1])
-                ]
-                Mixture = dist.MixtureGeneral(
-                    mixing_distribution=mixing_distribution,
-                    component_distributions=component_distributions
-                )
+                # # Mixture
+                # mixing_distribution = dist.Categorical(
+                #     probs=jnp.stack([1 - q, q], axis=-1)
+                # )
+                # component_distributions=[
+                #     dist.Gamma(concentration=alpha, rate=beta),
+                #     dist.HalfNormal(scale=L[feature0, feature1] + H[feature0, feature1])
+                # ]
+                # Mixture = dist.MixtureGeneral(
+                #     mixing_distribution=mixing_distribution,
+                #     component_distributions=component_distributions
+                # )
 
                 # Observation
                 numpyro.sample(
                     site.obs,
-                    Mixture,
+                    # Mixture,
+                    dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )
