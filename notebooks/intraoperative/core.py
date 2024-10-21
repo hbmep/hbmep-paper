@@ -2,6 +2,7 @@ import os
 import pickle
 import logging
 
+import numpy as np
 import pandas as pd
 
 from hbmep.config import Config
@@ -36,19 +37,14 @@ def main(M):
         case HierarchicalBayesianModel.NAME:
             # Build model
             config = Config(toml_path=TOML_PATH)
-            config.BUILD_DIR = os.path.join(
-                BUILD_DIR,
-                M.NAME
-            )
+            # config.BUILD_DIR = os.path.join(
+            #     BUILD_DIR,
+            #     M.NAME
+            # )
             model = M(config=config)
-            model.mcmc_params = {
-                "num_warmup": 50000,
-                "num_samples": 50000,
-                "num_chains": 4,
-                "thinning": 50,
-            }
+            model.build_dir = os.path.join(BUILD_DIR, model.NAME)
 
-            # Load data (including outliers)
+            # Load data
             df = pd.read_csv(DATA_PATH)
             ind = ~df[model.response].isna().values.any(axis=-1)
             df = df[ind].reset_index(drop=True).copy()
@@ -61,19 +57,13 @@ def main(M):
                 dir=model.build_dir,
                 fname=os.path.basename(__file__)
             )
-            for u, v in model.mcmc_params.items():
-                logger.info(f"{u} = {v}")
+            for u, v in model.mcmc_params.items(): logger.info(f"{u} = {v}")
+            for u, v in model.run_kwargs.items(): logger.info(f"{u} = {v}")
 
             # Run inference
             logger.info(f"{df.shape[0]} observations")
             mcmc, posterior_samples = model.run(
-                df=df,
-                max_tree_depth=(15, 15),
-                extra_fields=[
-                    "potential_energy",
-                    "num_steps",
-                    "accept_prob",
-                ]
+                df=df, **model.run_kwargs
             )
 
             # Save posterior
@@ -137,7 +127,7 @@ def main(M):
 
             # Run inference
             logger.info(f"DF shape: {df.shape}")
-            _, posterior_samples = model.run(df=df)
+            _, posterior_samples = model.run(df=df, max_tree_depth=(20, 20))
 
             # Predictions and recruitment curves
             prediction_df = model.make_prediction_dataset(df=df)
@@ -158,10 +148,9 @@ def main(M):
                 posterior_predictive=posterior_predictive
             )
 
-            # Save
-            src = os.path.join(model.build_dir, INFERENCE_FILE)
-            with open(src, "wb") as f:
-                pickle.dump((posterior_samples,), f)
+            # Compute error and save results
+            a_pred = posterior_samples[site.a]
+            np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
         case NelderMeadOptimization.NAME:
             config = Config(toml_path=TOML_PATH)
@@ -193,9 +182,8 @@ def main(M):
             )
 
             # Save
-            src = os.path.join(model.build_dir, INFERENCE_FILE)
-            with open(src, "wb") as f:
-                pickle.dump((params,), f)
+            src = os.path.join(model.build_dir, "a_pred.npy")
+            np.save(src, params[site.a])
 
         case _:
             raise ValueError(f"Unknown model: {M.NAME}")
@@ -205,7 +193,6 @@ def main(M):
 
 if __name__ == "__main__":
     M = HierarchicalBayesianModel
-    # M = NonHierarchicalBayesianModel
     # M = MaximumLikelihoodModel
     # M = NelderMeadOptimization
     main(M=M)
