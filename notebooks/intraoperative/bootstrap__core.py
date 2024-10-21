@@ -175,7 +175,7 @@ if __name__ == "__main__":
         HierarchicalBayesianModel
     ]
 
-    no_effect = False
+    no_effect = True
     main(
         draws_space=draws_space,
         n_subjects_space=n_subjects_space,
