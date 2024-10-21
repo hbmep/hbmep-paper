@@ -37,6 +37,7 @@ def run(
         fname=os.path.basename(__file__)
     )
     for u, v in model.mcmc_params.items(): logger.info(f"{u} = {v}")
+    for u, v in kwargs.items(): logger.info(f"{u} = {v}")
 
     # Run inference
     df, encoder_dict = model.load(df=data)
