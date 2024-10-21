@@ -30,6 +30,7 @@ def main(M):
         TOML_PATH,
         BUILD_DIR,
         INFERENCE_FILE,
+        target_accept_prob=.95,
         max_tree_depth=(15, 15),
         extra_fields=[
             "potential_energy",
