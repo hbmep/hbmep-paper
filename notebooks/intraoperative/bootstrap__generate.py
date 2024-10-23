@@ -61,7 +61,7 @@ def main():
     switch = random.choice(
         rng_key,
         np.array([True, False]),
-        shape=(NUM_BOOTSTRAPS, len(subjects),),
+        shape=(NUM_BOOTSTRAPS, len(subjects), model.n_response),
         replace=True
     )
     switch = np.array(switch)

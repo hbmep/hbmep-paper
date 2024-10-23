@@ -12,7 +12,7 @@ from hbmep.config import Config
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from bootstrap__models import HierarchicalBayesianModel
+from bootstrap__models import HierarchicalBayesianModel, HBnull
 from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
@@ -69,45 +69,63 @@ def main(
         # Load data
         subjects = SUBJECTS_PERMUTATIONS[draw, :n_subjects]
         subjects = [SUBJECTS[i] for i in subjects]
-        left = [(s, 0, 0) for s in subjects]
-        right = [(s, 1, 1) for s in subjects]
 
         if no_effect:
-            switch = SWITCH[draw, :n_subjects]
-            left = [(s, 0, 1) if flag else (s, 0, 0) for s, flag in zip(subjects, switch)]
-            right = [(s, 1, 0) if flag else (s, 1, 1) for s, flag in zip(subjects, switch)]
+            df = []
+            for new_subject_name, subject in enumerate(subjects):
+                ind = DF[model.features[0]].isin([subject])
+                curr_df = DF[ind].reset_index(drop=True).copy()
+                assert curr_df[model.features[0]].nunique() == 1
+                assert curr_df[model.features[1]].nunique() == 2
+                curr_df[model.features[0]] = new_subject_name
 
-        df = []
-        for new_subject_name, (l, r) in enumerate(zip(left, right)):
-            l_subject, l_condition, l_new_condition = l
-            r_subject, r_condition, r_new_condition = r
-            ind = (
-                DF[model.features]
-                .apply(tuple, axis=1)
-                .isin([(l_subject, l_condition)])
-            )
-            curr_df = DF[ind].reset_index(drop=True).copy()
-            assert curr_df[model.features[0]].nunique() == 1
-            assert curr_df[model.features[1]].nunique() == 1
-            curr_df[model.features[0]] = new_subject_name
-            curr_df[model.features[1]] = l_new_condition
-            df.append(curr_df)
-            ind = (
-                DF[model.features]
-                .apply(tuple, axis=1)
-                .isin([(r_subject, r_condition)])
-            )
-            curr_df = DF[ind].reset_index(drop=True).copy()
-            assert curr_df[model.features[0]].nunique() == 1
-            assert curr_df[model.features[1]].nunique() == 1
-            curr_df[model.features[0]] = new_subject_name
-            curr_df[model.features[1]] = r_new_condition
-            df.append(curr_df)
+                for muscle_ind, muscle in enumerate(model.response):
+                    temp_df = curr_df.copy()
+                    temp_df["null__response"] = temp_df[muscle]
+                    temp_df["null__muscle_name"] = muscle
+                    temp_df["null_muscle_ind"] = muscle_ind
+                    temp_df = temp_df[[model.intensity, *model.features, "null__muscle_name", "null_muscle_ind", "null__response"]]
 
-        df = pd.concat(df, ignore_index=True).copy()
-        df = df.reset_index(drop=True).copy()
+                    if SWITCH[draw, new_subject_name, muscle_ind]:
+                        temp_df[model.features[1]] = temp_df[model.features[1]].replace({0: 1, 1: 0})
+
+                    df.append(temp_df)
+
+            df = pd.concat(df, ignore_index=True).copy()
+            df = df.reset_index(drop=True).copy()
+
+        else:
+            df = []
+            for new_subject_name, subject in enumerate(subjects):
+                for condition in range(2):
+                    ind = (
+                        DF[model.features]
+                        .apply(tuple, axis=1)
+                        .isin([(subject, condition)])
+                    )
+                    curr_df = DF[ind].reset_index(drop=True).copy()
+                    assert curr_df[model.features[0]].nunique() == 1
+                    assert curr_df[model.features[1]].nunique() == 1
+                    curr_df[model.features[0]] = new_subject_name
+                    df.append(curr_df)
+
+            df = pd.concat(df, ignore_index=True).copy()
+            df = df.reset_index(drop=True).copy()
 
         # Run inference
+        if no_effect:
+            M = HBnull
+            config = Config(toml_path=TOML_PATH)
+            config.FEATURES = config.FEATURES + ["null_muscle_ind"]
+            config.RESPONSE = ["null__response"]
+            config.BUILD_DIR = os.path.join(
+                build_dir,
+                f"d{draw}",
+                f"n{n_subjects}",
+                M.NAME
+            )
+            model = M(config=config)
+
         df, encoder_dict = model.load(df=df)
         _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
 
@@ -117,21 +135,22 @@ def main(
         np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
         np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
 
-        # Predictions and recruitment curves
-        prediction_df = model.make_prediction_dataset(df=df)
-        posterior_predictive = model.predict(
-            df=prediction_df, posterior_samples=posterior_samples
-        )
-        model.render_recruitment_curves(
-            df=df,
-            encoder_dict=encoder_dict,
-            posterior_samples=posterior_samples,
-            prediction_df=prediction_df,
-            posterior_predictive=posterior_predictive
-        )
-        model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
-        summary_df = model.summary(posterior_samples)
-        summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
+        if not no_effect:
+            # Predictions and recruitment curves
+            prediction_df = model.make_prediction_dataset(df=df)
+            posterior_predictive = model.predict(
+                df=prediction_df, posterior_samples=posterior_samples
+            )
+            model.render_recruitment_curves(
+                df=df,
+                encoder_dict=encoder_dict,
+                posterior_samples=posterior_samples,
+                prediction_df=prediction_df,
+                posterior_predictive=posterior_predictive
+            )
+            model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
+            summary_df = model.summary(posterior_samples)
+            summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
 
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
@@ -164,6 +183,7 @@ def main(
 if __name__ == "__main__":
     # Usage: python -m bootstrap__core.py 0 100
     lo, hi = list(map(int, sys.argv[1:]))
+    # lo, hi = 0, 1
 
     # Experiment space
     draws_space = range(lo, hi)
@@ -171,6 +191,7 @@ if __name__ == "__main__":
 
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
+    n_subjects_space = [2]
     models = [
         HierarchicalBayesianModel
     ]
