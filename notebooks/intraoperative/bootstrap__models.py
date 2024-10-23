@@ -182,50 +182,50 @@ class NonHierarchicalBayesianModel(NonHierarchicalBaseModel, GammaModel):
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
                 with numpyro.plate(site.n_features[0], n_features[0]):
-                    # # Hyper-priors
-                    # a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
-                    # a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
+                    # Hyper-priors
+                    a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0.))
+                    a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
 
-                    # b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+                    b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
-                    # L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
-                    # ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
-                    # H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
+                    L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+                    ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+                    H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
 
-                    # c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-                    # c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
-
-                    # # Priors
-                    # a = numpyro.sample(site.a, dist.TruncatedNormal(a_loc, a_scale, low=0))
-
-                    # b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
-                    # b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
-
-                    # L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
-                    # L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
-
-                    # ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
-                    # ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
-
-                    # H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
-                    # H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
-
-                    # c_1_raw = numpyro.sample("c_1_raw", dist.HalfNormal(scale=1))
-                    # c_1 = numpyro.deterministic(site.c_1, jnp.multiply(c_1_scale, c_1_raw))
-
-                    # c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
-                    # c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
+                    c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+                    c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
                     # Priors
-                    a = numpyro.sample(site.a, dist.TruncatedNormal(5., 5., low=0))
-                    b = numpyro.sample(site.b, dist.HalfNormal(5.))
+                    a = numpyro.sample(site.a, dist.TruncatedNormal(a_loc, a_scale, low=0))
 
-                    L = numpyro.sample(site.L, dist.HalfNormal(.1))
-                    ell = numpyro.sample(site.ell, dist.HalfNormal(1.))
-                    H = numpyro.sample(site.H, dist.HalfNormal(10.))
+                    b_raw = numpyro.sample("b_raw", dist.HalfNormal(scale=1))
+                    b = numpyro.deterministic(site.b, jnp.multiply(b_scale, b_raw))
 
-                    c_1 = numpyro.sample(site.c_1, dist.HalfNormal(5.))
-                    c_2 = numpyro.sample(site.c_2, dist.HalfNormal(.5))
+                    L_raw = numpyro.sample("L_raw", dist.HalfNormal(scale=1))
+                    L = numpyro.deterministic(site.L, jnp.multiply(L_scale, L_raw))
+
+                    ell_raw = numpyro.sample("ell_raw", dist.HalfNormal(scale=1))
+                    ell = numpyro.deterministic(site.ell, jnp.multiply(ell_scale, ell_raw))
+
+                    H_raw = numpyro.sample("H_raw", dist.HalfNormal(scale=1))
+                    H = numpyro.deterministic(site.H, jnp.multiply(H_scale, H_raw))
+
+                    c_1_raw = numpyro.sample("c_1_raw", dist.HalfNormal(scale=1))
+                    c_1 = numpyro.deterministic(site.c_1, jnp.multiply(c_1_scale, c_1_raw))
+
+                    c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
+                    c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
+
+                    # # Priors
+                    # a = numpyro.sample(site.a, dist.TruncatedNormal(5., 5., low=0))
+                    # b = numpyro.sample(site.b, dist.HalfNormal(5.))
+
+                    # L = numpyro.sample(site.L, dist.HalfNormal(.1))
+                    # ell = numpyro.sample(site.ell, dist.HalfNormal(1.))
+                    # H = numpyro.sample(site.H, dist.HalfNormal(10.))
+
+                    # c_1 = numpyro.sample(site.c_1, dist.HalfNormal(5.))
+                    # c_2 = numpyro.sample(site.c_2, dist.HalfNormal(.5))
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
@@ -336,7 +336,7 @@ class NelderMeadOptimization(BoundConstrainedOptimization):
         # Required
         self.method = "Nelder-Mead"
         self.named_args = [site.a, site.b, site.L, site.ell, site.H]
-        self.bounds = [(1e-9, 50.), (1e-9, 50), (1e-9, 10), (1e-9, 50), (1e-9, 100)]
+        self.bounds = [(1e-9, 50.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 50)]
         self.informed_bounds = [(2, 8), (1e-3, 5), (1e-4, .1), (1e-2, 5), (.5, 10)]
         self.num_reinit = 100
         self.n_jobs = -1
@@ -349,4 +349,3 @@ class NelderMeadOptimization(BoundConstrainedOptimization):
     def cost_function(self, x, y_obs, *args):
         y_pred = self.functional(x, *args)
         return np.sum((y_obs - y_pred) ** 2)
-
