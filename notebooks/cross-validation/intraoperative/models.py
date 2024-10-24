@@ -25,8 +25,8 @@ class RectifiedLogistic(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
@@ -106,8 +106,8 @@ class Logistic5(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
         v_scale = numpyro.sample("v_scale", dist.HalfNormal(1.))
@@ -187,8 +187,8 @@ class Logistic4(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
         L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
@@ -261,8 +261,8 @@ class RectifiedLinear(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
         L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
@@ -294,11 +294,12 @@ class RectifiedLinear(GammaModel):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_linear(
+                    S.rectified_linear(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
-                        L=L[feature0]
+                        L=L[feature0],
+                        eps=EPS
                     )
                 )
                 beta = numpyro.deterministic(
@@ -330,8 +331,8 @@ class MixtureModel(GammaModel):
         feature0 = features[..., 0]
 
         # Hyper Priors
-        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 5., low=0))
-        a_scale = numpyro.sample("a_scale", dist.HalfNormal(5.))
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(5., 10., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(10.))
 
         b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
 
