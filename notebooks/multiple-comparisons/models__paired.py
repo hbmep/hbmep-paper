@@ -126,45 +126,12 @@ class Simulator(GammaModel):
                         )
                     )
 
-        # # Delta
-        # a_delta_loc_scale_scale = numpyro.sample(
-        #     "a_delta_loc_scale_scale", dist.HalfNormal(50.)
-        # )
-        # a_delta_scale = numpyro.sample(
-        #     "a_delta_scale", dist.HalfNormal(50.)
-        # )
-        a_delta_loc, a_delta_scale = (
-            self.a_delta_loc, self.a_delta_scale
-        )
+        # Delta
+        a_delta_loc, a_delta_scale = self.a_delta_loc, self.a_delta_scale
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
-                # a_delta_loc_scale_raw = numpyro.sample(
-                #     "a_delta_loc_scale_raw", dist.HalfCauchy(scale=1.)
-                # )
-                # a_delta_loc_scale = numpyro.deterministic(
-                #     "a_delta_loc_scale", a_delta_loc_scale_scale * a_delta_loc_scale_raw
-                # )
-                # a_delta_loc_raw = numpyro.sample(
-                #     "a_delta_loc_raw", dist.Normal(0., 1.)
-                # )
-                # a_delta_loc = numpyro.deterministic(
-                #     "a_delta_loc", a_delta_loc_scale * a_delta_loc_raw
-                # )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
-                    # a_delta_raw = numpyro.sample("a_delta_raw", dist.Normal(0., 1.))
-                    # a_delta = numpyro.deterministic(
-                    #     "a_delta", a_delta_loc + a_delta_raw * a_delta_scale
-                    # )
-                    # # Penalty for negative a
-                    # penalty_for_negative_a = (
-                    #     jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
-                    # )
-                    # numpyro.factor(
-                    #     "penalty_for_negative_a", -penalty_for_negative_a
-                    # )
-                    # a_fixed_plus_delta = jax.nn.softplus(a_fixed + a_delta)
                     a_delta = numpyro.sample(
                         "a_delta", dist.Normal(a_delta_loc, a_delta_scale)
                     )
@@ -265,40 +232,31 @@ class HierarchicalBayesianModel(GammaModel):
                     )
 
         # Delta
-        a_delta_loc_scale_scale = numpyro.sample(
-            "a_delta_loc_scale_scale", dist.HalfNormal(50.)
-        )
-        a_delta_scale = numpyro.sample(
-            "a_delta_scale", dist.HalfNormal(50.)
+        a_delta_scale_scale = numpyro.sample(
+            "a_delta_scale_scale", dist.HalfNormal(50.)
         )
 
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
-                a_delta_loc_scale_raw = numpyro.sample(
-                    "a_delta_loc_scale_raw", dist.HalfCauchy(scale=1.)
+                a_delta_scale = numpyro.sample(
+                    "a_delta_scale", dist.HalfNormal(a_delta_scale_scale)
                 )
-                a_delta_loc_scale = numpyro.deterministic(
-                    "a_delta_loc_scale", a_delta_loc_scale_scale * a_delta_loc_scale_raw
-                )
-                a_delta_loc_raw = numpyro.sample(
-                    "a_delta_loc_raw", dist.Normal(0., 1.)
-                )
-                a_delta_loc = numpyro.deterministic(
-                    "a_delta_loc", a_delta_loc_scale * a_delta_loc_raw
+                a_delta_loc = numpyro.sample(
+                    "a_delta_loc", dist.Normal(0., 50.)
                 )
 
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_delta_raw = numpyro.sample("a_delta_raw", dist.Normal(0., 1.))
                     a_delta = numpyro.deterministic(
                         "a_delta", a_delta_loc + a_delta_raw * a_delta_scale
-                    )
+                    )       # Normal(a_delta_loc, a_delta_scale)
+
                     # Penalty for negative a
                     penalty_for_negative_a = (
                         jnp.fabs(a_fixed + a_delta) - (a_fixed + a_delta)
                     )
                     numpyro.factor(
-                        "penalty_for_negative_a",
-                        -penalty_for_negative_a
+                        "penalty_for_negative_a", -penalty_for_negative_a
                     )
                     a_fixed_plus_delta = jax.nn.softplus(a_fixed + a_delta)
 
