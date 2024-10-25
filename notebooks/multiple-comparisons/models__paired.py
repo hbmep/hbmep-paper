@@ -215,15 +215,15 @@ class HierarchicalBayesianModel(GammaModel):
         n_delta = n_features[1] - 1
 
         # Fixed
-        a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
-        )
-        a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(50.)
-        )
-
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_fixed", n_fixed):
+                a_fixed_loc = numpyro.sample(
+                    "a_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
+                )
+                a_fixed_scale = numpyro.sample(
+                    "a_fixed_scale", dist.HalfNormal(50.)
+                )
+
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_fixed = numpyro.sample(
                         "a_fixed", dist.TruncatedNormal(
