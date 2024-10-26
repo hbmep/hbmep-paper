@@ -31,16 +31,16 @@ class HierarchicalBayesianModel(GammaModel):
         n_fixed = 1
         n_delta = n_features[1] - 1
 
-        # Fixed
-        a_fixed_loc = numpyro.sample(
-            "a_fixed_loc", dist.TruncatedNormal(5., 10., low=0.)
-        )
-        a_fixed_scale = numpyro.sample(
-            "a_fixed_scale", dist.HalfNormal(10.)
-        )
-
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_fixed", n_fixed):
+                # Fixed
+                a_fixed_loc = numpyro.sample(
+                    "a_fixed_loc", dist.TruncatedNormal(5., 10., low=0.)
+                )
+                a_fixed_scale = numpyro.sample(
+                    "a_fixed_scale", dist.HalfNormal(10.)
+                )
+
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     a_fixed = numpyro.sample(
                         "a_fixed", dist.TruncatedNormal(
@@ -49,14 +49,10 @@ class HierarchicalBayesianModel(GammaModel):
                     )
 
         # Delta
-        a_delta_scale_scale = numpyro.sample(
-            "a_delta_scale_scale", dist.HalfNormal(10.)
-        )
-
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate("n_delta", n_delta):
                 a_delta_scale = numpyro.sample(
-                    "a_delta_scale", dist.HalfNormal(a_delta_scale_scale)
+                    "a_delta_scale", dist.HalfNormal(10.)
                 )
                 a_delta_loc = numpyro.sample(
                     "a_delta_loc", dist.Normal(0., 10.)
@@ -77,17 +73,17 @@ class HierarchicalBayesianModel(GammaModel):
                     )
                     a_fixed_plus_delta = jax.nn.softplus(a_fixed + a_delta)
 
-        # Hyper-priors
-        b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
-        H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
-
-        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
-
         with numpyro.plate(site.n_response, self.n_response):
+            # Hyper-priors
+            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
+
+            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+            ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+            H_scale = numpyro.sample("H_scale", dist.HalfNormal(10.))
+
+            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
+
             with numpyro.plate(site.n_features[1], n_features[1]):
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     # Priors
@@ -114,6 +110,7 @@ class HierarchicalBayesianModel(GammaModel):
                     c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                     c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
+        # # Outlier Distribution
         # q = numpyro.sample(site.outlier_prob, dist.Uniform(0., 0.01))
 
         with numpyro.plate(site.n_response, self.n_response):
