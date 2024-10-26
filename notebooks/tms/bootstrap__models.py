@@ -45,7 +45,9 @@ class HierarchicalBayesianModel(GammaModel):
                 numpyro.factor(
                     "penalty_for_negative_a_loc", -penalty_for_negative_a_loc
                 )
-                a_loc = jax.nn.softplus(a_loc_fixed + a_loc_delta)
+                a_loc = numpyro.deterministic(
+                    "a_loc", jax.nn.softplus(a_loc_fixed + a_loc_delta)
+                )
 
         with numpyro.plate(site.n_response, self.n_response):
             # Hyper-priors
