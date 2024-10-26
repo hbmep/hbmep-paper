@@ -70,61 +70,83 @@ def main(
         subjects = SUBJECTS_PERMUTATIONS[draw, :n_subjects]
         subjects = [SUBJECTS[i] for i in subjects]
 
-        if no_effect:
-            df = []
-            for new_subject_name, subject in enumerate(subjects):
-                ind = DF[model.features[0]].isin([subject])
+        ## Uncomment to shuffle muscles independently
+        # if no_effect:
+        #     df = []
+        #     for new_subject_name, subject in enumerate(subjects):
+        #         ind = DF[model.features[0]].isin([subject])
+        #         curr_df = DF[ind].reset_index(drop=True).copy()
+        #         assert curr_df[model.features[0]].nunique() == 1
+        #         assert curr_df[model.features[1]].nunique() == 2
+        #         curr_df[model.features[0]] = new_subject_name
+
+        #         for muscle_ind, muscle in enumerate(model.response):
+        #             temp_df = curr_df.copy()
+        #             temp_df["null__response"] = temp_df[muscle]
+        #             temp_df["null__muscle_name"] = muscle
+        #             temp_df["null_muscle_ind"] = muscle_ind
+        #             temp_df = temp_df[[model.intensity, *model.features, "null__muscle_name", "null_muscle_ind", "null__response"]]
+
+        #             if SWITCH[draw, new_subject_name, muscle_ind]:
+        #                 temp_df[model.features[1]] = temp_df[model.features[1]].replace({0: 1, 1: 0})
+
+        #             df.append(temp_df)
+
+        #     df = pd.concat(df, ignore_index=True).copy()
+        #     df = df.reset_index(drop=True).copy()
+
+        # else:
+        #     df = []
+        #     for new_subject_name, subject in enumerate(subjects):
+        #         for condition in range(2):
+        #             ind = (
+        #                 DF[model.features]
+        #                 .apply(tuple, axis=1)
+        #                 .isin([(subject, condition)])
+        #             )
+        #             curr_df = DF[ind].reset_index(drop=True).copy()
+        #             assert curr_df[model.features[0]].nunique() == 1
+        #             assert curr_df[model.features[1]].nunique() == 1
+        #             curr_df[model.features[0]] = new_subject_name
+        #             df.append(curr_df)
+
+        #     df = pd.concat(df, ignore_index=True).copy()
+        #     df = df.reset_index(drop=True).copy()
+
+        # # Run inference
+        # if no_effect:
+        #     M = HBnull
+        #     config = Config(toml_path=TOML_PATH)
+        #     config.FEATURES = config.FEATURES + ["null_muscle_ind"]
+        #     config.RESPONSE = ["null__response"]
+        #     config.BUILD_DIR = os.path.join(
+        #         build_dir,
+        #         f"d{draw}",
+        #         f"n{n_subjects}",
+        #         M.NAME
+        #     )
+        #     model = M(config=config)
+
+        df = []
+        for new_subject_name, subject in enumerate(subjects):
+            for condition in range(2):
+                ind = (
+                    DF[model.features]
+                    .apply(tuple, axis=1)
+                    .isin([(subject, condition)])
+                )
                 curr_df = DF[ind].reset_index(drop=True).copy()
                 assert curr_df[model.features[0]].nunique() == 1
-                assert curr_df[model.features[1]].nunique() == 2
+                assert curr_df[model.features[1]].nunique() == 1
                 curr_df[model.features[0]] = new_subject_name
 
-                for muscle_ind, muscle in enumerate(model.response):
-                    temp_df = curr_df.copy()
-                    temp_df["null__response"] = temp_df[muscle]
-                    temp_df["null__muscle_name"] = muscle
-                    temp_df["null_muscle_ind"] = muscle_ind
-                    temp_df = temp_df[[model.intensity, *model.features, "null__muscle_name", "null_muscle_ind", "null__response"]]
+                if no_effect and SWITCH[draw, new_subject_name, 0]:
+                    curr_df[model.features[1]] = curr_df[model.features[1]].replace({0: 1, 1: 0})
 
-                    if SWITCH[draw, new_subject_name, muscle_ind]:
-                        temp_df[model.features[1]] = temp_df[model.features[1]].replace({0: 1, 1: 0})
+                df.append(curr_df)
 
-                    df.append(temp_df)
-
-            df = pd.concat(df, ignore_index=True).copy()
-            df = df.reset_index(drop=True).copy()
-
-        else:
-            df = []
-            for new_subject_name, subject in enumerate(subjects):
-                for condition in range(2):
-                    ind = (
-                        DF[model.features]
-                        .apply(tuple, axis=1)
-                        .isin([(subject, condition)])
-                    )
-                    curr_df = DF[ind].reset_index(drop=True).copy()
-                    assert curr_df[model.features[0]].nunique() == 1
-                    assert curr_df[model.features[1]].nunique() == 1
-                    curr_df[model.features[0]] = new_subject_name
-                    df.append(curr_df)
-
-            df = pd.concat(df, ignore_index=True).copy()
-            df = df.reset_index(drop=True).copy()
-
-        # Run inference
-        if no_effect:
-            M = HBnull
-            config = Config(toml_path=TOML_PATH)
-            config.FEATURES = config.FEATURES + ["null_muscle_ind"]
-            config.RESPONSE = ["null__response"]
-            config.BUILD_DIR = os.path.join(
-                build_dir,
-                f"d{draw}",
-                f"n{n_subjects}",
-                M.NAME
-            )
-            model = M(config=config)
+        df = pd.concat(df, ignore_index=True).copy()
+        df = df.reset_index(drop=True).copy()
 
         df, encoder_dict = model.load(df=df)
         _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
