@@ -28,28 +28,14 @@ class HierarchicalBayesianModel(GammaModel):
         feature0 = features[..., 0]
         feature1 = features[..., 1]
 
-        n_fixed = 1
-        n_delta = n_features[1] - 1
-
-        # Fixed
-        a_loc_fixed_loc = numpyro.sample(
-            "a_loc_fixed_loc", dist.TruncatedNormal(50., 50., low=0)
-        )
-        a_loc_fixed_scale = numpyro.sample(
-            "a_loc_fixed_scale", dist.HalfNormal(50.)
-        )
-
         with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("n_fixed", n_fixed):
-                a_loc_fixed = numpyro.sample(
-                    "a_loc_fixed", dist.TruncatedNormal(
-                        a_loc_fixed_loc, a_loc_fixed_scale, low=0
-                    )
-                )
+            # Fixed
+            a_loc_fixed = numpyro.sample(
+                "a_loc_fixed", dist.TruncatedNormal(50., 50., low=0)
+            )
 
-        # Delta
-        with numpyro.plate(site.n_response, self.n_response):
-            with numpyro.plate("n_delta", n_delta):
+            with numpyro.plate(site.n_features[1], n_features[1]):
+                # Delta
                 a_loc_delta = numpyro.sample("a_loc_delta", dist.Normal(0., 50.))
 
                 # Penalty for negative a_loc
@@ -59,27 +45,21 @@ class HierarchicalBayesianModel(GammaModel):
                 numpyro.factor(
                     "penalty_for_negative_a_loc", -penalty_for_negative_a_loc
                 )
-                a_loc_fixed_plus_delta = jax.nn.softplus(a_loc_fixed + a_loc_delta)
-
-        # Global priors
-        a_scale_scale = numpyro.sample("a_scale_scale", dist.HalfNormal(50.))
-        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
-
-        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
-        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
-        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
-
-        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
+                a_loc = jax.nn.softplus(a_loc_fixed + a_loc_delta)
 
         with numpyro.plate(site.n_response, self.n_response):
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(a_scale_scale))
+            # Hyper-priors
+            a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
+            b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
+
+            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+            ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+            H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+
+            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
             with numpyro.plate(site.n_features[1], n_features[1]):
-                a_loc = numpyro.deterministic(
-                    "a_loc", jnp.concatenate([a_loc_fixed, a_loc_fixed_plus_delta], axis=0)
-                )
-
                 with numpyro.plate(site.n_features[0], n_features[0]):
                     # Priors
                     a = numpyro.sample(
