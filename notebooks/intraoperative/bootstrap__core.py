@@ -12,7 +12,7 @@ from hbmep.config import Config
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from bootstrap__models import HierarchicalBayesianModel, HBnull
+from bootstrap__models import HierarchicalBayesianModel
 from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
@@ -140,7 +140,7 @@ def main(
                 assert curr_df[model.features[1]].nunique() == 1
                 curr_df[model.features[0]] = new_subject_name
 
-                if no_effect and SWITCH[draw, new_subject_name, 0]:
+                if no_effect and SWITCH[draw, new_subject_name]:
                     curr_df[model.features[1]] = curr_df[model.features[1]].replace({0: 1, 1: 0})
 
                 df.append(curr_df)

@@ -17,6 +17,7 @@ from constants import (
     BOOTSTRAP_DIR,
     NUM_BOOTSTRAPS,
     BOOTSTRAP_FILE,
+    TOTAL_SUBJECTS
 )
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ def main():
     subjects_permutations = random.choice(
         rng_key,
         np.arange(len(subjects)),
-        shape=(NUM_BOOTSTRAPS, len(subjects),),
+        shape=(NUM_BOOTSTRAPS, TOTAL_SUBJECTS,),
         replace=True
     )
     subjects_permutations = np.array(subjects_permutations)
@@ -61,7 +62,7 @@ def main():
     switch = random.choice(
         rng_key,
         np.array([True, False]),
-        shape=(NUM_BOOTSTRAPS, len(subjects), model.n_response),
+        shape=(NUM_BOOTSTRAPS, TOTAL_SUBJECTS,),
         replace=True
     )
     switch = np.array(switch)

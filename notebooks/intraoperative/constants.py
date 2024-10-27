@@ -14,6 +14,7 @@ BOOTSTRAP_EXPERIMENTS_DIR = os.path.join(BOOTSTRAP_DIR, "experiments_with_effect
 BOOTSTRAP_EXPERIMENTS_NO_EFFECT_DIR = os.path.join(BOOTSTRAP_DIR, "experiments_no_effect")
 
 NUM_BOOTSTRAPS = 4000
+TOTAL_SUBJECTS = 13
 N_SUBJECTS_SPACE = [2, 4, 6, 8, 10, 13]
 
 BOOTSTRAP_FILE = "bootstrap.pkl"
