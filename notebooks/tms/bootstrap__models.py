@@ -28,14 +28,17 @@ class HierarchicalBayesianModel(GammaModel):
         feature0 = features[..., 0]
         feature1 = features[..., 1]
 
+        # Fixed
+        n_fixed = 1
         with numpyro.plate(site.n_response, self.n_response):
-            # Fixed
-            a_loc_fixed = numpyro.sample(
-                "a_loc_fixed", dist.TruncatedNormal(50., 50., low=0)
-            )
+            with numpyro.plate("n_fixed", n_fixed):
+                a_loc_fixed = numpyro.sample(
+                    "a_loc_fixed", dist.TruncatedNormal(50., 50., low=0)
+                )
 
+        # Delta
+        with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_features[1], n_features[1]):
-                # Delta
                 a_loc_delta = numpyro.sample("a_loc_delta", dist.Normal(0., 50.))
 
                 # Penalty for negative a_loc
@@ -49,17 +52,18 @@ class HierarchicalBayesianModel(GammaModel):
                     "a_loc", jax.nn.softplus(a_loc_fixed + a_loc_delta)
                 )
 
+        # Hyper-priors
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
+
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Hyper-priors
             a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
-
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
-            ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
-            H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
-
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
 
             with numpyro.plate(site.n_features[1], n_features[1]):
                 with numpyro.plate(site.n_features[0], n_features[0]):
