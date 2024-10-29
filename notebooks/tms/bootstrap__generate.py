@@ -16,7 +16,8 @@ from constants import (
     BUILD_DIR,
     BOOTSTRAP_DIR,
     NUM_BOOTSTRAPS,
-    BOOTSTRAP_FILE
+    BOOTSTRAP_FILE,
+    TOTAL_SUBJECTS
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +58,7 @@ def main():
     group_0_permutations = random.choice(
         rng_key,
         np.arange(len(group_0)),
-        shape=(NUM_BOOTSTRAPS, len(group_0),),
+        shape=(NUM_BOOTSTRAPS, TOTAL_SUBJECTS,),
         replace=True
     )
     group_0_permutations = np.array(group_0_permutations)
@@ -67,7 +68,7 @@ def main():
     group_1_permutations = random.choice(
         rng_key,
         np.arange(len(group_1)),
-        shape=(NUM_BOOTSTRAPS, len(group_1),),
+        shape=(NUM_BOOTSTRAPS, TOTAL_SUBJECTS,),
         replace=True
     )
     group_1_permutations = np.array(group_1_permutations)
@@ -77,7 +78,7 @@ def main():
     subjects_permutations = random.choice(
         rng_key,
         np.arange(len(subjects)),
-        shape=(NUM_BOOTSTRAPS, len(subjects),),
+        shape=(NUM_BOOTSTRAPS, 2 * TOTAL_SUBJECTS,),
         replace=True
     )
 
