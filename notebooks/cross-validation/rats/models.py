@@ -290,11 +290,12 @@ class RectifiedLinear(GammaModel):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_linear(
+                    S.rectified_linear(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
-                        L=L[feature0]
+                        L=L[feature0],
+                        eps=EPS
                     )
                 )
                 beta = numpyro.deterministic(
