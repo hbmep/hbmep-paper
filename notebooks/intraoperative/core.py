@@ -127,7 +127,7 @@ def main(M):
 
             # Run inference
             logger.info(f"DF shape: {df.shape}")
-            _, posterior_samples = model.run(df=df, max_tree_depth=(20, 20))
+            _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
 
             # Predictions and recruitment curves
             prediction_df = model.make_prediction_dataset(df=df)
@@ -151,6 +151,10 @@ def main(M):
             # Compute error and save results
             a_pred = posterior_samples[site.a]
             np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+            dest = os.path.join(model.build_dir, INFERENCE_FILE)
+            with open(dest, "wb") as f:
+                pickle.dump((posterior_samples,), f)
 
         case NelderMeadOptimization.NAME:
             config = Config(toml_path=TOML_PATH)
@@ -193,6 +197,7 @@ def main(M):
 
 if __name__ == "__main__":
     M = HierarchicalBayesianModel
+    # M = NonHierarchicalBayesianModel
     # M = MaximumLikelihoodModel
     # M = NelderMeadOptimization
     main(M=M)
