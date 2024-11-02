@@ -100,22 +100,21 @@ def main(
         np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
         np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
 
-        if not no_effect:
-            # Predictions and recruitment curves
-            prediction_df = model.make_prediction_dataset(df=df)
-            posterior_predictive = model.predict(
-                df=prediction_df, posterior_samples=posterior_samples
-            )
-            model.render_recruitment_curves(
-                df=df,
-                encoder_dict=encoder_dict,
-                posterior_samples=posterior_samples,
-                prediction_df=prediction_df,
-                posterior_predictive=posterior_predictive
-            )
-            model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
-            summary_df = model.summary(posterior_samples)
-            summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
+        # Predictions and recruitment curves
+        prediction_df = model.make_prediction_dataset(df=df)
+        posterior_predictive = model.predict(
+            df=prediction_df, posterior_samples=posterior_samples
+        )
+        model.render_recruitment_curves(
+            df=df,
+            encoder_dict=encoder_dict,
+            posterior_samples=posterior_samples,
+            prediction_df=prediction_df,
+            posterior_predictive=posterior_predictive
+        )
+        model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
+        summary_df = model.summary(posterior_samples)
+        summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
 
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
