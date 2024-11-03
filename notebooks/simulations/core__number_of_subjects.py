@@ -86,7 +86,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
             case (
                 HierarchicalBayesianModel.NAME
                 | NonHierarchicalBayesianModel.NAME
-                | MaximumLikelihoodModel.NAME
+                # | MaximumLikelihoodModel.NAME
             ):
                 # Load data
                 ind = (
@@ -151,7 +151,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
                 del a_true, a_pred
                 gc.collect()
 
-            case NelderMeadOptimization.NAME:
+            case NelderMeadOptimization.NAME | MaximumLikelihoodModel.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -245,12 +245,12 @@ if __name__ == "__main__":
     ## Uncomment the following to run
     ## experiment for different models
 
-    # Run hierarchical models
-    n_jobs = -1
-    n_subjects_space = N_SUBJECTS_SPACE
-    models = [
-        HierarchicalBayesianModel
-    ]
+    # # Run hierarchical models
+    # n_jobs = -1
+    # n_subjects_space = N_SUBJECTS_SPACE
+    # models = [
+    #     HierarchicalBayesianModel
+    # ]
 
     # # Run non-hierarchical models including
     # # non-hierarchical Bayesian and Maximum Likelihood
@@ -261,10 +261,11 @@ if __name__ == "__main__":
     #     # MaximumLikelihoodModel
     # ]
 
-    # # Run non-hierarchical Nelder-Mead optimization
-    # n_jobs = -1
-    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # Run non-hierarchical Nelder-Mead optimization
+    n_jobs = -1
+    n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [NelderMeadOptimization]
+    models = [MaximumLikelihoodModel]
 
     main(
         draws_space=draws_space,
