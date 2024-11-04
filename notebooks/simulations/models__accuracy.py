@@ -236,7 +236,6 @@ class NonHierarchicalBayesianModel(NonHierarchicalBaseModel, GammaModel):
 #                 )
 
 
-
 class MaximumLikelihoodModel(BoundConstrainedOptimization, GammaModel):
     NAME = "maximum_likelihood_model"
 
@@ -247,7 +246,7 @@ class MaximumLikelihoodModel(BoundConstrainedOptimization, GammaModel):
         self.named_args = [site.a, site.b, site.L, site.ell, site.H, site.c_1, site.c_2]
         self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
         self.informed_bounds = [(20, 80), (1e-3, 1.), (1e-4, .1), (1e-2, 1), (.5, 5), (.5, 5), (1e-3, .5)]
-        self.num_reinit = 100
+        self.num_reinit = 10
         self.n_jobs = -1
 
     def functional(self, x, a, b, L, ell, H, c_1, c_2):
@@ -261,7 +260,6 @@ class MaximumLikelihoodModel(BoundConstrainedOptimization, GammaModel):
         alpha = self.concentration(mu, beta)
         nll = -dist.Gamma(concentration=alpha, rate=beta).log_prob(y_obs)
         return np.sum(nll)
-
 
 
 class NelderMeadOptimization(BoundConstrainedOptimization):
@@ -285,6 +283,7 @@ class NelderMeadOptimization(BoundConstrainedOptimization):
     def cost_function(self, x, y_obs, *args):
         y_pred = self.functional(x, *args)
         return np.sum((y_obs - y_pred) ** 2)
+
 
 # class RectifiedLogisticS50(GammaModel):
 #     NAME = "rectified_logistic_in_S50_parameterization"
