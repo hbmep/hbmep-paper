@@ -17,7 +17,7 @@ from models__accuracy import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization
+    LeastSquares
 )
 from utils import generate_nested_pulses
 from constants__accuracy import (
@@ -148,7 +148,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
                 del a_true, a_pred
                 gc.collect()
 
-            case MaximumLikelihoodModel.NAME | NelderMeadOptimization.NAME:
+            case MaximumLikelihoodModel.NAME | LeastSquares.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -258,10 +258,10 @@ if __name__ == "__main__":
     #     # MaximumLikelihoodModel
     # ]
 
-    # Run non-hierarchical Nelder-Mead optimization
+    # Run non-hierarchical Least Squares minimization
     # n_jobs = -1
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # # models = [NelderMeadOptimization]
+    # # models = [LeastSquares]
     # models = [MaximumLikelihoodModel]
 
     main(

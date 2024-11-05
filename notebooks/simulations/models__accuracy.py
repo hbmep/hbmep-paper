@@ -244,9 +244,9 @@ class MaximumLikelihoodModel(BoundConstrainedOptimization, GammaModel):
         # Required
         self.method = "Nelder-Mead"
         self.named_args = [site.a, site.b, site.L, site.ell, site.H, site.c_1, site.c_2]
-        self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
-        self.informed_bounds = [(20, 80), (1e-3, 1.), (1e-4, .1), (1e-2, 1), (.5, 5), (.5, 5), (1e-3, .5)]
-        self.num_reinit = 5
+        self.bounds = [(1e-9, 150), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.informed_bounds = [(20, 80), (1e-3, 1), (1e-4, .1), (1e-2, 1), (.5, 5), (.5, 5), (1e-3, .5)]
+        self.num_reinit = 3
         self.n_jobs = -1
 
     def functional(self, x, a, b, L, ell, H, c_1, c_2):
@@ -262,17 +262,17 @@ class MaximumLikelihoodModel(BoundConstrainedOptimization, GammaModel):
         return np.sum(nll)
 
 
-class NelderMeadOptimization(BoundConstrainedOptimization):
-    NAME = "nelder_mead_optimization"
+class LeastSquares(BoundConstrainedOptimization):
+    NAME = "least_squares"
 
     def __init__(self, config: Config):
-        super(NelderMeadOptimization, self).__init__(config=config)
+        super(LeastSquares, self).__init__(config=config)
         # Required
         self.method = "Nelder-Mead"
         self.named_args = [site.a, site.b, site.L, site.ell, site.H]
-        self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
-        self.informed_bounds = [(20, 80), (1e-3, 1.), (1e-4, .1), (1e-2, 1), (.5, 5)]
-        self.num_reinit = 20
+        self.bounds = [(1e-9, 150), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
+        self.informed_bounds = [(20, 80), (1e-3, 1), (1e-4, .1), (1e-2, 1), (.5, 5)]
+        self.num_reinit = 100
         self.n_jobs = -1
 
     def functional(self, x, a, b, L, ell, H):
