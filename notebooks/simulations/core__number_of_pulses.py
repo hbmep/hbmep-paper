@@ -7,8 +7,6 @@ import logging
 import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from hbmep.config import Config
 from hbmep.model.utils import Site as site
@@ -86,7 +84,6 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
             case (
                 HierarchicalBayesianModel.NAME
                 | NonHierarchicalBayesianModel.NAME
-                | MaximumLikelihoodModel.NAME
             ):
                 # Load data
                 ind = (
@@ -153,7 +150,7 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
 
             # This is also a non-hierarchical method. Internally, it will
             # run separately on individual recruitment curves
-            case NelderMeadOptimization.NAME:
+            case MaximumLikelihoodModel.NAME | NelderMeadOptimization.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -249,12 +246,12 @@ if __name__ == "__main__":
     models = [
         HierarchicalBayesianModel,
         # NelderMeadOptimization
+        # MaximumLikelihoodModel,
     ]
 
     # n_jobs = 1
     # models = [
     #     NonHierarchicalBayesianModel,
-    #     # MaximumLikelihoodModel,
     # ]
 
     main(
