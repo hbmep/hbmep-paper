@@ -258,11 +258,13 @@ if __name__ == "__main__":
     #     # MaximumLikelihoodModel
     # ]
 
-    # Run non-hierarchical Least Squares minimization
+    # # Run non-hierarchical Least Squares minimization
     # n_jobs = -1
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # # models = [LeastSquares]
-    # models = [MaximumLikelihoodModel]
+    # models = [
+    #     MaximumLikelihoodModel,
+    #     # LeastSquares
+    # ]
 
     main(
         draws_space=draws_space,

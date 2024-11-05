@@ -17,7 +17,7 @@ from models__accuracy import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization,
+    LeastSquares,
 )
 from utils import generate_nested_pulses
 from constants__accuracy import (
@@ -150,7 +150,7 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
 
             # This is also a non-hierarchical method. Internally, it will
             # run separately on individual recruitment curves
-            case MaximumLikelihoodModel.NAME | NelderMeadOptimization.NAME:
+            case MaximumLikelihoodModel.NAME | LeastSquares.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -245,7 +245,7 @@ if __name__ == "__main__":
     n_jobs = -1
     models = [
         HierarchicalBayesianModel,
-        # NelderMeadOptimization
+        # LeastSquares
         # MaximumLikelihoodModel,
     ]
 
