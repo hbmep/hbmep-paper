@@ -169,12 +169,11 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
 
 if __name__ == "__main__":
     # Usage: python -m core__number_of_reps_per_pulse 0 4000
-    # lo, hi = list(map(int, sys.argv[1:]))
-    lo, hi = 0, 1
+    lo, hi = list(map(int, sys.argv[1:]))
 
     # Experiment space
     draws_space = range(lo, hi)
-    n_jobs = 1
+    n_jobs = -1
     n_pulses_space = N_PULSES_SPACE
     n_reps_space = N_REPS_PER_PULSE_SPACE
 
