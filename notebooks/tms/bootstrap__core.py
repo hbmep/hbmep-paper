@@ -9,10 +9,14 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from hbmep.config import Config
+from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from bootstrap__models import HierarchicalBayesianModel
+from bootstrap__models import (
+    HierarchicalBayesianModel,
+    DefaultHierarchicalBayesianModel
+)
 from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
@@ -105,10 +109,14 @@ def main(
         _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
 
         # Save
-        a_loc_delta = posterior_samples["a_loc_delta"]
-        np.save(os.path.join(model.build_dir, "a_loc_delta.npy"), a_loc_delta)
-        a_loc = posterior_samples["a_loc"]
-        np.save(os.path.join(model.build_dir, "a_loc.npy"), a_loc)
+        a = posterior_samples[site.a]
+        np.save(os.path.join(model.build_dir, "a_pred.npy"), a)
+
+        if M.NAME == HierarchicalBayesianModel.NAME:
+            a_loc_delta = posterior_samples["a_loc_delta"]
+            np.save(os.path.join(model.build_dir, "a_loc_delta.npy"), a_loc_delta)
+            a_loc = posterior_samples["a_loc"]
+            np.save(os.path.join(model.build_dir, "a_loc.npy"), a_loc)
 
         # Predictions and recruitment curves
         prediction_df = model.make_prediction_dataset(df=df)
@@ -128,10 +136,10 @@ def main(
 
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
-        a_loc_delta, a_loc, = None, None
+        a, a_loc_delta, a_loc, = None, None, None
         del config, df, prediction_df, encoder_dict, _
         del model, posterior_samples, posterior_predictive
-        del a_loc_delta, a_loc
+        del a, a_loc_delta, a_loc
         gc.collect()
 
 
@@ -165,7 +173,8 @@ if __name__ == "__main__":
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
     models = [
-        HierarchicalBayesianModel
+        HierarchicalBayesianModel,
+        # DefaultHierarchicalBayesianModel
     ]
 
     no_effect = False
