@@ -54,7 +54,7 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
     gc.collect()
 
     # Set up logging
-    simulator._make_dir(BUILD_DIR)
+    os.makedirs(BUILD_DIR, exist_ok=True)
     setup_logging(
         dir=BUILD_DIR,
         fname=os.path.basename(__file__)
@@ -73,11 +73,12 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
         M
     ):
         # Required for build directory
-        n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
-        draw_dir = f"d{draw}"
+        n_reps_dir, n_pulses_dir, n_subjects_dir, draw_dir = (
+            f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}", f"d{draw}"
+        )
 
         match M.NAME:
-            case "hierarchical_bayesian_model":
+            case HierarchicalBayesianModel.NAME:
                 # Load data
                 pulses = pulses_map[n_pulses][::n_reps]
                 ind = (
@@ -104,7 +105,7 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
                 model = M(config=config)
 
                 # Set up logging
-                model._make_dir(model.build_dir)
+                os.makedirs(model.build_dir, exist_ok=True)
                 setup_logging(
                     dir=model.build_dir,
                     fname="logs"
@@ -112,7 +113,14 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
 
                 # Run inference
                 df, encoder_dict = model.load(df=df)
-                _, posterior_samples = model.run_inference(df=df)
+                _, posterior_samples = model.run(df=df)
+
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = posterior_samples[site.a]
+                assert a_pred.mean(axis=0).shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
                 # Predictions and recruitment curves
                 prediction_df = model.make_prediction_dataset(df=df)
@@ -126,13 +134,6 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
                     prediction_df=prediction_df,
                     posterior_predictive=posterior_predictive
                 )
-
-                # Compute error and save results
-                a_true = ppd_a[draw, :n_subjects, ...]
-                a_pred = posterior_samples[site.a]
-                assert a_pred.mean(axis=0).shape == a_true.shape
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
@@ -155,7 +156,6 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
     logger.info(f"n_jobs: {n_jobs}")
 
     M = HierarchicalBayesianModel
-
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(
@@ -169,11 +169,12 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
 
 if __name__ == "__main__":
     # Usage: python -m core__number_of_reps_per_pulse 0 4000
-    lo, hi = list(map(int, sys.argv[1:]))
+    # lo, hi = list(map(int, sys.argv[1:]))
+    lo, hi = 0, 1
 
     # Experiment space
     draws_space = range(lo, hi)
-    n_jobs = -1
+    n_jobs = 1
     n_pulses_space = N_PULSES_SPACE
     n_reps_space = N_REPS_PER_PULSE_SPACE
 
