@@ -9,10 +9,14 @@ import numpy as np
 from joblib import Parallel, delayed
 
 from hbmep.config import Config
+from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from bootstrap__models import HierarchicalBayesianModel
+from bootstrap__models import (
+    HierarchicalBayesianModel,
+    DefaultHierarchicalBayesianModel
+)
 from constants import (
     TOML_PATH,
     BOOTSTRAP_DIR,
@@ -95,10 +99,14 @@ def main(
         _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
 
         # Save
-        a_delta_loc = posterior_samples["a_delta_loc"]
-        a_delta_scale = posterior_samples["a_delta_scale"]
-        np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
-        np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
+        a = posterior_samples[site.a]
+        np.save(os.path.join(model.build_dir, "a_pred.npy"), a)
+
+        if M.NAME == HierarchicalBayesianModel.NAME:
+            a_delta_loc = posterior_samples["a_delta_loc"]
+            a_delta_scale = posterior_samples["a_delta_scale"]
+            np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
+            np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
 
         # Predictions and recruitment curves
         prediction_df = model.make_prediction_dataset(df=df)
@@ -155,7 +163,8 @@ if __name__ == "__main__":
     # Run hierarchical models
     n_subjects_space = N_SUBJECTS_SPACE
     models = [
-        HierarchicalBayesianModel
+        HierarchicalBayesianModel,
+        # DefaultHierarchicalBayesianModel
     ]
 
     no_effect = True
