@@ -107,6 +107,7 @@ def main(
             a_delta_scale = posterior_samples["a_delta_scale"]
             np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
             np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
+            model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
 
         # Predictions and recruitment curves
         prediction_df = model.make_prediction_dataset(df=df)
@@ -120,7 +121,6 @@ def main(
             prediction_df=prediction_df,
             posterior_predictive=posterior_predictive
         )
-        model.trace_plot(posterior_samples, var_names=["a_delta_loc"])
         summary_df = model.summary(posterior_samples)
         summary_df.to_csv(os.path.join(model.build_dir, "summary.csv"))
 
