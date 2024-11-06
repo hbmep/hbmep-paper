@@ -88,11 +88,7 @@ def main(
         )
 
         match M.NAME:
-            case (
-                HierarchicalBayesianModel.NAME
-                | NonHierarchicalBayesianModel.NAME
-                | MaximumLikelihoodModel.NAME
-            ):
+            case HierarchicalBayesianModel.NAME | NonHierarchicalBayesianModel.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -256,12 +252,12 @@ if __name__ == "__main__":
     # Uncomment the following to run
     # experiment for different models
 
-    # # Run hierarchical model
-    # n_jobs = -1
-    # n_subjects_space = N_SUBJECTS_SPACE
-    # models = [
-    #     HierarchicalBayesianModel
-    # ]
+    # Run hierarchical model
+    n_jobs = -1
+    n_subjects_space = N_SUBJECTS_SPACE
+    models = [
+        HierarchicalBayesianModel
+    ]
 
     # # Run non-hierarchical models including
     # # non-hierarchical Bayesian and Maximum Likelihood
@@ -272,10 +268,10 @@ if __name__ == "__main__":
     #     # MaximumLikelihoodModel
     # ]
 
-    # Run non-hierarchical Nelder-Mead optimization
-    n_jobs = -1
-    n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    models = [NelderMeadOptimization]
+    # # Run non-hierarchical Nelder-Mead optimization
+    # n_jobs = -1
+    # n_subjects_space = N_SUBJECTS_SPACE[-1:]
+    # models = [NelderMeadOptimization]
 
     # # Run for simulation with effect
     # main(
