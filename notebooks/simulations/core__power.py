@@ -20,6 +20,7 @@ from constants__accuracy import (
 )
 from models__accuracy import NonHierarchicalBayesianModel
 from models__power import (
+    DefaultHierarchicalBayesianModel,
     Simulator,
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
@@ -88,7 +89,7 @@ def main(
         )
 
         match M.NAME:
-            case HierarchicalBayesianModel.NAME | NonHierarchicalBayesianModel.NAME:
+            case HierarchicalBayesianModel.NAME | NonHierarchicalBayesianModel.NAME | DefaultHierarchicalBayesianModel.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -123,19 +124,6 @@ def main(
                 df, encoder_dict = model.load(df=df)
                 _, posterior_samples = model.run(df=df)
 
-                # Predictions and recruitment curves
-                prediction_df = model.make_prediction_dataset(df=df)
-                posterior_predictive = model.predict(
-                    df=prediction_df, posterior_samples=posterior_samples
-                )
-                model.render_recruitment_curves(
-                    df=df,
-                    encoder_dict=encoder_dict,
-                    posterior_samples=posterior_samples,
-                    prediction_df=prediction_df,
-                    posterior_predictive=posterior_predictive
-                )
-
                 # Compute error and save results
                 a_true = ppd_a[draw, :n_subjects, ...]
                 a_pred = posterior_samples[site.a]
@@ -148,6 +136,19 @@ def main(
                     a_delta_scale = posterior_samples["a_delta_scale"]
                     np.save(os.path.join(model.build_dir, "a_delta_loc.npy"), a_delta_loc)
                     np.save(os.path.join(model.build_dir, "a_delta_scale.npy"), a_delta_scale)
+
+                # Predictions and recruitment curves
+                prediction_df = model.make_prediction_dataset(df=df)
+                posterior_predictive = model.predict(
+                    df=prediction_df, posterior_samples=posterior_samples
+                )
+                model.render_recruitment_curves(
+                    df=df,
+                    encoder_dict=encoder_dict,
+                    posterior_samples=posterior_samples,
+                    prediction_df=prediction_df,
+                    posterior_predictive=posterior_predictive
+                )
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
@@ -194,6 +195,13 @@ def main(
                 df, encoder_dict = model.load(df=df)
                 params = model.run(df=df)
 
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = params[site.a]
+                assert a_pred.shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
                 # Predictions and recruitment curves
                 prediction_df = model.make_prediction_dataset(df=df)
                 prediction_df = model.predict(df=prediction_df, params=params)
@@ -203,13 +211,6 @@ def main(
                     params=params,
                     prediction_df=prediction_df,
                 )
-
-                # Compute error and save results
-                a_true = ppd_a[draw, :n_subjects, ...]
-                a_pred = params[site.a]
-                assert a_pred.shape == a_true.shape
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, params = None, None
@@ -256,7 +257,8 @@ if __name__ == "__main__":
     n_jobs = -1
     n_subjects_space = N_SUBJECTS_SPACE
     models = [
-        HierarchicalBayesianModel
+        # HierarchicalBayesianModel,
+        DefaultHierarchicalBayesianModel
     ]
 
     # # Run non-hierarchical models including
