@@ -8,13 +8,35 @@ import seaborn as sns
 from models import RectifiedLogistic
 from hbmep.model.utils import Site as site
 
+from hbmep import functional as F
+from hbmep import smooth_functional as S
+
+EPS = 1e-3
+
+
 def main():
     # Update this path to the path in /media folder
     src = "/home/mcintosh/Cloud/DataPort/2024-11-07_posterior_for_ni_data_default_model/rectified_logistic/inference.pkl"
     dest = "/home/mcintosh/Cloud/DataPort/2024-11-07_posterior_for_ni_data_default_model/rectified_logistic_report/vis.png"
+    # src = "/home/vishu/repos/hbmep-paper/reports/cross-validation/tms/rectified_logistic/inference.pkl"
+    # dest = "/home/vishu/vis.png"
 
     with open(src, 'rb') as f:
         model, mcmc, posterior_samples = pickle.load(f)
+
+
+    NUM_POINTS = 1000
+    named_params = [site.a, site.b, site.L, site.ell, site.H]
+    params =[posterior_samples[site] for site in named_params]
+    params = [param[..., None, :] for param in params]
+    params = [np.concatenate(NUM_POINTS * [param], axis=-2) for param in params]
+
+    intensity = np.linspace(0, 100, NUM_POINTS)
+    intensity = intensity[None, None, :, None]
+    intensity = np.broadcast_to(intensity, params[0].shape)
+
+    grad = F.prime(S.rectified_logistic, intensity, *params, EPS * np.ones_like(intensity))
+    max_grad = grad.max(axis=-2)
 
     p1 = posterior_samples[site.a]
     p2 = posterior_samples[site.b]
