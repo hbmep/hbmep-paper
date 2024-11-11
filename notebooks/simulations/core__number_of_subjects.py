@@ -85,6 +85,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
             case (
                 HierarchicalBayesianModel.NAME
                 | NonHierarchicalBayesianModel.NAME
+                | MaximumLikelihoodModel.NAME
             ):
                 # Load data
                 ind = (
@@ -149,7 +150,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
                 del a_true, a_pred
                 gc.collect()
 
-            case MaximumLikelihoodModel.NAME | LeastSquares.NAME:
+            case LeastSquares.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -231,6 +232,8 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
             for n_subjects in n_subjects_space
             for M in models
         )
+    return
+
 
 
 if __name__ == "__main__":
@@ -263,7 +266,6 @@ if __name__ == "__main__":
     # n_jobs = -1
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
     # models = [
-    #     MaximumLikelihoodModel,
     #     # LeastSquares
     # ]
 
