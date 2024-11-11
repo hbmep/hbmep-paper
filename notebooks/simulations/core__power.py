@@ -20,13 +20,14 @@ from constants__accuracy import (
 )
 from models__accuracy import NonHierarchicalBayesianModel
 from models__power import (
-    DefaultHierarchicalBayesianModel,
     Simulator,
     HierarchicalBayesianModel,
+    DefaultHierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization
 )
+from models__accuracy import LeastSquares
+
 from constants__power import (
     TOML_PATH,
     N_SUBJECTS_SPACE,
@@ -89,7 +90,11 @@ def main(
         )
 
         match M.NAME:
-            case HierarchicalBayesianModel.NAME | NonHierarchicalBayesianModel.NAME | DefaultHierarchicalBayesianModel.NAME:
+            case (
+                HierarchicalBayesianModel.NAME
+                | NonHierarchicalBayesianModel.NAME
+                | DefaultHierarchicalBayesianModel.NAME
+            ):
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -160,7 +165,7 @@ def main(
                 del a_delta_loc, a_delta_scale
                 gc.collect()
 
-            case NelderMeadOptimization.NAME:
+            case LeastSquares.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &

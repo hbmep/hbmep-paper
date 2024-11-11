@@ -387,29 +387,6 @@ class MaximumLikelihoodModel(NonHierarchicalBaseModel, GammaModel):
                 )
 
 
-class NelderMeadOptimization(BoundConstrainedOptimization):
-    NAME = "nelder_mead_optimization"
-
-    def __init__(self, config: Config):
-        super(NelderMeadOptimization, self).__init__(config=config)
-        # Required
-        self.method = "Nelder-Mead"
-        self.named_args = [site.a, site.b, site.L, site.ell, site.H]
-        self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
-        self.informed_bounds = [(20, 80), (1e-3, 1.), (1e-4, .1), (1e-2, 1), (.5, 5)]
-        self.num_reinit = 100
-        self.n_jobs = -1
-
-    def functional(self, x, a, b, L, ell, H):
-        return S.rectified_logistic(
-            x, a, b, L, ell, H, eps=EPS
-        )
-
-    def cost_function(self, x, y_obs, *args):
-        y_pred = self.functional(x, *args)
-        return np.sum((y_obs - y_pred) ** 2)
-
-
 class DefaultHierarchicalBayesianModel(GammaModel):
     NAME = "default_hierarchical_bayesian_model"
 
