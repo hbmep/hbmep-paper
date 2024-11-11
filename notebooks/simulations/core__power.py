@@ -18,7 +18,6 @@ from constants__accuracy import (
     INFERENCE_FILE,
     SIMULATION_DF,
 )
-from models__accuracy import NonHierarchicalBayesianModel
 from models__power import (
     Simulator,
     HierarchicalBayesianModel,
@@ -92,8 +91,9 @@ def main(
         match M.NAME:
             case (
                 HierarchicalBayesianModel.NAME
-                | NonHierarchicalBayesianModel.NAME
                 | DefaultHierarchicalBayesianModel.NAME
+                | NonHierarchicalBayesianModel.NAME
+                | MaximumLikelihoodModel.NAME
             ):
                 # Load data
                 ind = (
@@ -275,10 +275,10 @@ if __name__ == "__main__":
     #     # MaximumLikelihoodModel
     # ]
 
-    # # Run non-hierarchical Nelder-Mead optimization
+    # # Run non-hierarchical Least Squares
     # n_jobs = -1
     # n_subjects_space = N_SUBJECTS_SPACE[-1:]
-    # models = [NelderMeadOptimization]
+    # models = [LeastSquares]
 
     # # Run for simulation with effect
     # main(
