@@ -122,6 +122,13 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
                 df, encoder_dict = model.load(df=df)
                 _, posterior_samples = model.run(df=df)
 
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = posterior_samples[site.a]
+                assert a_pred.mean(axis=0).shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
                 # Predictions and recruitment curves
                 prediction_df = model.make_prediction_dataset(df=df)
                 posterior_predictive = model.predict(
@@ -134,13 +141,6 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
                     prediction_df=prediction_df,
                     posterior_predictive=posterior_predictive
                 )
-
-                # Compute error and save results
-                a_true = ppd_a[draw, :n_subjects, ...]
-                a_pred = posterior_samples[site.a]
-                assert a_pred.mean(axis=0).shape == a_true.shape
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
                 config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
                 model, posterior_samples, posterior_predictive = None, None, None
@@ -188,6 +188,13 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
                 df, encoder_dict = model.load(df=df)
                 params = model.run(df=df)
 
+                # Compute error and save results
+                a_true = ppd_a[draw, :n_subjects, ...]
+                a_pred = params[site.a]
+                assert a_pred.shape == a_true.shape
+                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
                 # Predictions and recruitment curves
                 prediction_df = model.make_prediction_dataset(df=df)
                 prediction_df = model.predict(df=prediction_df, params=params)
@@ -197,13 +204,6 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
                     params=params,
                     prediction_df=prediction_df,
                 )
-
-                # Compute error and save results
-                a_true = ppd_a[draw, :n_subjects, ...]
-                a_pred = params[site.a]
-                assert a_pred.shape == a_true.shape
-                np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-                np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
                 config, df, prediction_df, encoder_dict, _,  = None, None, None, None, None
                 model, params = None, None

@@ -8,7 +8,7 @@ from jax import random
 import jax.numpy as jnp
 
 from hbmep.config import Config
-from hbmep.nn import functional as F
+from hbmep import functional as F
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
@@ -27,7 +27,6 @@ from constants__saturation import (
 )
 
 logger = logging.getLogger(__name__)
-
 POSTERIOR_PATH = os.path.join(LEARN_POSTERIOR_DIR, INFERENCE_FILE)
 BUILD_DIR = SIMULATE_DATA_DIR__SATURATION
 
@@ -36,10 +35,10 @@ def main():
     # Build simulator
     config = Config(toml_path=TOML_PATH)
     config.BUILD_DIR = BUILD_DIR
-    simulator = HierarchicalBayesianModel(config=config)
+    simulator = HierarchicalBayesianModel(config=config, simulate=True)
 
     # Set up logging
-    simulator._make_dir(simulator.build_dir)
+    os.makedirs(simulator.build_dir, exist_ok=True)
     setup_logging(
         dir=simulator.build_dir,
         fname=os.path.basename(__file__)
@@ -72,6 +71,10 @@ def main():
     src = POSTERIOR_PATH
     with open(src, "rb") as g:
         _, _, posterior_samples = pickle.load(g)
+
+    logger.info("Learn posterior shapes:")
+    for u, v in posterior_samples.items():
+        logger.info(f"{u}: {v.shape}")
 
     # Exclude priors
     present_sites = sorted(list(posterior_samples.keys()))
@@ -110,6 +113,7 @@ def main():
         y_at_S50,
         *[simulation_ppd[u] for u in named_params]
     )
+    s50 = np.array(s50)
     simulation_ppd[site.s50] = s50
 
     # Shuffle draws

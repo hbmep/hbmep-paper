@@ -35,7 +35,6 @@ logger = logging.getLogger(__name__)
 SIMULATION_DF_PATH = os.path.join(SIMULATE_DATA_DIR__SATURATION, SIMULATION_DF)
 SIMULATION_PPD_PATH = os.path.join(SIMULATE_DATA_DIR__SATURATION, INFERENCE_FILE)
 BUILD_DIR = EXPERIMENTS_DIR__SATURATION
-
 N_SUBJECTS_SPACE = [1, TOTAL_SUBJECTS]
 
 
@@ -58,7 +57,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
     gc.collect()
 
     # Set up logging
-    simulator._make_dir(BUILD_DIR)
+    os.makedirs(BUILD_DIR, exist_ok=True)
     setup_logging(
         dir=BUILD_DIR,
         fname=os.path.basename(__file__)
@@ -74,8 +73,9 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
         M
     ):
         # Required for build directory
-        n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
-        draw_dir = f"d{draw}"
+        n_reps_dir, n_pulses_dir, n_subjects_dir, draw_dir = (
+            f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}", f"d{draw}"
+        )
 
         # Load data
         ind = (
@@ -101,7 +101,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
         model = M(config=config)
 
         # Set up logging
-        model._make_dir(model.build_dir)
+        os.makedirs(model.build_dir, exist_ok=True)
         setup_logging(
             dir=model.build_dir,
             fname="logs"
@@ -109,7 +109,21 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
 
         # Run inference
         df, encoder_dict = model.load(df=df)
-        _, posterior_samples = model.run_inference(df=df)
+        _, posterior_samples = model.run(df=df)
+
+        # Compute error and save results
+        match M.NAME:
+            case HierarchicalBayesianModel.NAME:
+                a_true = ppd_a[draw, :n_subjects, ...]
+            case RectifiedLogisticS50.NAME:
+                a_true = ppd_s50[draw, :n_subjects, ...]
+            case _:
+                raise ValueError(f"Invalid model {M.NAME}.")
+
+        a_pred = posterior_samples[site.a]
+        assert a_pred.mean(axis=0).shape == a_true.shape
+        np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
+        np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
 
         # Predictions and recruitment curves
         prediction_df = model.make_prediction_dataset(df=df)
@@ -124,20 +138,6 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
             posterior_predictive=posterior_predictive
         )
 
-        # Compute error and save results
-        match M.NAME:
-            case "hierarchical_bayesian_model":
-                a_true = ppd_a[draw, :n_subjects, ...]
-            case "rectified_logistic_in_S50_parameterization":
-                a_true = ppd_s50[draw, :n_subjects, ...]
-            case _:
-                raise ValueError(f"Invalid model {M.NAME}.")
-
-        a_pred = posterior_samples[site.a]
-        assert a_pred.mean(axis=0).shape == a_true.shape
-        np.save(os.path.join(model.build_dir, "a_true.npy"), a_true)
-        np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
-
         config, df, prediction_df, encoder_dict, _, = None, None, None, None, None
         model, posterior_samples, posterior_predictive = None, None, None
         a_true, a_pred = None, None
@@ -145,7 +145,6 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
         del model, posterior_samples, posterior_predictive
         del a_true, a_pred
         gc.collect()
-
         return
 
 
@@ -164,6 +163,7 @@ def main(draws_space, n_subjects_space, models, n_jobs=-1):
             for n_subjects in n_subjects_space
             for M in models
         )
+    return
 
 
 if __name__ == "__main__":
@@ -174,8 +174,10 @@ if __name__ == "__main__":
     draws_space = range(lo, hi)
     n_jobs = -1
     n_subjects_space = N_SUBJECTS_SPACE
-    models = [HierarchicalBayesianModel, RectifiedLogisticS50]
-
+    models = [
+        HierarchicalBayesianModel,
+        RectifiedLogisticS50
+    ]
     main(
         draws_space=draws_space,
 		n_subjects_space=n_subjects_space,
