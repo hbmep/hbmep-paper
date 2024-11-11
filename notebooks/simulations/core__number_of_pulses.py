@@ -85,6 +85,7 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
             case (
                 HierarchicalBayesianModel.NAME
                 | NonHierarchicalBayesianModel.NAME
+                | MaximumLikelihoodModel.NAME
             ):
                 # Load data
                 ind = (
@@ -151,7 +152,7 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
 
             # This is also a non-hierarchical method. Internally, it will
             # run separately on individual recruitment curves
-            case MaximumLikelihoodModel.NAME | LeastSquares.NAME:
+            case LeastSquares.NAME:
                 # Load data
                 ind = (
                     (simulation_df[simulator.features[0]] < n_subjects) &
@@ -233,6 +234,7 @@ def main(draws_space, n_pulses_space, models, n_jobs=-1):
             for n_pulses in n_pulses_space
             for M in models
         )
+    return
 
 
 if __name__ == "__main__":
@@ -247,12 +249,12 @@ if __name__ == "__main__":
     models = [
         HierarchicalBayesianModel,
         # LeastSquares
-        # MaximumLikelihoodModel,
     ]
 
     # n_jobs = 1
     # models = [
     #     NonHierarchicalBayesianModel,
+    #     MaximumLikelihoodModel,
     # ]
 
     main(
