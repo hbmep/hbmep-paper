@@ -13,7 +13,10 @@ from hbmep.model.utils import Site as site
 from hbmep.utils import timing
 
 from hbmep_paper.utils import setup_logging
-from models__accuracy import HierarchicalBayesianModel
+from models__accuracy import (
+    HierarchicalBayesianModel,
+    NonHierarchicalBayesianModel
+)
 from utils import generate_nested_pulses
 from constants__accuracy import (
     TOML_PATH,
@@ -37,7 +40,14 @@ N_PULSES_SPACE = N_PULSES_SPACE[2:]
 
 
 @timing
-def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
+def main(
+    draws_space,
+	n_subjects,
+	n_reps_space,
+	n_pulses_space,
+	M,
+	n_jobs=-1
+):
     # Load simulated dataframe
     src = SIMULATION_DF_PATH
     simulation_df = pd.read_csv(src)
@@ -78,7 +88,10 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
         )
 
         match M.NAME:
-            case HierarchicalBayesianModel.NAME:
+            case (
+                HierarchicalBayesianModel.NAME
+                | NonHierarchicalBayesianModel.NAME
+            ):
                 # Load data
                 pulses = pulses_map[n_pulses][::n_reps]
                 ind = (
@@ -155,11 +168,10 @@ def main(draws_space, n_reps_space, n_pulses_space, n_jobs=-1):
     logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
     logger.info(f"n_jobs: {n_jobs}")
 
-    M = HierarchicalBayesianModel
     with Parallel(n_jobs=n_jobs) as parallel:
         parallel(
             delayed(run_experiment)(
-                n_reps, n_pulses, N_SUBJECTS, draw, M
+                n_reps, n_pulses, n_subjects, draw, M
             )
             for draw in draws_space
             for n_reps in n_reps_space
@@ -173,13 +185,22 @@ if __name__ == "__main__":
 
     # Experiment space
     draws_space = range(lo, hi)
-    n_jobs = -1
     n_pulses_space = N_PULSES_SPACE
     n_reps_space = N_REPS_PER_PULSE_SPACE
 
+    n_jobs = -1
+    n_subjects = N_SUBJECTS
+    M = HierarchicalBayesianModel
+
+    # n_jobs = 1
+    # n_subjects = 1
+    # M = NonHierarchicalBayesianModel
+
     main(
         draws_space=draws_space,
+        n_subjects=n_subjects,
 		n_reps_space=n_reps_space,
 		n_pulses_space=n_pulses_space,
+        M=M,
 		n_jobs=n_jobs
     )
