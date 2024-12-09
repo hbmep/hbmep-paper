@@ -169,6 +169,7 @@ def main(
 
 
     logger.info("Power analysis experiment.")
+    logger.info(f"n_reps_space: {', '.join(map(str, n_reps_space))}")
     logger.info(f"n_subjects_space: {', '.join(map(str, n_subjects_space))}")
     logger.info(f"models: {', '.join([z.NAME for z in models])}")
     logger.info(f"Running draws {draws_space.start} to {draws_space.stop - 1}.")
@@ -197,7 +198,7 @@ if __name__ == "__main__":
     # experiment for different models
 
     # Run hierarchical model
-    n_jobs = 1
+    n_jobs = -1
     n_reps_space = N_REPS_PER_PULSE_SPACE
     n_subjects_space = N_SUBJECTS_SPACE
     models = [
