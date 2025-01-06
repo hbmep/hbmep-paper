@@ -1,17 +1,19 @@
 import os
+import pickle
 import logging
 
-import arviz as az
 import numpy as np
 from scipy import stats
+from numpyro.diagnostics import hpdi
 
 from hbmep_paper.utils import setup_logging
 from models__power import (
     HierarchicalBayesianModel,
+    DefaultHierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization
 )
+from models__accuracy import LeastSquares
 from core__power import (
     N_REPS, N_PULSES, N_SUBJECTS_SPACE
 )
@@ -21,197 +23,144 @@ from constants__power import (
 )
 
 logger = logging.getLogger(__name__)
+SIGNIFICANCE_LEVEL = .05
 
 
-def main(build_dir, draws_space):
+def main(experiments_dir, draws_space, n_subjects_space, models):
     setup_logging(
-        dir=build_dir,
+        dir=experiments_dir,
         fname=os.path.basename(__file__)
     )
 
-    n_reps = N_REPS
-    n_pulses = N_PULSES
-    n_subjects_space = N_SUBJECTS_SPACE
+    num_draws_processed = 0
+    draws_not_processed = []
+    reject = []
 
-    models = [
-        NelderMeadOptimization,
-        MaximumLikelihoodModel,
-        NonHierarchicalBayesianModel,
-        HierarchicalBayesianModel,
-    ]
+    for draw in draws_space:
+        curr_reject = []
 
-    mae = []
-    mse = []
-    prob = []
-    norm = []
-
-    for n_subjects in n_subjects_space:
-        for draw in draws_space:
+        try:
             for M in models:
-                n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
-                draw_dir = f"d{draw}"
-
-                logger.info(f"n_subjects: {n_subjects}, draw: {draw}, model: {M.NAME}")
-
-                match M.NAME:
-                    case "hierarchical_bayesian_model":
-                        dir = os.path.join(
-                            build_dir,
-                            draw_dir,
-                            n_subjects_dir,
-                            n_reps_dir,
-                            n_pulses_dir,
-                            M.NAME
-                        )
-
-                        a_true = np.load(os.path.join(dir, "a_true.npy"))
-                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))
-
-                        a_pred = a_pred.mean(axis=0).reshape(-1,)
-                        a_true = a_true.reshape(-1,)
-
-                        a_delta_loc = np.load(os.path.join(dir, "a_delta_loc.npy"))
-
-                        if n_subjects > 1:
-                            hdi = az.hdi(a_delta_loc, hdi_prob=.95)
-                            pr = hdi[-1]
-
-                    case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
-                        n_subjects_dir = f"n{n_subjects_space[-1]}"
-                        a_true, a_pred = None, None
-
-                        for subject in range(n_subjects):
-                            sub_dir = f"subject{subject}"
-                            dir = os.path.join(
-                                build_dir,
-                                draw_dir,
-                                n_subjects_dir,
-                                n_reps_dir,
-                                n_pulses_dir,
-                                M.NAME,
-                                sub_dir
+                for n_subjects in n_subjects_space:
+                    match M.NAME:
+                        case HierarchicalBayesianModel.NAME:
+                            src = os.path.join(
+                                experiments_dir,
+                                f"d{draw}",
+                                f"n{n_subjects}",
+                                f"r{N_REPS}",
+                                f"p{N_PULSES}",
+                                M.NAME
                             )
+                            a_delta_loc = np.load(os.path.join(src, "a_delta_loc.npy"))
+                            diff = a_delta_loc
 
-                            a_true_sub, a_pred_sub = None, None
+                            hdi = hpdi(diff, prob=1 - SIGNIFICANCE_LEVEL)
+                            decision = (hdi[0] > 0) | (hdi[1] < 0)
+                            curr_reject.append(decision)
 
-                            for intervention in range(2):
-                                intervention_dir = f"inter{intervention}"
-                                a_true_sub_inter = np.load(os.path.join(dir, intervention_dir, "a_true.npy"))
-                                a_pred_sub_inter = np.load(os.path.join(dir, intervention_dir, "a_pred.npy"))
-
-                                if a_true_sub is None:
-                                    a_true_sub = a_true_sub_inter
-                                    a_pred_sub = a_pred_sub_inter
-                                else:
-                                    a_true_sub = np.concatenate([a_true_sub, a_true_sub_inter], axis=-2)
-                                    a_pred_sub = np.concatenate([a_pred_sub, a_pred_sub_inter], axis=-2)
-
-                            if a_true is None:
-                                a_true = a_true_sub
-                                a_pred = a_pred_sub
-                            else:
-                                a_true = np.concatenate([a_true, a_true_sub], axis=-3)
-                                a_pred = np.concatenate([a_pred, a_pred_sub], axis=-3)
-
-                        a_pred_map = a_pred.mean(axis=0)
-
-                        if n_subjects > 1:
-                            pr = (
-                                stats.wilcoxon(
-                                    x=a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0],
-                                    alternative="less"
-                                )
-                                .pvalue
+                        case DefaultHierarchicalBayesianModel.NAME:
+                            src = os.path.join(
+                                experiments_dir,
+                                f"d{draw}",
+                                f"n{n_subjects}",
+                                f"r{N_REPS}",
+                                f"p{N_PULSES}",
+                                M.NAME
                             )
+                            a = np.load(os.path.join(src, "a_pred.npy"))
+                            a = a.mean(axis=0)
+                            x = a[:n_subjects, 0, 0]
+                            y = a[:n_subjects, 1, 0]
+                            assert np.isnan(x).sum() == 0
+                            assert np.isnan(y).sum() == 0
+                            assert x.shape == y.shape
+                            assert x.shape[0] == n_subjects
 
-                        if n_subjects > 2:
-                            norm_test = stats.shapiro(
-                                a_pred_map[:, 1, 0] - a_pred_map[:, 0, 0]
+                            pr = stats.wilcoxon(
+                                x=x - y, alternative="two-sided", axis=0
+                            ).pvalue
+                            decision = pr < SIGNIFICANCE_LEVEL
+                            curr_reject.append(decision)
+
+                        case (
+                            NonHierarchicalBayesianModel.NAME
+                            | MaximumLikelihoodModel.NAME
+                            | LeastSquares.NAME
+                        ):
+                            src = os.path.join(
+                                experiments_dir,
+                                f"d{draw}",
+                                f"n{n_subjects_space[-1]}",
+                                f"r{N_REPS}",
+                                f"p{N_PULSES}",
+                                M.NAME
                             )
-                            norm.append(norm_test.pvalue)
+                            a = np.load(os.path.join(src, "a_pred.npy"))
 
-                        a_true = a_true.reshape(-1,)
-                        a_pred = a_pred_map.reshape(-1,)
+                            if M.NAME in [NonHierarchicalBayesianModel.NAME, MaximumLikelihoodModel.NAME]:
+                                a = a.mean(axis=0)
 
-                    case "nelder_mead_optimization":
-                        n_subjects_dir = f"n{n_subjects_space[-1]}"
+                            x = a[:n_subjects, 0, 0]
+                            y = a[:n_subjects, 1, 0]
+                            assert np.isnan(x).sum() == 0
+                            assert np.isnan(y).sum() == 0
+                            assert x.shape == y.shape
+                            assert x.shape[0] == n_subjects
 
-                        dir = os.path.join(
-                            build_dir,
-                            draw_dir,
-                            n_subjects_dir,
-                            n_reps_dir,
-                            n_pulses_dir,
-                            M.NAME
-                        )
-                        a_true = np.load(os.path.join(dir, "a_true.npy"))[:n_subjects, ...]
-                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))[:n_subjects, ...]
+                            pr = stats.wilcoxon(
+                                x=x - y, alternative="two-sided", axis=0
+                            ).pvalue
+                            decision = pr < SIGNIFICANCE_LEVEL
+                            curr_reject.append(decision)
 
-                        if n_subjects > 1:
-                            pr = (
-                                stats.wilcoxon(
-                                    x=a_pred[:, 1, 0] - a_pred[:, 0, 0],
-                                    alternative="less"
-                                )
-                                .pvalue
-                            )
+                        case _:
+                            raise ValueError(f"Unknown model: {M.NAME}")
 
-                        if n_subjects > 2:
-                            norm_test = stats.shapiro(
-                                a_pred[:, 1, 0] - a_pred[:, 0, 0]
-                            )
-                            norm.append(norm_test.pvalue)
+        except FileNotFoundError:
+            draws_not_processed.append(draw)
+            logger.info(f"Draw: {draw} - Missing {src}")
 
-                        a_pred = a_pred.reshape(-1,)
-                        a_true = a_true.reshape(-1,)
+        else:
+            logger.info(f"Draw: {draw}")
+            reject += curr_reject
+            num_draws_processed += 1
 
-                    case _:
-                        raise ValueError(f"Invalid model {M.NAME}.")
+    reject = np.array(reject)
+    reject = reject.reshape(num_draws_processed, len(models), len(n_subjects_space), *reject.shape[1:])
+    logger.info(f"reject.shape: {reject.shape}")
+    logger.info(f"\n{reject.mean(axis=0)}")
 
-                curr_mae = np.abs(a_true - a_pred).mean()
-                curr_mse = np.square(a_true - a_pred).mean()
-                mae.append(curr_mae)
-                mse.append(curr_mse)
-                if n_subjects > 1: prob.append(pr)
-
-    mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
-    mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
-    prob = np.array(prob).reshape(len(n_subjects_space) - 1, len(draws_space), len(models))
-    norm = np.array(norm).reshape(len(n_subjects_space) - 2, len(draws_space), len(models) - 1)
-
-    logger.info(f"MAE: {mae.shape}")
-    logger.info(f"MSE: {mse.shape}")
-    logger.info(f"Prob: {prob.shape}")
-    logger.info(f"Norm: {norm.shape}")
-
-    dest = os.path.join(build_dir, "mae.npy")
-    np.save(dest, mae)
-    logger.info(f"Saved to {dest}")
-
-    dest = os.path.join(build_dir, "mse.npy")
-    np.save(dest, mse)
-    logger.info(f"Saved to {dest}")
-
-    dest = os.path.join(build_dir, "prob.npy")
-    np.save(dest, prob)
-    logger.info(f"Saved to {dest}")
-
-    dest = os.path.join(build_dir, "norm.npy")
-    np.save(dest, norm)
-    logger.info(f"Saved to {dest}")
-
-    for model_ind, model in enumerate(models[:-1]):
-        not_normal = (norm < .05)[-1, :, model_ind].mean()
-        logger.info(
-            f"{not_normal * 100}% of the draws (threshold differences estimated by {model.NAME}) are not normal."
+    model_names = [M.NAME for M in models]
+    dest = os.path.join(experiments_dir, "results.pkl")
+    with open(dest, "wb") as f:
+        pickle.dump(
+            (
+                reject,
+                model_names,
+                n_subjects_space,
+            ),
+            f
         )
-
+    logger.info(f"Saved to: {dest}")
     return
 
 
 if __name__ == "__main__":
-    # Run for the experiments with effect
-    main(EXPERIMENTS_WITH_EFFECT_DIR, range(2000))
+    models = [
+        LeastSquares,
+        MaximumLikelihoodModel,
+        NonHierarchicalBayesianModel,
+        DefaultHierarchicalBayesianModel,
+        HierarchicalBayesianModel,
+    ]
+
+    # # Run for the experiments with effect
+    # n_subjects_space = N_SUBJECTS_SPACE[1:]
+    # n_subjects_space += [10, 13, 18]
+    # n_subjects_space = sorted(n_subjects_space)
+    # main(EXPERIMENTS_WITH_EFFECT_DIR, range(2000), n_subjects_space, models)
 
     # Run for the experiments with no effect
-    main(EXPERIMENTS_WITH_NO_EFFECT_DIR, range(2000))
+    n_subjects_space = N_SUBJECTS_SPACE[1:]
+    main(EXPERIMENTS_WITH_NO_EFFECT_DIR, range(2000), n_subjects_space, models)

@@ -1,184 +1,193 @@
 import os
+import pickle
 import logging
 
 import numpy as np
+import seaborn as sns
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 
 from hbmep_paper.utils import setup_logging
 from models__power import (
     HierarchicalBayesianModel,
+    DefaultHierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization
 )
+from models__accuracy import LeastSquares
 from constants__power import (
     N_SUBJECTS_SPACE,
     SIMULATE_DATA_DIR__POWER,
     EXPERIMENTS_WITH_EFFECT_DIR,
     EXPERIMENTS_WITH_NO_EFFECT_DIR
 )
-from figure__subjects_and_pulses import COLORS as colors
+from figure__number_of_subjects_and_pulses import (
+    FIG_SIZE_CONST,
+    ROTATION,
+    TICK_SIZE,
+    AXIS_LABEL_SIZE,
+    INSIDE_TEXT_SIZE,
+    MARKER_SIZE,
+    LINE_WIDTH,
+    LINE_STYLE,
+    GRID_LINE_STYLE,
+    GRID_ALPHA,
+    MODEL_NAMES_DICT,
+    # MODEL_COLORS,
+    MODEL_PLOT_KWARGS,
+    TIMES_SEM
+)
 
 logger = logging.getLogger(__name__)
 plt.rcParams["svg.fonttype"] = "none"
-
 BUILD_DIR = SIMULATE_DATA_DIR__POWER
-FREQUENTIST_CUTOFF = .05
-BAYESIAN_CUTOFF = 0.
-
-axis_label_size = 12
-inside_text_size = 8
-
-IF_SKIP = True
-IF_SKIP = not IF_SKIP
-
-markersize = 3
-linewidth = 1
-linestyle = "--"
-RCOLOR = (204 / 255, 25 / 255, 59 / 255)
+JITTER = .2
+LEVEL_ALPHA = .5
 RCOLOR = "r"
 
-
-def _power_plot(ax, x, arr, models, labels, jitter=0.):
-    assert len(x) == arr.shape[0]
-    for model_ind, model in enumerate(models):
-        jit = jitter * model_ind
-        if IF_SKIP and model.NAME in [NelderMeadOptimization.NAME, MaximumLikelihoodModel.NAME]:
-            continue
-        match model.NAME:
-            case HierarchicalBayesianModel.NAME:
-                y = arr[..., model_ind] < BAYESIAN_CUTOFF
-            case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME | NelderMeadOptimization.NAME:
-                y = arr[..., model_ind] < FREQUENTIST_CUTOFF
-            case _:
-                raise ValueError(f"Invalid model")
-
-        yme = y.mean(axis=-1)
-        ysem = stats.sem(y, axis=-1)
-        ax.errorbar(
-            x=[i + jit for i in x],
-            y=yme,
-            yerr=ysem,
-            marker="o",
-            label=labels[model_ind],
-            linestyle=linestyle,
-            ms=markersize,
-            linewidth=linewidth,
-            color=colors[model_ind],
-        )
-
-    ax.set_xticks(x)
-    return ax
+MODEL_NAMES_DICT = {
+    HierarchicalBayesianModel.NAME: "Hierarchical Bayesian estimation (HBe)\n$95\%$ highest density interval test",
+    DefaultHierarchicalBayesianModel.NAME: "Standard hierarchical Bayesian (HB)\nTwo-sided signed-rank test",
+    NonHierarchicalBayesianModel.NAME: "Non-hierarchical Bayesian (nHB)\nTwo-sided signed-rank test",
+    MaximumLikelihoodModel.NAME: "Maximum likelihood (ML)\nTwo-sided signed-rank test",
+    LeastSquares.NAME: "Least squares method (LSM)\nTwo-sided signed-rank test",
+}
+MODEL_PLOT_KWARGS[HierarchicalBayesianModel.NAME]["linestyle"] = "-"
+BLOCK_SIZE = 100
 
 
 def main():
-    const = 1.25
     nrows, ncols = 1, 2
     fig, axes = plt.subplots(
         nrows,
         ncols,
-        figsize=(const * 5.1, const * 2.65),
+        figsize=(
+            FIG_SIZE_CONST * 5.1,
+            FIG_SIZE_CONST * 2.65
+        ),
         squeeze=False,
         constrained_layout=True,
-        # sharex="row"
+        sharex=True
     )
 
-    models = [
-        NelderMeadOptimization,
-        MaximumLikelihoodModel,
-        NonHierarchicalBayesianModel,
-        HierarchicalBayesianModel,
-    ]
-    labels = [
-        "Nelder-Mead method\nOne-sided signed-rank test",
-        "Maximum likelihood estimation\nOne-sided signed-rank test",
-        "Non-hierarchical Bayesian\nOne-sided signed-rank test",
-        "Hierarchical Bayesian\n95% highest density interval\n(HDI) testing",
-    ]
-
     # With effect
-    src = os.path.join(EXPERIMENTS_WITH_EFFECT_DIR, "mae.npy")
-    mae = np.load(src)
-    logger.info(f"mae: {mae.shape}")
+    src = os.path.join(EXPERIMENTS_WITH_EFFECT_DIR, "results.pkl")
+    with open(src, "rb") as f:
+        (
+            reject,
+            model_names,
+            n_subjects_space,
+        ) = pickle.load(f)
 
-    src = os.path.join(EXPERIMENTS_WITH_EFFECT_DIR, "prob.npy")
-    prob = np.load(src)
-    # # [0:2, 1:4, 2:8, 3:9, 4:10, 5:12, 6:16, 7:17, 8:20]
-    # prob = prob[[0, 1, 2, 4, 5, 6, 7, 8], ...]
-    logger.info(f"prob: {prob.shape}")
+    logger.info(f"n_subjects_space: {n_subjects_space}")
+    logger.info(f"reject.shape: {reject.shape}")
 
+    subset = [2, 4, 10, 13, 18, 20]
+    ind = [nsub in subset for nsub in n_subjects_space]
+    n_subjects_space = np.array(n_subjects_space)[ind].tolist()
+    reject = reject[..., ind]
+
+    # Plot: With effect
     ax = axes[0, 0]
-    ax = _power_plot(ax, N_SUBJECTS_SPACE[1:], prob, models, labels)
-    ax.axhline(y=.8, linestyle="--", color=RCOLOR, linewidth=1, xmax=.98)
-    ax.set_yticks([.2 * i for i in range(6)])
-    ax.set_ylim(top=1.1)
+    for model_ind, model_name in enumerate(model_names):
+        x = n_subjects_space
+        y = reject[:, model_ind, ...]
+        y = y[:(y.shape[0] // BLOCK_SIZE) * BLOCK_SIZE].reshape(-1, BLOCK_SIZE, *y.shape[1:])
+        yme = y.mean(axis=(0, 1))
+        yerr = TIMES_SEM * stats.sem(y.mean(axis=1), axis=0)
+        ax.errorbar(
+            x=x,
+            y=yme,
+            yerr=yerr,
+            # marker="o",
+            label=MODEL_NAMES_DICT[model_name],
+            # linestyle=LINE_STYLE,
+            ms=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            # color=MODEL_COLORS[model_name]
+            **MODEL_PLOT_KWARGS[model_name]
+        )
 
     # Without effect
-    src = os.path.join(EXPERIMENTS_WITH_NO_EFFECT_DIR, "mae.npy")
-    mae = np.load(src)
-    logger.info(f"mae: {mae.shape}")
+    src = os.path.join(EXPERIMENTS_WITH_NO_EFFECT_DIR, "results.pkl")
+    with open(src, "rb") as f:
+        (
+            reject,
+            model_names,
+            n_subjects_space,
+        ) = pickle.load(f)
 
-    src = os.path.join(EXPERIMENTS_WITH_NO_EFFECT_DIR, "prob.npy")
-    prob = np.load(src)
-    logger.info(f"prob: {prob.shape}")
+    logger.info(f"n_subjects_space: {n_subjects_space}")
+    logger.info(f"reject.shape: {reject.shape}")
 
+    # Plot: Without effect
     ax = axes[0, 1]
-    ax = _power_plot(ax, N_SUBJECTS_SPACE[1:], prob, models, labels, jitter=.1)
-    ax.axhline(y=.05, linestyle="--", color=RCOLOR, linewidth=1, xmax=.98)
-    ax.set_yticks([.02 * i for i in range(6)] + [.05])
-    ax.set_ylim(top=.11)
+    for model_ind, model_name in enumerate(model_names):
+        x = [JITTER * (model_ind - len(model_names) // 2) + n for n in n_subjects_space]
+        y = reject[:, model_ind, ...]
+        y = y[:(y.shape[0] // BLOCK_SIZE) * BLOCK_SIZE].reshape(-1, BLOCK_SIZE, *y.shape[1:])
+        yme = y.mean(axis=(0, 1))
+        yerr = TIMES_SEM * stats.sem(y.mean(axis=1), axis=0)
+        ax.errorbar(
+            x=x,
+            y=yme,
+            yerr=yerr,
+            # marker="o",
+            label=MODEL_NAMES_DICT[model_name],
+            # linestyle=LINE_STYLE,
+            ms=MARKER_SIZE,
+            linewidth=LINE_WIDTH,
+            # color=MODEL_COLORS[model_name]
+            **MODEL_PLOT_KWARGS[model_name]
+        )
 
-    for i in range(nrows):
-        for j in range(ncols):
-            ax = axes[i, j]
-            ax.set_xlabel("Number of participants", fontsize=axis_label_size)
-            ax.set_ylabel("")
-            if not i:
-                if not j: ax.set_ylabel("True positive rate\nof detecting shift in threshold", fontsize=axis_label_size)
-                if j: ax.set_ylabel("False positive rate\nof detecting shift in threshold", fontsize=axis_label_size)
-            else:
-                ax.set_ylabel("Mean Absolute Error", fontsize=axis_label_size)
-
-            sides = ["top", "right"]
-            for side in sides:
-                ax.spines[side].set_visible(False)
-            ax.tick_params(
-                axis='both',
-                which='both',
-                left=True,
-                bottom=True,
-                right=False,
-                top=False,
-                labelleft=True,
-                labelbottom=True,
-                labelright=False,
-                labeltop=False,
-                labelrotation=15,
-                labelsize=10
-            )
-            ax.grid(axis="y", linestyle="--", alpha=.25)
+    for j in range(ncols):
+        ax = axes[0, j]
+        ax.set_xlabel("")
+        ax.set_ylabel("")
+        sides = ["top", "right"]
+        for side in sides: ax.spines[side].set_visible(False)
+        ax.tick_params(
+            axis='both',
+            which='both',
+            left=True,
+            bottom=True,
+            right=False,
+            top=False,
+            labelleft=True,
+            labelbottom=True,
+            labelright=False,
+            labeltop=False,
+            labelrotation=ROTATION,
+            labelsize=TICK_SIZE
+        )
+        ax.grid(axis="y", linestyle=GRID_LINE_STYLE, alpha=GRID_ALPHA)
 
     ax = axes[0, 0]
-    ax.text(2, .805, "80% Power", va="bottom", ha="left", fontsize=inside_text_size)
+    ax.set_yticks([.2 * i for i in range(6)])
+    ax.set_ylim(top=1.05)
+    ax.axhline(y=.8, linestyle="--", color=RCOLOR, linewidth=LINE_WIDTH, alpha=LEVEL_ALPHA, xmin=0.01, xmax=1.)
+    ax.text(2, .81, "80% Power", va="bottom", ha="left", fontsize=INSIDE_TEXT_SIZE)
+    ax.set_xlabel("Number of participants", fontsize=AXIS_LABEL_SIZE)
+    ax.set_ylabel("True positive rate\nof detecting shift in threshold", fontsize=AXIS_LABEL_SIZE)
+    ax.set_xticks([2, 4, 8, 10, 12, 13, 16, 18, 20])
 
     ax = axes[0, 1]
-    ax.text(2, .051, "5% Significance level", va="bottom", ha="left", fontsize=inside_text_size)
-
-    ax = axes[0, 1]
-    ax.legend(loc="upper right", fontsize=inside_text_size, labelspacing=.7, reverse=True)
+    ax.set_yticks([.02 * i for i in range(6)] + [.05])
+    ax.set_ylim(top=.105)
+    ax.axhline(y=.05, linestyle="--", color=RCOLOR, linewidth=LINE_WIDTH, alpha=LEVEL_ALPHA, xmin=0.01, xmax=1)
+    ax.text(1.8, .051, "5%\nSignificance level", va="bottom", ha="left", fontsize=INSIDE_TEXT_SIZE)
+    ax.legend(loc="upper right", fontsize=INSIDE_TEXT_SIZE, labelspacing=.8, reverse=True)
+    ax.set_xlabel("Number of participants", fontsize=AXIS_LABEL_SIZE)
+    ax.set_ylabel("False positive rate", fontsize=AXIS_LABEL_SIZE)
 
     fig.align_xlabels()
     fig.align_ylabels()
 
     dest = os.path.join(BUILD_DIR, "power.svg")
-    fig.savefig(dest, dpi=600)
-    logger.info(f"Saved to {dest}")
-
+    fig.savefig(dest, dpi=600); logger.info(f"Saved to {dest}")
     dest = os.path.join(BUILD_DIR, "power.png")
-    fig.savefig(dest, dpi=600)
-    logger.info(f"Saved to {dest}")
-
+    fig.savefig(dest, dpi=600); logger.info(f"Saved to {dest}")
     return
 
 

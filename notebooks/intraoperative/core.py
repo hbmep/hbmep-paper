@@ -13,7 +13,7 @@ from models import HierarchicalBayesianModel
 from bootstrap__models import (
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization
+    LeastSquares,
 )
 from constants import (
     TOML_PATH,
@@ -37,10 +37,6 @@ def main(M):
         case HierarchicalBayesianModel.NAME:
             # Build model
             config = Config(toml_path=TOML_PATH)
-            # config.BUILD_DIR = os.path.join(
-            #     BUILD_DIR,
-            #     M.NAME
-            # )
             model = M(config=config)
             model.build_dir = os.path.join(BUILD_DIR, model.NAME)
 
@@ -129,6 +125,14 @@ def main(M):
             logger.info(f"DF shape: {df.shape}")
             _, posterior_samples = model.run(df=df, max_tree_depth=(15, 15))
 
+            # Save
+            a_pred = posterior_samples[site.a]
+            np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
+
+            dest = os.path.join(model.build_dir, INFERENCE_FILE)
+            with open(dest, "wb") as f:
+                pickle.dump((posterior_samples,), f)
+
             # Predictions and recruitment curves
             prediction_df = model.make_prediction_dataset(df=df)
             posterior_predictive = model.predict(
@@ -148,15 +152,7 @@ def main(M):
                 posterior_predictive=posterior_predictive
             )
 
-            # Compute error and save results
-            a_pred = posterior_samples[site.a]
-            np.save(os.path.join(model.build_dir, "a_pred.npy"), a_pred)
-
-            dest = os.path.join(model.build_dir, INFERENCE_FILE)
-            with open(dest, "wb") as f:
-                pickle.dump((posterior_samples,), f)
-
-        case NelderMeadOptimization.NAME:
+        case LeastSquares.NAME:
             config = Config(toml_path=TOML_PATH)
             config.BUILD_DIR = os.path.join(
                 BUILD_DIR,
@@ -175,6 +171,10 @@ def main(M):
             logger.info(f"DF shape: {df.shape}")
             params = model.run(df=df)
 
+            # Save
+            src = os.path.join(model.build_dir, "a_pred.npy")
+            np.save(src, params[site.a])
+
             # Predictions and recruitment curves
             prediction_df = model.make_prediction_dataset(df=df)
             prediction_df = model.predict(df=prediction_df, params=params)
@@ -184,10 +184,6 @@ def main(M):
                 params=params,
                 prediction_df=prediction_df,
             )
-
-            # Save
-            src = os.path.join(model.build_dir, "a_pred.npy")
-            np.save(src, params[site.a])
 
         case _:
             raise ValueError(f"Unknown model: {M.NAME}")
@@ -199,5 +195,5 @@ if __name__ == "__main__":
     M = HierarchicalBayesianModel
     # M = NonHierarchicalBayesianModel
     # M = MaximumLikelihoodModel
-    # M = NelderMeadOptimization
+    # M = LeastSquares
     main(M=M)
