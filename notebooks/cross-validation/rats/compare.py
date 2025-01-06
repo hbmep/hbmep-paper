@@ -5,7 +5,8 @@ import logging
 import arviz as az
 
 from hbmep.config import Config
-from hbmep.nn import functional as F
+from hbmep import functional as F
+from hbmep import smooth_functional as S
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
@@ -14,11 +15,12 @@ from models import (
     RectifiedLogistic,
     Logistic5,
     Logistic4,
-    RectifiedLinear
+    RectifiedLinear,
+    EPS
 )
 from constants import (
     INFERENCE_FILE,
-    BUILD_DIR
+    BUILD_DIR,
 )
 
 logger = logging.getLogger(__name__)
@@ -38,7 +40,7 @@ FUNCTIONAL_MODELS = [
     (
         "rectified_logistic",
         "Rectified-\nlogistic",
-        F.rectified_logistic,
+        S.rectified_logistic,
         [site.a, site.b, site.L, site.ell, site.H]
     ),
     (
@@ -56,7 +58,7 @@ FUNCTIONAL_MODELS = [
     (
         "rectified_linear",
         "Rectified-\nlinear",
-        F.rectified_linear,
+        S.rectified_linear,
         [site.a, site.b, site.L]
     )
 ]
@@ -64,13 +66,13 @@ MIXTURE_MODELS = [
     (
         "mixture_model",
         "Mixture\ndistribution",
-        F.rectified_logistic,
+        S.rectified_logistic,
         [site.a, site.b, site.L, site.ell, site.H]
     ),
     (
         "rectified_logistic",
         "Gamma\ndistribution",
-        F.rectified_logistic,
+        S.rectified_logistic,
         [site.a, site.b, site.L, site.ell, site.H]
     )
 ]
@@ -78,7 +80,7 @@ FUNCTIONAL_MODELS_NO_LOGISTIC_5 = [
     (
         "rectified_logistic",
         "Rectified-\nlogistic",
-        F.rectified_logistic,
+        S.rectified_logistic,
         [site.a, site.b, site.L, site.ell, site.H]
     ),
     (
@@ -90,7 +92,7 @@ FUNCTIONAL_MODELS_NO_LOGISTIC_5 = [
     (
         "rectified_linear",
         "Rectified-\nlinear",
-        F.rectified_linear,
+        S.rectified_linear,
         [site.a, site.b, site.L]
     )
 ]
