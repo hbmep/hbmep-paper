@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-from hbmep.nn import functional as F
+from hbmep import functional as F
 from hbmep.model.utils import Site as site
 
 from hbmep_paper.utils import setup_logging
@@ -25,7 +25,7 @@ def main():
     nrows, ncols = 2, 3
     fig, axes = plt.subplots(
         nrows, ncols, figsize=(7, 1.7 * nrows),
-        constrained_layout=True, squeeze=False
+        constrained_layout=True, squeeze=False, sharex=True
     )
     x = np.linspace(0, 10, 1000)
     named_params = [site.a, site.b, site.L, site.H, site.ell]
@@ -103,9 +103,15 @@ def main():
                 labelbottom=True,
                 labelright=False,
                 labeltop=False,
-                labelrotation=15,
+                labelrotation=0,
                 labelsize=8
             )
+
+    for i in range(nrows):
+        for j in range(ncols):
+            if (i, j) in [(1, 0), (0, 2)]: continue
+            ax = axes[i, j]
+            ax.sharey(axes[0, 0])
 
     fig.suptitle("All other parameters are 1", fontsize=10)
     dest = os.path.join(BUILD_DIR, "effect_of_varying_params.svg")
