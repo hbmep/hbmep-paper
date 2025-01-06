@@ -1,14 +1,16 @@
 import os
+import pickle
 import logging
 
 import numpy as np
+from scipy import stats
 
 from hbmep_paper.utils import setup_logging
 from models__accuracy import (
     HierarchicalBayesianModel,
     NonHierarchicalBayesianModel,
     MaximumLikelihoodModel,
-    NelderMeadOptimization,
+    LeastSquares,
 )
 from core__number_of_subjects import (
     N_REPS,
@@ -20,114 +22,107 @@ from constants__accuracy import (
 )
 
 logger = logging.getLogger(__name__)
-
 BUILD_DIR = NUMBER_OF_SUBJECTS_DIR
 
 
-def main():
+def main(draws_space, n_subjects_space, models):
     n_reps = N_REPS
     n_pulses = N_PULSES
-    n_subjects_space = N_SUBJECTS_SPACE
 
-    draws_space = range(4000)
+    num_draws_processed = 0
+    draws_not_processed = []
+    mae, mse = [], []
 
-    models = [
-        NelderMeadOptimization,
-        MaximumLikelihoodModel,
-        NonHierarchicalBayesianModel,
-        HierarchicalBayesianModel
-    ]
+    for draw in draws_space:
+        curr_mae, curr_mse = [], []
 
-    mae = []
-    mse = []
-    for n_subjects in n_subjects_space:
-        for draw in draws_space:
+        try:
             for M in models:
-                n_reps_dir, n_pulses_dir, n_subjects_dir = f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}"
-                draw_dir = f"d{draw}"
+                for n_subjects in n_subjects_space:
+                    n_reps_dir, n_pulses_dir, n_subjects_dir, draw_dir = (
+                        f"r{n_reps}", f"p{n_pulses}", f"n{n_subjects}", f"d{draw}"
+                    )
 
-                logger.info(f"n_subjects: {n_subjects}, draw: {draw}, model: {M.NAME}")
-
-                match M.NAME:
-                    case "hierarchical_bayesian_model" | "svi_hierarchical_bayesian_model":
-                        dir = os.path.join(
-                            BUILD_DIR,
-                            draw_dir,
-                            n_subjects_dir,
-                            n_reps_dir,
-                            n_pulses_dir,
-                            M.NAME
-                        )
-
-                        a_true = np.load(os.path.join(dir, "a_true.npy"))
-                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))
-
-                        a_pred = a_pred.mean(axis=0).reshape(-1,)
-                        a_true = a_true.reshape(-1,)
-
-                    case "non_hierarchical_bayesian_model" | "maximum_likelihood_model":
-                        n_subjects_dir = f"n{n_subjects_space[-1]}"
-                        a_true, a_pred = [], []
-
-                        for subject in range(n_subjects):
-                            sub_dir = f"subject{subject}"
-                            dir = os.path.join(
+                    match M.NAME:
+                        case HierarchicalBayesianModel.NAME:
+                            src = os.path.join(
                                 BUILD_DIR,
                                 draw_dir,
                                 n_subjects_dir,
                                 n_reps_dir,
                                 n_pulses_dir,
-                                M.NAME,
-                                sub_dir
+                                M.NAME
                             )
-                            a_true_sub = np.load(os.path.join(dir, "a_true.npy"))
-                            a_pred_sub = np.load(os.path.join(dir, "a_pred.npy"))
+                            a_true = np.load(os.path.join(src, "a_true.npy"))
+                            a_true = a_true.reshape(-1,)
+                            a_pred = np.load(os.path.join(src, "a_pred.npy"))
+                            a_pred = a_pred.mean(axis=0).reshape(-1,)
 
-                            a_pred_sub_map = a_pred_sub.mean(axis=0)
-                            a_true_sub = a_true_sub
+                        case NonHierarchicalBayesianModel.NAME | MaximumLikelihoodModel.NAME:
+                            src = os.path.join(
+                                BUILD_DIR,
+                                draw_dir,
+                                f"n{n_subjects_space[-1]}",
+                                n_reps_dir,
+                                n_pulses_dir,
+                                M.NAME
+                            )
+                            a_true = np.load(os.path.join(src, "a_true.npy"))
+                            a_true = a_true[:n_subjects, ...]
+                            a_true = a_true.reshape(-1,)
+                            a_pred = np.load(os.path.join(src, "a_pred.npy"))
+                            a_pred = a_pred[:, :n_subjects, ...]
+                            a_pred = a_pred.mean(axis=0).reshape(-1,)
 
-                            a_true += a_pred_sub_map.reshape(-1,).tolist()
-                            a_pred += a_true_sub.reshape(-1,).tolist()
+                        case LeastSquares.NAME:
+                            src = os.path.join(
+                                BUILD_DIR,
+                                draw_dir,
+                                f"n{n_subjects_space[-1]}",
+                                n_reps_dir,
+                                n_pulses_dir,
+                                M.NAME
+                            )
+                            a_true = np.load(os.path.join(src, "a_true.npy"))
+                            a_true = a_true[:n_subjects, ...]
+                            a_true = a_true.reshape(-1,)
+                            a_pred = np.load(os.path.join(src, "a_pred.npy"))
+                            a_pred = a_pred[:n_subjects, ...]
+                            a_pred = a_pred.reshape(-1,)
 
-                        a_true = np.array(a_true)
-                        a_pred = np.array(a_pred)
+                        case _:
+                            raise ValueError(f"Invalid model {M.NAME}.")
 
-                    case "nelder_mead_optimization":
-                        dir = os.path.join(
-                            BUILD_DIR,
-                            draw_dir,
-                            f"n{n_subjects_space[-1]}",
-                            n_reps_dir,
-                            n_pulses_dir,
-                            M.NAME
-                        )
-                        a_true = np.load(os.path.join(dir, "a_true.npy"))[:n_subjects, ...]
-                        a_pred = np.load(os.path.join(dir, "a_pred.npy"))[:n_subjects, ...]
+                    curr_mae.append(np.abs(a_true - a_pred).mean())
+                    curr_mse.append(np.square(a_true - a_pred).mean())
 
-                        a_pred = a_pred.reshape(-1,)
-                        a_true = a_true.reshape(-1,)
 
-                    case _:
-                        raise ValueError(f"Invalid model {M.NAME}.")
+        except FileNotFoundError:
+            draws_not_processed.append(draw)
+            logger.info(f"Draw: {draw} - Missing")
 
-                curr_mae = np.abs(a_true - a_pred).mean()
-                curr_mse = np.square(a_true - a_pred).mean()
-                mae.append(curr_mae)
-                mse.append(curr_mse)
+        else:
+            logger.info(f"Draw: {draw}")
+            mae += curr_mae
+            mse += curr_mse
+            num_draws_processed += 1
 
-    mae = np.array(mae).reshape(len(n_subjects_space), len(draws_space), len(models))
-    mse = np.array(mse).reshape(len(n_subjects_space), len(draws_space), len(models))
+    mae = np.array(mae)
+    mae = mae.reshape(num_draws_processed, len(models), len(n_subjects_space))
+    mse = np.array(mse)
+    mse = mse.reshape(num_draws_processed, len(models), len(n_subjects_space))
 
-    logger.info(f"MAE: {mae.shape}")
-    logger.info(f"MSE: {mse.shape}")
+    logger.info(f"MAE: {mae.shape}\n{mae.mean(axis=0)}")
+    logger.info(f"\n{mae.mean(axis=0) - 1.96 * stats.sem(mae, axis=0)}")
+    logger.info(f"\n{mae.mean(axis=0) + 1.96 * stats.sem(mae, axis=0)}")
 
-    dest = os.path.join(BUILD_DIR, "mae.npy")
-    np.save(dest, mae)
+    model_names = [M.NAME for M in models]
+    dest = os.path.join(BUILD_DIR, "results.pkl")
+    with open (dest, "wb") as f:
+        pickle.dump(
+            (model_names, n_subjects_space, mae, mse), f
+        )
     logger.info(f"Saved to {dest}")
-    dest = os.path.join(BUILD_DIR, "mse.npy")
-    np.save(dest, mse)
-    logger.info(f"Saved to {dest}")
-
     return
 
 
@@ -136,4 +131,18 @@ if __name__ == "__main__":
         dir=BUILD_DIR,
         fname=os.path.basename(__file__)
     )
-    main()
+
+    draws_space = range(4000)
+    models = [
+        LeastSquares,
+        MaximumLikelihoodModel,
+        NonHierarchicalBayesianModel,
+        HierarchicalBayesianModel
+    ]
+    n_subjects_space = N_SUBJECTS_SPACE
+
+    main(
+        draws_space=draws_space,
+        n_subjects_space=n_subjects_space,
+        models=models
+    )
