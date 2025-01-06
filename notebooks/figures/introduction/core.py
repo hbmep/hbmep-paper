@@ -27,7 +27,7 @@ def run_inference(model):
     df, encoder_dict = model.load(df=df)
 
     # Run inference
-    mcmc, posterior_samples = model.run_inference(df=df)
+    mcmc, posterior_samples = model.run(df=df)
 
     # Predict and render plots
     prediction_df = model.make_prediction_dataset(df=df, num_points=5000, min_intensity=0, max_intensity=105)
@@ -64,8 +64,7 @@ def nelder_mead_method(model):
 
     # Run inference
     df, encoder_dict = model.load(df=df)
-    params = model.run_inference(df=df)
-    logger.info(type(params))
+    params = model.run(df=df)
     dest = os.path.join(model.build_dir, "params.pkl")
     with open(dest, "wb") as f:
         pickle.dump((params,), f)
@@ -90,17 +89,17 @@ def main(Model):
     model = Model(config=config)
 
     # Setup logging
-    model._make_dir(config.BUILD_DIR)
+    os.makedirs(config.BUILD_DIR, exist_ok=True)
     setup_logging(
         dir=model.build_dir,
         fname=os.path.basename(__file__)
     )
 
-    # Run inference
+    # Run
     match model.NAME:
-        case "rectified_logistic":
+        case RectifiedLogistic.NAME:
             run_inference(model)
-        case "nelder_mead":
+        case NelderMeadOptimization.NAME:
             nelder_mead_method(model)
         case _:
             raise ValueError(f"Unknown model")
@@ -108,5 +107,5 @@ def main(Model):
 
 
 if __name__ == "__main__":
-    main(RectifiedLogistic)
+    # main(RectifiedLogistic)
     main(NelderMeadOptimization)

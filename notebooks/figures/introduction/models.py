@@ -4,9 +4,12 @@ import numpyro
 import numpyro.distributions as dist
 
 from hbmep.config import Config
-from hbmep.nn import functional as F
-from hbmep.model import GammaModel, BoundedOptimization
+from hbmep import functional as F
+from hbmep import smooth_functional as S
+from hbmep.model import GammaModel, BoundConstrainedOptimization
 from hbmep.model.utils import Site as site
+
+EPS = 1e-3
 
 
 class RectifiedLogistic(GammaModel):
@@ -20,20 +23,20 @@ class RectifiedLogistic(GammaModel):
         n_features = np.max(features, axis=0) + 1
         feature0 = features[..., 0]
 
+        # Hyper Priors
+        a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 30., low=0))
+        a_scale = numpyro.sample("a_scale", dist.HalfNormal(30.))
+
+        b_scale = numpyro.sample("b_scale", dist.HalfNormal(1.))
+
+        L_scale = numpyro.sample("L_scale", dist.HalfNormal(.1))
+        ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(1.))
+        H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
+
+        c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
+        c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(.5))
+
         with numpyro.plate(site.n_response, self.n_response):
-            # Hyper Priors
-            a_loc = numpyro.sample("a_loc", dist.TruncatedNormal(50., 50., low=0))
-            a_scale = numpyro.sample("a_scale", dist.HalfNormal(50.))
-
-            b_scale = numpyro.sample("b_scale", dist.HalfNormal(5.))
-
-            L_scale = numpyro.sample("L_scale", dist.HalfNormal(.5))
-            ell_scale = numpyro.sample("ell_scale", dist.HalfNormal(10.))
-            H_scale = numpyro.sample("H_scale", dist.HalfNormal(5.))
-
-            c_1_scale = numpyro.sample("c_1_scale", dist.HalfNormal(5.))
-            c_2_scale = numpyro.sample("c_2_scale", dist.HalfNormal(5.))
-
             with numpyro.plate(site.n_features[0], n_features[0]):
                 # Priors
                 a = numpyro.sample(
@@ -58,39 +61,30 @@ class RectifiedLogistic(GammaModel):
                 c_2_raw = numpyro.sample("c_2_raw", dist.HalfNormal(scale=1))
                 c_2 = numpyro.deterministic(site.c_2, jnp.multiply(c_2_scale, c_2_raw))
 
-        s50 = numpyro.deterministic(
-            "s50",
-            F.solve_rectified_logistic(L + (H / 2), a, b, L, ell, H)
-        )
-
         with numpyro.plate(site.n_response, self.n_response):
             with numpyro.plate(site.n_data, n_data):
                 # Model
                 mu = numpyro.deterministic(
                     site.mu,
-                    F.rectified_logistic(
+                    S.rectified_logistic(
                         x=intensity,
                         a=a[feature0],
                         b=b[feature0],
                         L=L[feature0],
                         ell=ell[feature0],
-                        H=H[feature0]
+                        H=H[feature0],
+                        eps=EPS
                     )
                 )
                 beta = numpyro.deterministic(
                     site.beta,
-                    self.rate(
-                        mu,
-                        c_1[feature0],
-                        c_2[feature0]
-                    )
+                    self.rate(mu, c_1[feature0], c_2[feature0])
                 )
                 alpha = numpyro.deterministic(
                     site.alpha,
                     self.concentration(mu, beta)
                 )
 
-                # Observation
                 numpyro.sample(
                     site.obs,
                     dist.Gamma(concentration=alpha, rate=beta),
@@ -98,16 +92,24 @@ class RectifiedLogistic(GammaModel):
                 )
 
 
-class NelderMeadOptimization(BoundedOptimization):
-    NAME = "nelder_mead"
+class NelderMeadOptimization(BoundConstrainedOptimization):
+    NAME = "nelder_mead_optimization"
 
     def __init__(self, config: Config):
         super(NelderMeadOptimization, self).__init__(config=config)
-        self.solver = "Nelder-Mead"
-        self.functional = F.logistic4      # a, b, L, H
-        self.named_params = [site.a, site.b, site.L, site.H]
+        # Required
+        self.method = "Nelder-Mead"
+        self.named_args = [site.a, site.b, site.L, site.H]
         self.bounds = [(1e-9, 150.), (1e-9, 10), (1e-9, 10), (1e-9, 10)]
-        self.informed_bounds = [(20, 80), (1e-3, 5.), (1e-4, .1), (.5, 5)]
-        self.num_points = 1000
-        self.num_iters = 5000
+        self.informed_bounds = [(20, 80), (1e-3, 1.), (1e-4, .1), (.5, 5)]
+        self.num_reinit = int(5e3)
         self.n_jobs = -1
+
+    def functional(self, x, a, b, L, H):
+        return F.logistic4(
+            x, a, b, L, H
+        )
+
+    def cost_function(self, x, y_obs, *args):
+        y_pred = self.functional(x, *args)
+        return np.sum((y_obs - y_pred) ** 2)
