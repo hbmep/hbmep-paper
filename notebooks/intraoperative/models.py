@@ -13,19 +13,18 @@ EPS = 1e-3
 
 
 class HierarchicalBayesianModel(GammaModel):
-    # NAME = "6"
     NAME = "hierarchical_bayesian_model"
 
     def __init__(self, config: Config):
         super(HierarchicalBayesianModel, self).__init__(config=config)
         self.mcmc_params = {
-            "num_warmup": 4000,
-            "num_samples": 4000,
+            "num_warmup": 20000,
+            "num_samples": 20000,
             "num_chains": 4,
-            "thinning": 4,
+            "thinning": 20,
         }
         self.run_kwargs = {
-            "max_tree_depth": (15, 15),
+            "max_tree_depth": (20, 20),
             "target_accept_prob": .95,
             "extra_fields": [
                 "potential_energy",
@@ -36,6 +35,8 @@ class HierarchicalBayesianModel(GammaModel):
         self.NAME += (
             f'_{self.mcmc_params["num_warmup"]}W'
             f'_{self.mcmc_params["num_samples"]}S'
+            f'_{self.mcmc_params["num_chains"]}C'
+            f'_{self.mcmc_params["thinning"]}T'
             f'_{self.run_kwargs["max_tree_depth"][0]}D'
             f'_{self.run_kwargs["target_accept_prob"]}A'
         )
@@ -176,6 +177,5 @@ class HierarchicalBayesianModel(GammaModel):
                 numpyro.sample(
                     site.obs,
                     Mixture,
-                    # dist.Gamma(concentration=alpha, rate=beta),
                     obs=response_obs
                 )
