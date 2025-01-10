@@ -42,3 +42,21 @@ def generate_nested_pulses(simulator, simulation_df):
             )
 
     return pulses_map
+
+
+def generate_reps_map(n_reps_space, n_pulses_space):
+    pulses = []
+    reps_map = {}
+    for n_pulses in n_pulses_space:
+        for n_reps in n_reps_space:
+            n_unique_pulses = n_pulses // n_reps
+            arr = np.linspace(0, 100, n_unique_pulses)
+            arr = np.round(arr, 1).tolist()
+            assert len(arr) == n_unique_pulses
+            assert len(set(arr)) == len(arr)
+            pulses += arr
+            reps_map[(n_pulses, n_reps)] = arr
+
+    pulses = list(set(pulses))
+    pulses = sorted(pulses)
+    return pulses, reps_map
