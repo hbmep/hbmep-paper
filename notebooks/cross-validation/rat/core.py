@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 @timing
-def main(M):
+def main(model):
     df = pd.read_csv(DATA_PATH)
     # model.features = model.features[0]
     # model.plot(df=df)
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     model = HB(toml_path=TOML_PATH)
     model.features = [model.features]
 
-    model.test_run = True
+    # model.test_run = True
     # model.use_mixture = True
     # model._model = model.rectified_logistic
     # model._model = model.logistic5

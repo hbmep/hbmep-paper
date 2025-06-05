@@ -1,7 +1,9 @@
-TOML_PATH = "/home/vishu/repos/hbmep-paper/configs/cross-validation/tms.toml"
-DATA_PATH = "/home/vishu/data/hbmep-processed/human/tms/proc_2024-06-08.csv"
+import os
 
-INFERENCE_FILE = "inference.pkl"
-NETCODE_FILE = "inference_data.nc"
+from paper.constants import (
+    TMS_TOML as TOML_PATH,
+    TMS_DATA as DATA_PATH,
+    REPORTS
+)
 
-BUILD_DIR = "/home/vishu/repos/hbmep-paper/reports/cross-validation/tms"
+BUILD_DIR = os.path.join(REPORTS, "hbmep-paper", "cross-validation", "tms")
