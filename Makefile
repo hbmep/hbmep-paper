@@ -16,7 +16,6 @@ build: build-base
 	pip install -e . && \
 	pip install -e ../hbmep
 
-
 notebook:
 	@source .venv/bin/activate && \
 	jupyter notebook

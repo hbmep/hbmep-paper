@@ -3,8 +3,8 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "hbmep_paper"
-version = "0.0.1"
+name = "paper"
+version = "0.0.2"
 authors = [
     { name="Vishweshwar Tyagi, James R. McIntosh", email="vt2353@cumc.columbia.edu" }
 ]
