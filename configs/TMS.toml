@@ -1,0 +1,10 @@
+[variables]
+intensity = "TMSInt"
+features = ["participant", "participant_condition"]
+response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
+
+[mep_metadata]
+mep_response = ['PKPK_ADM', 'PKPK_APB', 'PKPK_Biceps', 'PKPK_ECR', 'PKPK_FCR', 'PKPK_Triceps']
+mep_window = [-0.25, 0.25]
+mep_size_window = [0.005, 0.09]
+mep_adjust = 2.5
