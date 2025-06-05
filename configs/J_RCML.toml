@@ -1,0 +1,4 @@
+[variables]
+intensity = "pulse_amplitude"
+features = ["participant", "compound_position"]
+response = ['LADM', 'LBiceps', 'LDeltoid', 'LECR', 'LFCR', 'LTriceps']
