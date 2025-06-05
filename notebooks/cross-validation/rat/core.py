@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 
 import pandas as pd
@@ -48,13 +49,27 @@ def main(M):
 if __name__ == "__main__":
     model = HB(toml_path=TOML_PATH)
     model.features = [model.features]
-    # model.test_run = True
-    # model.use_mixture = True
 
-    model._model = model.rectified_logistic
+    model.test_run = True
+    # model.use_mixture = True
+    # model._model = model.rectified_logistic
     # model._model = model.logistic5
     # model._model = model.logistic4
     # model._model = model.rectified_linear
+
+    args = sys.argv[1:]
+    model_name, use_mixture, response_id = args
+    use_mixture = int(use_mixture)
+    response_id = int(response_id)
+    match model_name:
+        case "rlog": model._model = model.rectified_logistic
+        case "l5": model._model = model.logistic5
+        case "l4": model._model = model.logistic4
+        case "rlin": model._model = model.rectified_linear
+        case _: raise ValueError
+    if use_mixture: model.use_mixture = True
+    if response_id != -1:
+        model.response = model.response[response_id]
 
     model.mcmc_params = {
         "thinning": 4,
@@ -70,5 +85,9 @@ if __name__ == "__main__":
     model.build_dir = os.path.join(
         BUILD_DIR, model.name, model._model.__name__
     )
+    if response_id != -1:
+        assert len(model.response) == 1
+        assert model.num_response == 1
+        model.build_dir = os.path.join(model.build_dir, model.repsonse[0])
     setup_logging(model.build_dir)
     main(model)
