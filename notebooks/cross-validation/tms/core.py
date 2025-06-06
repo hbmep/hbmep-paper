@@ -39,6 +39,8 @@ def main(model):
         }
 
     logger.info(f"*** model: {model._model.__name__} ***")
+    for u, v in model.mcmc_params.items(): logger.info(f"{u}: {v}")
+    logger.info(f"use_mixture: {model.use_mixture}")
     run(df, model, extra_fields=["num_steps"])
     return
 
@@ -47,12 +49,15 @@ if __name__ == "__main__":
     model = HB(toml_path=TOML_PATH)
     model.features = [model.features]
 
-    # model.test_run = True
+    response_id = -1
+    model.test_run = True
     # model.use_mixture = True
     # model._model = model.rectified_logistic
     # model._model = model.logistic5
     # model._model = model.logistic4
     # model._model = model.rectified_linear
+    # model._model = model.constvarlognormal_rl
+    # model._model = model.lognormal_rl
 
     args = sys.argv[1:]
     model_name, use_mixture, response_id = args
@@ -63,6 +68,8 @@ if __name__ == "__main__":
         case "l5": model._model = model.logistic5
         case "l4": model._model = model.logistic4
         case "rlin": model._model = model.rectified_linear
+        case "constlnrlog": model._model = model.constvarlognormal_rl
+        case "lnrlog": model._model = model.lognormal_rl
         case _: raise ValueError
     if use_mixture: model.use_mixture = True
     if response_id != -1:
