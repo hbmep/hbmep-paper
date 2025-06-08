@@ -117,3 +117,55 @@ def predict(df, encoder, posterior, model, mcmc):
     except: pass
     logger.info(f"Saved results to {model.build_dir}")
     return
+
+
+def load_model(
+    model_dir,
+    inference_file="inf.pkl",
+    model_file="model.pkl",
+    mcmc_file="mcmc.pkl",
+):
+    src = os.path.join(model_dir, inference_file)
+    with open(src, "rb") as f:
+        df, encoder, posterior, = pickle.load(f)
+
+    model = None
+    try:
+        src = os.path.join(model_dir, model_file)
+        with open(src, "rb") as f:
+            model, = pickle.load(f)
+    except ModuleNotFoundError as e:
+        logger.info(e)
+
+    mcmc = None
+    try:
+        src = os.path.join(model_dir, mcmc_file)
+        with open(src, "rb") as f:
+            mcmc, = pickle.load(f)
+    except FileNotFoundError:
+        logger.info(
+            f"{mcmc_file} not found. Attempting to read from model_dict.pkl"
+        )
+    except ValueError as e:
+        logger.info("Encountered ValueError, trace is below")
+        logger.info(e)
+    else:
+        logger.info(f"Found {model_file}")
+
+    if mcmc is None:
+        try:
+            src = os.path.join(model_dir, "model_dict.pkl")
+            with open(src, "rb") as f:
+                mcmc, _ = pickle.load(f)
+        except FileNotFoundError:
+            logger.info("model_dict.pkl not found.")
+        except ValueError as e:
+            logger.info(
+                "Encountered ValueError, trace is below."
+                + " Possible issue with unpacking."
+            )
+            logger.info(e)
+        else:
+            logger.info("Found model_dict.pkl")
+
+    return df, encoder, posterior, model, mcmc
