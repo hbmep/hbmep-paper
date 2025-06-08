@@ -1,0 +1,4 @@
+[variables]
+intensity = "sc_current"
+features = ["participant", "sc_laterality"]
+response = ["ADM", "APB", "Biceps", "Triceps"]
