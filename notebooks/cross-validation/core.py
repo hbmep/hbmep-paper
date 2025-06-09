@@ -23,6 +23,9 @@ PLOT_DATA, TEST_RUN = False, True
 def run_model(model, data_path):
     run_id = model.run_id
     df = pd.read_csv(data_path)
+    if run_id == "intraoperative":
+        idx = ~df[model.response].isna().values.any(axis=-1)
+        df = df[idx].reset_index(drop=True).copy()
     if PLOT_DATA:
         model.plot(df=df)
         return
@@ -37,7 +40,9 @@ def run_model(model, data_path):
         elif run_id == "tms":
             idx = df[model.features[0]].isin(["SCA01", "SCA04"])
         elif run_id == "intraoperative":
-            idx = df[model.features[0]].isin(["cornptio001", "cornptio003"])
+            idx = df[model.features[0]].isin(
+                ["cornptio001", "cornptio003", "scapptio001"]
+            )
         else:
             raise ValueError
         df = df[idx].reset_index(drop=True).copy()
@@ -51,6 +56,7 @@ def run_model(model, data_path):
     logger.info(f"*** run id: {run_id} ***")
     logger.info(f"*** model: {model._model.__name__} ***")
     for u, v in model.mcmc_params.items(): logger.info(f"{u}: {v}")
+    for u, v in model.nuts_params.items(): logger.info(f"{u}: {v}")
     logger.info(f"use_mixture: {model.use_mixture}")
     model.features = [model.features]
     run(df, model, extra_fields=["num_steps"])
@@ -69,6 +75,7 @@ def main(run_id, model_name, use_mixture=0, response_id=-1):
             data_path = TMS_DATA
         case "intraoperative":
             toml_path = INTRAOPERATIVE_TOML
+            data_path = INTRAOPERATIVE_DATA
         case _:
             raise ValueError
     model = HB(toml_path=toml_path)
@@ -116,12 +123,17 @@ if __name__ == "__main__":
 
     args_space = [
         ["rlog", 1],
-        ["rlog", 0],
-        ["l5", 0],
+        # ["rlog", 0],
+        # ["l5", 0],
         # ["l4", 0],
         # ["rlin", 0],
     ] 
-    for dataset in ["rat", "tms", "intraoperative"]:
+    datasets = [
+        # "rat",
+        # "tms",
+        "intraoperative"
+    ]
+    for dataset in datasets:
         for args in args_space:
             args = [dataset] + args
             main(*args)
