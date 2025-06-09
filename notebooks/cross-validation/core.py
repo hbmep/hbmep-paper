@@ -17,7 +17,7 @@ from constants import BUILD_DIR
 
 logger = logging.getLogger(__name__)
 PLOT_DATA, TEST_RUN = False, False
-PLOT_DATA, TEST_RUN = False, True
+# PLOT_DATA, TEST_RUN = False, True
 
 
 @timing
@@ -97,7 +97,8 @@ def main(
         case _: raise ValueError
     if use_mixture: model.use_mixture = True
     if response_id != -1:
-        model.response = model.response[response_id]
+        assert response_id in range(6)
+        model.response = model.response[response_id: response_id + 1]
 
     model.mcmc_params = {
         "thinning": 4,
@@ -128,26 +129,33 @@ def main(
 
 if __name__ == "__main__":
 
-    # args = sys.argv[1:]
-    # main(*args)
+    args = sys.argv[1:]
+    main(*args)
 
-    use_higher_depth = 0
-    args_space = [
-        ["ln_rlog", 0],
-        # ["rlog", 1],
-        # ["rlog", 0],
-        # ["l5", 0],
-        # ["l4", 0],
-        # ["rlin", 0],
-    ] 
-    datasets = [
-        "rat",
-        "tms",
-        "intraoperative"
-    ]
-    with Parallel(n_jobs=-1) as parallel:
-        parallel(
-            delayed(main)(dataset, *args, use_higher_depth)
-            for dataset in datasets
-            for args in args_space
-        )
+    # use_higher_depth = 0
+    # args_space = [
+    #     ["ln_rlog", 0],
+    #     # ["rlog", 1],
+    #     # ["rlog", 0],
+    #     # ["l5", 0],
+    #     # ["l4", 0],
+    #     # ["rlin", 0],
+    # ] 
+    # datasets = [
+    #     "rat",
+    #     # "tms",
+    #     # "intraoperative"
+    # ]
+    # with Parallel(n_jobs=-1) as parallel:
+    #     parallel(
+    #         delayed(main)(dataset, *args, use_higher_depth)
+    #         for dataset in datasets
+    #         for args in args_space
+    #     )
+
+    # with Parallel(n_jobs=-1) as parallel:
+    #     parallel(
+    #         delayed(main)("rat", model_name, 0, response_id, 0)
+    #         for response_id in range(6)
+    #         for model_name in ["rlog"]
+    #     )
