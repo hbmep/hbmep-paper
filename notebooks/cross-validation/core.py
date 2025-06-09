@@ -4,6 +4,7 @@ import logging
 
 import pandas as pd
 from hbmep.util import timing, setup_logging
+from joblib import Parallel, delayed
 
 from paper.model import HB
 from paper.util import run
@@ -20,7 +21,7 @@ PLOT_DATA, TEST_RUN = False, True
 
 
 @timing
-def run_model(model, data_path):
+def run_model(model, data_path, use_higher_depth=False):
     run_id = model.run_id
     df = pd.read_csv(data_path)
     if run_id == "intraoperative":
@@ -63,9 +64,16 @@ def run_model(model, data_path):
     return
 
 
-def main(run_id, model_name, use_mixture=0, response_id=-1):
+def main(
+    run_id: str,
+	model_name: str,
+	use_mixture: int = 0,
+	response_id: int = -1,
+    use_higher_depth: int = 0
+):
     use_mixture = int(use_mixture)
     response_id = int(response_id)
+    use_higher_depth = int(use_higher_depth)
     match run_id:
         case "rat": 
             toml_path = RAT_TOML
@@ -84,8 +92,8 @@ def main(run_id, model_name, use_mixture=0, response_id=-1):
         case "l5": model._model = model.logistic5
         case "l4": model._model = model.logistic4
         case "rlin": model._model = model.rectified_linear
-        case "constln_rlog": model._model = model.constvarlognormal_rl
-        case "ln_rlog": model._model = model.lognormal_rl
+        case "ln_rlog": model._model = model.lognormal_rlog
+        # case "constln_rlog": model._model = model.constvarlognormal_rl
         case _: raise ValueError
     if use_mixture: model.use_mixture = True
     if response_id != -1:
@@ -101,6 +109,8 @@ def main(run_id, model_name, use_mixture=0, response_id=-1):
         "max_tree_depth": (15, 15),
         "target_accept_prob": .95,
     }
+    if use_higher_depth:
+        model.nuts_params["max_tree_depth"] = (20, 20)
 
     model.run_id = run_id
     model.build_dir = os.path.join(
@@ -121,19 +131,23 @@ if __name__ == "__main__":
     # args = sys.argv[1:]
     # main(*args)
 
+    use_higher_depth = 0
     args_space = [
-        ["rlog", 1],
+        ["ln_rlog", 0],
+        # ["rlog", 1],
         # ["rlog", 0],
         # ["l5", 0],
         # ["l4", 0],
         # ["rlin", 0],
     ] 
     datasets = [
-        # "rat",
-        # "tms",
+        "rat",
+        "tms",
         "intraoperative"
     ]
-    for dataset in datasets:
-        for args in args_space:
-            args = [dataset] + args
-            main(*args)
+    with Parallel(n_jobs=-1) as parallel:
+        parallel(
+            delayed(main)(dataset, *args, use_higher_depth)
+            for dataset in datasets
+            for args in args_space
+        )

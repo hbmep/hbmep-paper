@@ -14,6 +14,8 @@ TMS_TOML = os.path.join(CONFIG, "TMS.toml")
 TMS_DATA_DIR = os.path.join(DATA, "human", "tms")
 TMS_DATA = os.path.join(TMS_DATA_DIR, "proc_2024-06-08.csv")
 TMS_MAT = os.path.join(TMS_DATA_DIR, "proc_2024-06-08.npy")
+UPDATED_TMS_DATA = os.path.join(TMS_DATA_DIR, "proc_2025-06-07", "data.csv")
+UPDATED_TMS_MAT = os.path.join(TMS_DATA_DIR, "proc_2025-06-07", "mat.npy")
 
 INTRAOPERATIVE_TOML = os.path.join(CONFIG, "INTRAOPERATIVE.toml")
 INTRAOPERATIVE_DATA = os.path.join(DATA, "human", "intraoperative", "data.csv")
