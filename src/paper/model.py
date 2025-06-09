@@ -60,7 +60,7 @@ class HB(BaseModel):
                 a_loc = pyro.sample(
                     site.a.log, dist.TruncatedNormal(5., 10., low=0)
                 )
-                a_scale = pyro.sample(site.ascale, dist.HalfNormal(10.))
+                a_scale = pyro.sample(site.a.scale, dist.HalfNormal(10.))
                 b_scale = pyro.sample(site.b.scale, dist.HalfNormal(5.))
                 h_scale = pyro.sample(site.h.scale, dist.HalfNormal(10.))
 
@@ -192,7 +192,7 @@ class HB(BaseModel):
                 a_loc = pyro.sample(
                     site.a.log, dist.TruncatedNormal(5., 10., low=0)
                 )
-                a_scale = pyro.sample(site.ascale, dist.HalfNormal(10.))
+                a_scale = pyro.sample(site.a.scale, dist.HalfNormal(10.))
                 b_scale = pyro.sample(site.b.scale, dist.HalfNormal(5.))
                 h_scale = pyro.sample(site.h.scale, dist.HalfNormal(10.))
 
@@ -324,7 +324,7 @@ class HB(BaseModel):
                 a_loc = pyro.sample(
                     site.a.log, dist.TruncatedNormal(5., 10., low=0)
                 )
-                a_scale = pyro.sample(site.ascale, dist.HalfNormal(10.))
+                a_scale = pyro.sample(site.a.scale, dist.HalfNormal(10.))
                 b_scale = pyro.sample(site.b.scale, dist.HalfNormal(5.))
                 h_scale = pyro.sample(site.h.scale, dist.HalfNormal(10.))
 
@@ -456,7 +456,7 @@ class HB(BaseModel):
                 a_loc = pyro.sample(
                     site.a.log, dist.TruncatedNormal(5., 10., low=0)
                 )
-                a_scale = pyro.sample(site.ascale, dist.HalfNormal(10.))
+                a_scale = pyro.sample(site.a.scale, dist.HalfNormal(10.))
                 b_scale = pyro.sample(site.b.scale, dist.HalfNormal(5.))
                 # h_scale = pyro.sample(site.h.scale, dist.HalfNormal(10.))
             
