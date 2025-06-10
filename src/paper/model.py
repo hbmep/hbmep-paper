@@ -651,7 +651,7 @@ class HB(BaseModel):
                             )
                         )
 
-    def lognormal2_rlog(self, intensity, features, response=None, **kw):
+    def ln_rlog(self, intensity, features, response=None, **kw):
         num_data = intensity.shape[0]
         num_features = np.max(features, axis=0) + 1
         run_id = self.run_id

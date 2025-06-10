@@ -70,11 +70,11 @@ def main(
 	model_name: str,
 	use_mixture: int = 0,
 	response_id: int = -1,
-    use_higher_depth: int = 0
+    depth: int = 15
 ):
     use_mixture = int(use_mixture)
     response_id = int(response_id)
-    use_higher_depth = int(use_higher_depth)
+    depth = int(depth)
     match run_id:
         case "rat": 
             toml_path = RAT_TOML
@@ -94,8 +94,7 @@ def main(
         case "l4": model._model = model.logistic4
         case "rlin": model._model = model.rectified_linear
         case "ln_rlog": model._model = model.lognormal_rlog
-        case "ln2_rlog": model._model = model.lognormal2_rlog
-        # case "constln_rlog": model._model = model.constvarlognormal_rl
+        case "ln2_rlog": model._model = model.ln_rlog
         case _: raise ValueError
     if use_mixture: model.use_mixture = True
     if response_id != -1:
@@ -109,11 +108,9 @@ def main(
         "num_samples": 4000,
     }
     model.nuts_params = {
-        "max_tree_depth": (15, 15),
+        "max_tree_depth": (depth, depth),
         "target_accept_prob": .95,
     }
-    if use_higher_depth:
-        model.nuts_params["max_tree_depth"] = (20, 20)
 
     model.run_id = run_id
     model.build_dir = os.path.join(
@@ -134,8 +131,8 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     main(*args)
 
-    # use_higher_depth = 0
     # args_space = [
+    #     # ["ln2_rlog", 0],
     #     ["ln_rlog", 0],
     #     # ["rlog", 1],
     #     # ["rlog", 0],
@@ -144,13 +141,13 @@ if __name__ == "__main__":
     #     # ["rlin", 0],
     # ] 
     # datasets = [
-    #     "rat",
-    #     # "tms",
+    #     # "rat",
+    #     "tms",
     #     # "intraoperative"
     # ]
     # with Parallel(n_jobs=-1) as parallel:
     #     parallel(
-    #         delayed(main)(dataset, *args, use_higher_depth)
+    #         delayed(main)(dataset, *args, -1)
     #         for dataset in datasets
     #         for args in args_space
     #     )
