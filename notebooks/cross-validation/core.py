@@ -59,6 +59,7 @@ def run_model(model, data_path, use_higher_depth=False):
     for u, v in model.mcmc_params.items(): logger.info(f"{u}: {v}")
     for u, v in model.nuts_params.items(): logger.info(f"{u}: {v}")
     logger.info(f"use_mixture: {model.use_mixture}")
+    logger.info(f"response: {model.response}")
     model.features = [model.features]
     run(df, model, extra_fields=["num_steps"])
     return
@@ -93,6 +94,7 @@ def main(
         case "l4": model._model = model.logistic4
         case "rlin": model._model = model.rectified_linear
         case "ln_rlog": model._model = model.lognormal_rlog
+        case "ln2_rlog": model._model = model.lognormal2_rlog
         # case "constln_rlog": model._model = model.constvarlognormal_rl
         case _: raise ValueError
     if use_mixture: model.use_mixture = True

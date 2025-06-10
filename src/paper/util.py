@@ -3,7 +3,9 @@ import pickle
 import logging
 
 import numpy as np
+import pandas as pd
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 import arviz as az
 from hbmep.util import timing, site
 
@@ -36,18 +38,7 @@ def make_pdf(figs, output_path):
     return
 
 
-def run(data, model, encoder=None, **kw):
-    # Run
-    if encoder is None:
-        df, encoder = model.load(df=data)
-    else:
-        df = data.copy()
-    logger.info(f"df.shape {df.shape}")
-    # model.plot(df, encoder=encoder)
-    # return
-    mcmc, posterior = model.run(df=df, **kw)
-
-    # Save
+def save_model(model, df, encoder, posterior, mcmc=None):
     output_path = os.path.join(model.build_dir, "inf.pkl")
     with open(output_path, "wb") as f:
         pickle.dump((df, encoder, posterior,), f)
@@ -69,6 +60,20 @@ def run(data, model, encoder=None, **kw):
             pickle.dump((mcmc,), f)
         logger.info(f"Saved to {output_path}")
 
+    return
+
+
+def run(data, model, encoder=None, **kw):
+    # Run
+    if encoder is None:
+        df, encoder = model.load(df=data)
+    else:
+        df = data.copy()
+    logger.info(f"df.shape {df.shape}")
+    # model.plot(df, encoder=encoder)
+    # return
+    mcmc, posterior = model.run(df=df, **kw)
+    save_model(model, df, encoder, posterior, mcmc)
     predict(df, encoder, posterior, model, mcmc)
     return
 
@@ -169,3 +174,64 @@ def load_model(
             logger.info("Found model_dict.pkl")
 
     return df, encoder, posterior, model, mcmc
+
+
+def _adjust_brightness(rgb_in, val):
+    hsv = rgb_to_hsv(rgb_in)
+    hsv[2] = val  # Adjust the brightness (value component in HSV)
+    rgb_out = hsv_to_rgb(hsv)
+    return rgb_out
+
+
+def _get_cmap_muscles_alt():
+    vec_muscle = np.array(["Trapezius", "Deltoid", "Biceps", "Triceps", "ECR", "FCR", "APB", "ADM", "TA", "EDB", "AH", "FDI", "auc_target"])
+    cmap_mus_dark = np.array([
+        _adjust_brightness(np.array([0.6350, 0.0780, 0.1840]), 0.5),  # trapz
+        np.array([1, 133, 113]) / 255,  # delt
+        np.array([166, 97, 26]) / 255,  # biceps
+        np.array([44, 123, 182]) / 255,  # triceps
+        np.array([52, 0, 102]) / 255,  # ecr
+        _adjust_brightness(np.array([0.5, 0.5, 0.5]), 0.3),  # fcr
+        np.array([208, 28, 139]) / 255,  # apb
+        np.array([77, 172, 38]) / 255,  # adm
+        np.array([215, 25, 28]) / 255,  # ta
+        np.array([123, 50, 148]) / 255,  # edb
+        _adjust_brightness(np.array([153, 79, 0]) / 256, 0.4),  # ah
+        np.array([231, 226, 61]) / 255,  # fdi
+        np.array([255, 100, 0]) / 255,  # auc_target
+    ])
+    cmap_mus_light = np.array([
+        _adjust_brightness(np.array([0.6350, 0.0780, 0.1840]), 0.8),  # trapz
+        np.array([128, 205, 193]) / 255,  # delt
+        np.array([223, 194, 125]) / 255,  # biceps
+        np.array([171, 217, 233]) / 255,  # triceps
+        _adjust_brightness(np.array([200, 40, 0]) / 255, 0.6),  # ecr
+        _adjust_brightness(np.array([0.5, 0.5, 0.5]), 0.6),  # fcr
+        np.array([241, 182, 218]) / 255,  # apb
+        np.array([184, 225, 134]) / 255,  # adm
+        np.array([253, 174, 97]) / 255,  # ta
+        np.array([194, 165, 207]) / 255,  # edb
+        _adjust_brightness(np.array([153, 79, 0]) / 256, 0.6),  # ah
+        _adjust_brightness(np.array([23, 54, 124]) / 256, 0.6),  # fdi
+        np.array([255, 100, 0]) / 255,  # auc_target
+    ])
+    # Create a DataFrame to hold muscle names and corresponding colors
+    T_color = pd.DataFrame({
+        'muscle': vec_muscle,
+        'cmap_mus_light': [tuple(c) for c in cmap_mus_light],
+        'cmap_mus_dark': [tuple(c) for c in cmap_mus_dark],
+    })
+    # Convert RGB to hex
+    T_color['cmap_mus_light_hex'] = T_color['cmap_mus_light'].apply(
+        lambda x: '#%02x%02x%02x' % tuple([int(255 * v) for v in x]))
+    T_color['cmap_mus_dark_hex'] = T_color['cmap_mus_dark'].apply(
+        lambda x: '#%02x%02x%02x' % tuple([int(255 * v) for v in x]))
+    return cmap_mus_dark, cmap_mus_light, vec_muscle, T_color
+
+
+def get_response_colors(response: list[str]):
+    cmap_mus_dark, cmap_mus_light, vec_muscle, T_color = _get_cmap_muscles_alt()
+    cmap_dict = dict(zip(vec_muscle, cmap_mus_dark))
+    colors = []
+    for response in response: colors.append(cmap_dict[response[5:]])
+    return colors
