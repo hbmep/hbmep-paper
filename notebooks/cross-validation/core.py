@@ -16,22 +16,17 @@ from paper.constants import (
 from constants import BUILD_DIR
 
 logger = logging.getLogger(__name__)
-PLOT_DATA, TEST_RUN = False, False
-# PLOT_DATA, TEST_RUN = False, True
 
 
 @timing
-def run_model(model, data_path, use_higher_depth=False):
+def run_model(model, data_path, test_run):
     run_id = model.run_id
     df = pd.read_csv(data_path)
     if run_id == "intraoperative":
         idx = ~df[model.response].isna().values.any(axis=-1)
         df = df[idx].reset_index(drop=True).copy()
-    if PLOT_DATA:
-        model.plot(df=df)
-        return
 
-    if TEST_RUN:
+    if test_run:
         model.response = model.response[:3]
         if run_id == "rat":
             idx = (
@@ -54,6 +49,7 @@ def run_model(model, data_path, use_higher_depth=False):
             "num_samples": 400,
         }
 
+    if test_run: logger.info("This is a test run...")
     logger.info(f"*** run id: {run_id} ***")
     logger.info(f"*** model: {model._model.__name__} ***")
     for u, v in model.mcmc_params.items(): logger.info(f"{u}: {v}")
@@ -70,11 +66,13 @@ def main(
 	model_name: str,
 	use_mixture: int = 0,
 	response_id: int = -1,
-    depth: int = 15
+    depth: int = 15,
+    test_run: int = 1,
 ):
     use_mixture = int(use_mixture)
     response_id = int(response_id)
     depth = int(depth)
+    test_run = int(test_run)
     match run_id:
         case "rat": 
             toml_path = RAT_TOML
@@ -95,6 +93,8 @@ def main(
         case "rlin": model._model = model.rectified_linear
         case "ln_rlog": model._model = model.lognormal_rlog
         case "ln2_rlog": model._model = model.ln_rlog
+        case "nor_rlog": model._model = model.normal_rlog
+        case "cln_rlog": model._model = model.constln_rlog
         case _: raise ValueError
     if use_mixture: model.use_mixture = True
     if response_id != -1:
@@ -116,39 +116,40 @@ def main(
     model.build_dir = os.path.join(
         BUILD_DIR, model.run_id, model.name, model._model.__name__
     )
-    if TEST_RUN:
+    if test_run:
         model.build_dir = os.path.join(model.build_dir, "test_run")
     if response_id != -1:
         assert len(model.response) == 1
         assert model.num_response == 1
         model.build_dir = os.path.join(model.build_dir, model.response[0])
     setup_logging(model.build_dir)
-    run_model(model, data_path)
+    run_model(model, data_path, test_run)
 
 
 if __name__ == "__main__":
 
+    # dataset model_name use_mixture(0) response_id(-1) depth(15) test_run(1)
+    # tms rlog 0 -1 15 0
     args = sys.argv[1:]
     main(*args)
 
+    # # model_name use_mixture
     # args_space = [
+    #     ["cln_rlog", 0],
+    #     ["nor_rlog", 0],
     #     # ["ln2_rlog", 0],
-    #     ["ln_rlog", 0],
+    #     # ["ln_rlog", 0],
     #     # ["rlog", 1],
     #     # ["rlog", 0],
     #     # ["l5", 0],
-    #     # ["l4", 0],
-    #     # ["rlin", 0],
+    #     # ["l4", 0], #     # ["rlin", 0],
     # ] 
-    # datasets = [
-    #     # "rat",
-    #     "tms",
-    #     # "intraoperative"
-    # ]
+    # # dataset = "rat"
+    # dataset = "tms"
+    # # dataset = "intraoperative"
     # with Parallel(n_jobs=-1) as parallel:
     #     parallel(
-    #         delayed(main)(dataset, *args, -1)
-    #         for dataset in datasets
+    #         delayed(main)(dataset, *args)
     #         for args in args_space
     #     )
 
