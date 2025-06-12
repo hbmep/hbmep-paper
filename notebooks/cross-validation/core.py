@@ -95,6 +95,9 @@ def main(
         case "ln2_rlog": model._model = model.ln_rlog
         case "nor_rlog": model._model = model.normal_rlog
         case "cln_rlog": model._model = model.constln_rlog
+        case "cln_l5": model._model = model.constln_l5
+        case "cln_l4": model._model = model.constln_l4
+        case "cln_rlin": model._model = model.constln_rlin
         case _: raise ValueError
     if use_mixture: model.use_mixture = True
     if response_id != -1:
